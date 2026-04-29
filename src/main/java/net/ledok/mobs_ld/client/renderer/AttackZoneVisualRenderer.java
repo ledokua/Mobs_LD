@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZoneVisualEntity;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -85,26 +86,46 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
     }
 
     private void renderCone(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
-        float dist = entity.getParamA();
+        float dist = entity.getParamA() * scale;
         float angle = entity.getParamB();
         float yaw = (float) Math.toRadians(entity.getYawDegrees());
-        float halfWidth = (float) (dist * Math.sin(Math.toRadians(angle * 0.5F))) * scale;
-        float front = dist * scale;
+        float halfAngle = (float) Math.toRadians(angle * 0.5F);
 
-        addQuad(matrix, buffer, color,
-                rotateX(-halfWidth, 0.0F, yaw), rotateZ(-halfWidth, 0.0F, yaw),
-                rotateX(halfWidth, 0.0F, yaw), rotateZ(halfWidth, 0.0F, yaw),
-                rotateX(halfWidth, front, yaw), rotateZ(halfWidth, front, yaw),
-                rotateX(-halfWidth, front, yaw), rotateZ(-halfWidth, front, yaw));
+        float llx = (float) (-Math.sin(halfAngle) * dist);
+        float llz = (float) (Math.cos(halfAngle) * dist);
+        float rlx = (float) (Math.sin(halfAngle) * dist);
+        float rlz = (float) (Math.cos(halfAngle) * dist);
+
+        float lx = rotateX(llx, llz, yaw);
+        float lz = rotateZ(llx, llz, yaw);
+        float rx = rotateX(rlx, rlz, yaw);
+        float rz = rotateZ(rlx, rlz, yaw);
+
+        float y = 0.02F;
+        buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+        buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+        buffer.addVertex(matrix, lx, y, lz).setColor(color);
+        buffer.addVertex(matrix, rx, y, rz).setColor(color);
     }
 
     private void renderCircle(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
         float radius = entity.getParamA() * scale;
-        addQuad(matrix, buffer, color,
-                -radius, -radius,
-                radius, -radius,
-                radius, radius,
-                -radius, radius);
+        int segments = 32;
+        float y = 0.02F;
+        for (int i = 0; i < segments; i++) {
+            float a1 = (float) (2.0 * Math.PI * i / segments);
+            float a2 = (float) (2.0 * Math.PI * (i + 1) / segments);
+
+            float x1 = (float) Math.cos(a1) * radius;
+            float z1 = (float) Math.sin(a1) * radius;
+            float x2 = (float) Math.cos(a2) * radius;
+            float z2 = (float) Math.sin(a2) * radius;
+
+            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+            buffer.addVertex(matrix, x1, y, z1).setColor(color);
+            buffer.addVertex(matrix, x2, y, z2).setColor(color);
+            buffer.addVertex(matrix, x2, y, z2).setColor(color);
+        }
     }
 
     private void addQuad(
@@ -134,6 +155,11 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
     @Override
     public ResourceLocation getTextureLocation(AttackZoneVisualEntity entity) {
         return null;
+    }
+
+    @Override
+    public boolean shouldRender(AttackZoneVisualEntity entity, Frustum frustum, double x, double y, double z) {
+        return true;
     }
 
     private static float clamp01(float value) {
