@@ -150,10 +150,10 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             float x2 = rotateX(localX2, localZ2, yaw);
             float z2 = rotateZ(localX2, localZ2, yaw);
 
-            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
             buffer.addVertex(matrix, x1, y, z1).setColor(color);
             buffer.addVertex(matrix, x2, y, z2).setColor(color);
+            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
         }
     }
 
