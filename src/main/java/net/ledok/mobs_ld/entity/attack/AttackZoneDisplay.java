@@ -26,11 +26,11 @@ public class AttackZoneDisplay {
         if (previewEntity == null || fillEntity == null) {
             throw new IllegalStateException("Failed to create attack zone visual entity");
         }
-        previewEntity.setPos(origin.x, origin.y + 0.02, origin.z);
+        previewEntity.setPos(origin.x, origin.y + 0.16, origin.z);
         previewEntity.configure(zone, yawDegrees, config, windupTicks, true);
         world.addFreshEntity(previewEntity);
 
-        fillEntity.setPos(origin.x, origin.y + 0.02, origin.z);
+        fillEntity.setPos(origin.x, origin.y + 0.18, origin.z);
         fillEntity.configure(zone, yawDegrees, config, windupTicks, false);
         world.addFreshEntity(fillEntity);
 

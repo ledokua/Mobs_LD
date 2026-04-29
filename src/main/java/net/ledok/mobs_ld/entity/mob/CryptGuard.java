@@ -48,6 +48,6 @@ public class CryptGuard extends BaseDungeonMob {
 
     @Override
     protected AttackDisplayConfig displayConfig() {
-        return AttackDisplayConfig.DEFAULT;
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.SWEEP, 0xFF3A0060, 0xFFAA00FF);
     }
 }

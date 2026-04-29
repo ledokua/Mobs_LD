@@ -48,7 +48,8 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
     private void renderFill(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer) {
         int totalWindup = Math.max(1, entity.getTotalWindup());
         int windupTimer = entity.getWindupTimer();
-        float progress = clamp01(1.0F - ((float) windupTimer / totalWindup));
+        int animationTicks = Math.max(1, totalWindup - BRIGHT_WINDOW_TICKS);
+        float progress = clamp01(1.0F - (((float) windupTimer - BRIGHT_WINDOW_TICKS) / animationTicks));
 
         AttackDisplayConfig.AnimationStyle style = AttackDisplayConfig.AnimationStyle.values()[
                 Math.max(0, Math.min(AttackDisplayConfig.AnimationStyle.values().length - 1, entity.getStyle()))
