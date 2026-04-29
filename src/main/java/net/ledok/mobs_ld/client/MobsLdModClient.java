@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.ledok.mobs_ld.client.renderer.AttackZoneVisualRenderer;
 import net.ledok.mobs_ld.client.renderer.DungeonMobRenderer;
 import net.ledok.mobs_ld.registry.ModEntities;
 
@@ -13,5 +14,6 @@ public class MobsLdModClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModEntities.SPINNER_MOB, ctx -> new DungeonMobRenderer<>(ctx, "spinner_mob"));
         EntityRendererRegistry.register(ModEntities.FANG_MOB, ctx -> new DungeonMobRenderer<>(ctx, "fang_mob"));
         EntityRendererRegistry.register(ModEntities.CURSE_SHAMAN, ctx -> new DungeonMobRenderer<>(ctx, "curse_shaman"));
+        EntityRendererRegistry.register(ModEntities.ATTACK_ZONE_VISUAL, AttackZoneVisualRenderer::new);
     }
 }
