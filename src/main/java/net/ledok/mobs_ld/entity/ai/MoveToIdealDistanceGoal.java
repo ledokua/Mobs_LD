@@ -6,6 +6,8 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
 public class MoveToIdealDistanceGoal extends Goal {
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 1.5F;
+
     private final BaseDungeonMob mob;
     private final double speedModifier;
     private int recalcPathTicks = 0;
@@ -17,7 +19,20 @@ public class MoveToIdealDistanceGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        return mob.getTarget() != null && !mob.isWindingUp();
+        LivingEntity target = mob.getTarget();
+        if (target == null || mob.isWindingUp()) {
+            return false;
+        }
+        return !canAttackNow(target);
+    }
+
+    @Override
+    public boolean canContinueToUse() {
+        LivingEntity target = mob.getTarget();
+        if (target == null || mob.isWindingUp()) {
+            return false;
+        }
+        return !canAttackNow(target);
     }
 
     @Override
@@ -47,5 +62,10 @@ public class MoveToIdealDistanceGoal extends Goal {
                 mob.getNavigation().stop();
             }
         }
+    }
+
+    private boolean canAttackNow(LivingEntity target) {
+        return mob.getAttackCooldown() <= 0
+                && mob.distanceTo(target) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
     }
 }

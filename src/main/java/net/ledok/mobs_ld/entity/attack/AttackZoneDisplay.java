@@ -22,9 +22,7 @@ public class AttackZoneDisplay {
     }
 
     public static AttackZoneDisplay spawn(ServerLevel world, Vec3 origin, float yawDegrees, AttackZone zone) {
-        AttackZoneDisplay display = new AttackZoneDisplay(world, origin, yawDegrees, zone);
-        display.drawDimRed();
-        return display;
+        return new AttackZoneDisplay(world, origin, yawDegrees, zone);
     }
 
     public void drawDimRed() {

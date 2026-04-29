@@ -13,6 +13,9 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 public class TelegraphedAttackGoal extends Goal {
+    private static final int BRIGHT_WINDOW_TICKS = 5;
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 1.5F;
+
     private final BaseDungeonMob mob;
     private int windupTimer = -1;
     private AttackZoneDisplay display;
@@ -45,7 +48,7 @@ public class TelegraphedAttackGoal extends Goal {
         }
 
         return mob.getAttackCooldown() <= 0
-                && mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + 0.5F;
+                && mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
     }
 
     @Override
@@ -66,6 +69,14 @@ public class TelegraphedAttackGoal extends Goal {
     @Override
     public void tick() {
         windupTimer--;
+
+        if (display != null) {
+            if (windupTimer > BRIGHT_WINDOW_TICKS) {
+                display.drawDimRed();
+            } else if (windupTimer > 0) {
+                display.setBrightRed();
+            }
+        }
 
         if (windupTimer <= 0) {
             if (display != null) {
