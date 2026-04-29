@@ -43,9 +43,9 @@ public class TelegraphedAttackGoal extends Goal {
         Vec3 toTarget = mob.getTarget().position().subtract(mob.position());
         if (toTarget.lengthSqr() > 1.0e-6) {
             Vec3 forward = new Vec3(
-                    -Math.sin(Math.toRadians(mob.getYRot())),
+                    -Math.sin(Math.toRadians(mob.getYHeadRot())),
                     0.0,
-                    Math.cos(Math.toRadians(mob.getYRot()))
+                    Math.cos(Math.toRadians(mob.getYHeadRot()))
             );
             Vec3 toTargetFlat = new Vec3(toTarget.x, 0.0, toTarget.z).normalize();
             if (forward.dot(toTargetFlat) <= 0.0) {
