@@ -13,6 +13,7 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
 
 public abstract class BaseDungeonMob extends Monster {
@@ -86,6 +87,12 @@ public abstract class BaseDungeonMob extends Monster {
                 getLookControl().setLookAt(target, 30.0F, 30.0F);
             }
         }
+    }
+
+    @Override
+    public void die(DamageSource source) {
+        super.die(source);
+        goalSelector.getAvailableGoals().forEach(wrappedGoal -> wrappedGoal.getGoal().stop());
     }
 
     public AttackZone getAttackZone() {
