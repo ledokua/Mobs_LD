@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.entity.mob;
 
 import net.ledok.mobs_ld.entity.BaseDungeonMob;
+import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -43,5 +44,10 @@ public class FangMob extends BaseDungeonMob {
     @Override
     protected double idealAttackDistance() {
         return 3.0;
+    }
+
+    @Override
+    protected AttackDisplayConfig displayConfig() {
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.APPEAR, 0xFF3A0060, 0xFFAA00FF);
     }
 }

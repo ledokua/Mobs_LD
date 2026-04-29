@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.entity;
 
 import net.ledok.mobs_ld.entity.ai.MoveToIdealDistanceGoal;
 import net.ledok.mobs_ld.entity.ai.TelegraphedAttackGoal;
+import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -40,6 +41,10 @@ public abstract class BaseDungeonMob extends Monster {
 
     protected boolean cooldownStartsAtWindupStart() {
         return true;
+    }
+
+    protected AttackDisplayConfig displayConfig() {
+        return AttackDisplayConfig.DEFAULT;
     }
 
     public int getAttackCooldown() {
@@ -121,5 +126,9 @@ public abstract class BaseDungeonMob extends Monster {
 
     public boolean isCooldownStartingAtWindupStart() {
         return cooldownStartsAtWindupStart();
+    }
+
+    public AttackDisplayConfig getDisplayConfig() {
+        return displayConfig();
     }
 }

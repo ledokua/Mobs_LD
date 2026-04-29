@@ -1,10 +1,7 @@
 {
   "variants": {
-    "phase=false": {
-      "model": "mobs_ld:block/attack_zone_cone_prepare"
-    },
-    "phase=true": {
-      "model": "mobs_ld:block/attack_zone_cone_invoke"
+    "": {
+      "model": "mobs_ld:block/attack_zone_cone"
     }
   }
 }

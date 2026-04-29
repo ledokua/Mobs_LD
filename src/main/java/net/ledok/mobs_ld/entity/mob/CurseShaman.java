@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.entity.mob;
 
 import net.ledok.mobs_ld.entity.BaseDungeonMob;
+import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -53,5 +54,10 @@ public class CurseShaman extends BaseDungeonMob {
     @Override
     protected boolean cooldownStartsAtWindupStart() {
         return true;
+    }
+
+    @Override
+    protected AttackDisplayConfig displayConfig() {
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.PULSE, 0xFF1A5C1A, 0xFF00FF44);
     }
 }

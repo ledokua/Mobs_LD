@@ -18,6 +18,8 @@ import java.util.UUID;
 public class TelegraphedAttackGoal extends Goal {
     private static final int BRIGHT_WINDOW_TICKS = 2;
     private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0F;
+    private static final double ZONE_MIN_Y_OFFSET = -0.5;
+    private static final double ZONE_MAX_Y_OFFSET = 2.0;
 
     private final BaseDungeonMob mob;
     private int windupTimer = -1;
@@ -86,7 +88,14 @@ public class TelegraphedAttackGoal extends Goal {
             lockedYaw = mob.getYRot();
         }
         Vec3 displayOrigin = getZoneOrigin();
-        display = AttackZoneDisplay.spawn((ServerLevel) mob.level(), displayOrigin, lockedYaw, mob.getAttackZone());
+        display = AttackZoneDisplay.spawn(
+                (ServerLevel) mob.level(),
+                displayOrigin,
+                lockedYaw,
+                mob.getAttackZone(),
+                mob.getDisplayConfig(),
+                mob.getWindupTicks()
+        );
         alreadyHit.clear();
         mob.getNavigation().stop();
         mob.setWindingUp(true);
@@ -101,11 +110,7 @@ public class TelegraphedAttackGoal extends Goal {
             windupTimer--;
 
             if (display != null) {
-                if (windupTimer > BRIGHT_WINDOW_TICKS) {
-                    display.drawDimRed();
-                } else if (windupTimer > 0) {
-                    display.setBrightRed();
-                }
+                display.update(windupTimer, mob.getWindupTicks());
             }
 
             if (windupTimer <= 0) {
@@ -177,7 +182,15 @@ public class TelegraphedAttackGoal extends Goal {
         AttackZone zone = mob.getAttackZone();
         Vec3 zoneOrigin = getZoneOrigin();
         float reach = zone.maxForwardReach();
-        AABB broad = new AABB(zoneOrigin, zoneOrigin).inflate(reach + 1.0F);
+        double horizontal = reach + 1.0F;
+        AABB broad = new AABB(
+                zoneOrigin.x - horizontal,
+                zoneOrigin.y + ZONE_MIN_Y_OFFSET,
+                zoneOrigin.z - horizontal,
+                zoneOrigin.x + horizontal,
+                zoneOrigin.y + ZONE_MAX_Y_OFFSET,
+                zoneOrigin.z + horizontal
+        );
         List<ServerPlayer> candidates = world.getEntitiesOfClass(ServerPlayer.class, broad);
 
         Vec3 forward = new Vec3(
@@ -201,6 +214,10 @@ public class TelegraphedAttackGoal extends Goal {
     }
 
     private boolean isInZone(Vec3 pos, Vec3 forward, AttackZone zone, Vec3 zoneOrigin) {
+        if (pos.y < zoneOrigin.y + ZONE_MIN_Y_OFFSET || pos.y > zoneOrigin.y + ZONE_MAX_Y_OFFSET) {
+            return false;
+        }
+
         Vec3 toTarget = pos.subtract(zoneOrigin);
 
         return switch (zone) {

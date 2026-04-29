@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.entity.mob;
 
 import net.ledok.mobs_ld.entity.BaseDungeonMob;
+import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -22,12 +23,12 @@ public class SpinnerMob extends BaseDungeonMob {
 
     @Override
     protected AttackZone attackZone() {
-        return new AttackZone.Circle(3.5F);
+        return new AttackZone.Circle(5.5F);
     }
 
     @Override
     protected int windupTicks() {
-        return 5;
+        return 40;
     }
 
     @Override
@@ -41,12 +42,12 @@ public class SpinnerMob extends BaseDungeonMob {
     }
 
     @Override
-    protected boolean canMoveWhilePersisting() {
-        return true;
+    protected double idealAttackDistance() {
+        return 0.0;
     }
 
     @Override
-    protected double idealAttackDistance() {
-        return 0.0;
+    protected AttackDisplayConfig displayConfig() {
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.GROW, 0xFF7A3000, 0xFFFF6600);
     }
 }
