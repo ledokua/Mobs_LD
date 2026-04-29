@@ -27,7 +27,7 @@ public class CurseShaman extends BaseDungeonMob {
 
     @Override
     protected int windupTicks() {
-        return 30;
+        return 15;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class CurseShaman extends BaseDungeonMob {
 
     @Override
     protected int damagePersistTicks() {
-        return 10;
+        return 60;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class CurseShaman extends BaseDungeonMob {
 
     @Override
     protected boolean canMoveWhilePersisting() {
-        return false;
+        return true;
     }
 
     @Override

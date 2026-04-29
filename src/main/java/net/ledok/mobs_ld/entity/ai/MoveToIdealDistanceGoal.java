@@ -6,7 +6,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
 public class MoveToIdealDistanceGoal extends Goal {
-    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0.5F;
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0.2F;
 
     private final BaseDungeonMob mob;
     private final double speedModifier;

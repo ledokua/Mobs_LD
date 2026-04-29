@@ -27,17 +27,22 @@ public class SpinnerMob extends BaseDungeonMob {
 
     @Override
     protected int windupTicks() {
-        return 15;
+        return 5;
     }
 
     @Override
     protected int attackCooldownTicks() {
-        return 50;
+        return 100;
     }
 
     @Override
     protected int damagePersistTicks() {
         return 0;
+    }
+
+    @Override
+    protected boolean canMoveWhilePersisting() {
+        return true;
     }
 
     @Override

@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class TelegraphedAttackGoal extends Goal {
-    private static final int BRIGHT_WINDOW_TICKS = 5;
+    private static final int BRIGHT_WINDOW_TICKS = 2;
     private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0F;
 
     private final BaseDungeonMob mob;
