@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "mobs_ld",
+  "version": "${version}",
+  "name": "Mobs_LD",
+  "description": "Mobs for dungeons",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/mobs_ld/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "net.ledok.mobs_ld.client.MobsLdModClient"
+    ],
+    "main": [
+      "net.ledok.mobs_ld.MobsLdMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
