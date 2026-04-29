@@ -17,8 +17,7 @@ import java.util.UUID;
 
 public class TelegraphedAttackGoal extends Goal {
     private static final int BRIGHT_WINDOW_TICKS = 5;
-    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0.5F;
-    private static final float CIRCLE_TARGET_TRIGGER_RANGE = 12.0F;
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0F;
 
     private final BaseDungeonMob mob;
     private int windupTimer = -1;
@@ -58,12 +57,7 @@ public class TelegraphedAttackGoal extends Goal {
             return false;
         }
 
-        AttackZone zone = mob.getAttackZone();
-        if (zone instanceof AttackZone.CircleTarget) {
-            return mob.distanceTo(mob.getTarget()) <= CIRCLE_TARGET_TRIGGER_RANGE;
-        }
-
-        return mob.distanceTo(mob.getTarget()) <= zone.maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
+        return mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
     }
 
     @Override

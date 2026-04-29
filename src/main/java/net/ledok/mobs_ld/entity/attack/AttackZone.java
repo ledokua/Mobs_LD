@@ -24,10 +24,10 @@ public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone
         }
     }
 
-    record CircleTarget(float radius) implements AttackZone {
+    record CircleTarget(float range, float radius) implements AttackZone {
         @Override
         public float maxForwardReach() {
-            return radius;
+            return range;
         }
     }
 }
