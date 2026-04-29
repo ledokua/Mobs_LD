@@ -23,8 +23,12 @@ public class AttackZoneDisplay {
 
     public static AttackZoneDisplay spawn(ServerLevel world, Vec3 origin, float yawDegrees, AttackZone zone) {
         AttackZoneDisplay display = new AttackZoneDisplay(world, origin, yawDegrees, zone);
-        display.draw(DIM_RED);
+        display.drawDimRed();
         return display;
+    }
+
+    public void drawDimRed() {
+        draw(DIM_RED);
     }
 
     public void setBrightRed() {
@@ -37,34 +41,86 @@ public class AttackZoneDisplay {
 
     private void draw(DustParticleOptions particle) {
         float reach = zone.maxForwardReach();
-        int points = Math.max(8, (int) (reach * 12));
+        int points = Math.max(12, (int) (reach * 16));
         double yawRad = Math.toRadians(yawDegrees);
         Vec3 forward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
         Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
+        switch (zone) {
+            case AttackZone.Rectangle r -> drawRectangleOutline(particle, forward, right, r, points);
+            case AttackZone.Cone c -> drawConeOutline(particle, forward, c, points);
+            case AttackZone.Circle c -> drawCircleOutline(particle, c, points);
+        }
+    }
 
+    private void drawRectangleOutline(
+            DustParticleOptions particle,
+            Vec3 forward,
+            Vec3 right,
+            AttackZone.Rectangle rectangle,
+            int points
+    ) {
+        Vec3 center = origin.add(forward.scale(rectangle.offsetForward() + rectangle.length() * 0.5));
+        Vec3 halfForward = forward.scale(rectangle.length() * 0.5);
+        Vec3 halfRight = right.scale(rectangle.width() * 0.5);
+
+        Vec3 frontLeft = center.add(halfForward).subtract(halfRight);
+        Vec3 frontRight = center.add(halfForward).add(halfRight);
+        Vec3 backLeft = center.subtract(halfForward).subtract(halfRight);
+        Vec3 backRight = center.subtract(halfForward).add(halfRight);
+
+        int edgePoints = Math.max(6, points / 4);
+        drawLine(particle, backLeft, frontLeft, edgePoints);
+        drawLine(particle, backRight, frontRight, edgePoints);
+        drawLine(particle, backLeft, backRight, edgePoints);
+        drawLine(particle, frontLeft, frontRight, edgePoints);
+    }
+
+    private void drawConeOutline(DustParticleOptions particle, Vec3 forward, AttackZone.Cone cone, int points) {
+        double halfAngle = Math.toRadians(cone.angleDegrees() * 0.5);
+        Vec3 leftDir = rotateY(forward, -halfAngle).normalize();
+        Vec3 rightDir = rotateY(forward, halfAngle).normalize();
+
+        int sidePoints = Math.max(6, points / 3);
+        drawLine(particle, origin, origin.add(leftDir.scale(cone.maxDistance())), sidePoints);
+        drawLine(particle, origin, origin.add(rightDir.scale(cone.maxDistance())), sidePoints);
+
+        int arcPoints = Math.max(10, points);
+        for (int i = 0; i <= arcPoints; i++) {
+            double t = (double) i / arcPoints;
+            double angle = -halfAngle + (halfAngle * 2.0) * t;
+            Vec3 arcDir = rotateY(forward, angle).normalize();
+            spawnParticle(particle, origin.add(arcDir.scale(cone.maxDistance())));
+        }
+    }
+
+    private void drawCircleOutline(DustParticleOptions particle, AttackZone.Circle circle, int points) {
         for (int i = 0; i < points; i++) {
             double t = (double) i / points;
-            Vec3 pos = switch (zone) {
-                case AttackZone.Rectangle r -> origin
-                        .add(forward.scale(r.offsetForward() + r.length() * t))
-                        .add(right.scale((i % 2 == 0 ? -1 : 1) * r.width() * 0.5));
-                case AttackZone.Cone c -> {
-                    double dist = c.maxDistance() * t;
-                    double halfAngle = Math.toRadians(c.angleDegrees() / 2.0);
-                    double angle = (i % 2 == 0 ? -halfAngle : halfAngle);
-                    Vec3 dir = new Vec3(
-                            forward.x * Math.cos(angle) - forward.z * Math.sin(angle),
-                            0.0,
-                            forward.x * Math.sin(angle) + forward.z * Math.cos(angle)
-                    );
-                    yield origin.add(dir.normalize().scale(dist));
-                }
-                case AttackZone.Circle c -> {
-                    double angle = (Math.PI * 2.0) * t;
-                    yield origin.add(Math.cos(angle) * c.radius(), 0.0, Math.sin(angle) * c.radius());
-                }
-            };
-            world.sendParticles(particle, pos.x, origin.y + 0.05, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
+            double angle = (Math.PI * 2.0) * t;
+            Vec3 pos = origin.add(Math.cos(angle) * circle.radius(), 0.0, Math.sin(angle) * circle.radius());
+            spawnParticle(particle, pos);
         }
+    }
+
+    private void drawLine(DustParticleOptions particle, Vec3 start, Vec3 end, int points) {
+        for (int i = 0; i <= points; i++) {
+            double t = (double) i / points;
+            Vec3 pos = start.lerp(end, t);
+            spawnParticle(particle, pos);
+        }
+    }
+
+    private Vec3 rotateY(Vec3 vec, double radians) {
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        return new Vec3(
+                vec.x * cos - vec.z * sin,
+                0.0,
+                vec.x * sin + vec.z * cos
+        );
+    }
+
+    private void spawnParticle(DustParticleOptions particle, Vec3 pos) {
+        world.sendParticles(particle, pos.x, origin.y + 0.05, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
     }
 }

@@ -31,6 +31,19 @@ public class TelegraphedAttackGoal extends Goal {
         if (mob.getTarget() == null) {
             return false;
         }
+        Vec3 toTarget = mob.getTarget().position().subtract(mob.position());
+        if (toTarget.lengthSqr() > 1.0e-6) {
+            Vec3 forward = new Vec3(
+                    -Math.sin(Math.toRadians(mob.getYRot())),
+                    0.0,
+                    Math.cos(Math.toRadians(mob.getYRot()))
+            );
+            Vec3 toTargetFlat = new Vec3(toTarget.x, 0.0, toTarget.z).normalize();
+            if (forward.dot(toTargetFlat) <= 0.0) {
+                return false;
+            }
+        }
+
         return mob.getAttackCooldown() <= 0
                 && mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + 0.5F;
     }
@@ -53,8 +66,12 @@ public class TelegraphedAttackGoal extends Goal {
     @Override
     public void tick() {
         windupTimer--;
-        if (display != null && windupTimer == mob.getWindupTicks() / 2) {
-            display.setBrightRed();
+        if (display != null) {
+            if (windupTimer > mob.getWindupTicks() / 2) {
+                display.drawDimRed();
+            } else {
+                display.setBrightRed();
+            }
         }
 
         if (windupTimer <= 0) {
