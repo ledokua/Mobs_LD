@@ -49,7 +49,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         int totalWindup = Math.max(1, entity.getTotalWindup());
         int windupTimer = entity.getWindupTimer();
         int animationTicks = Math.max(1, totalWindup - BRIGHT_WINDOW_TICKS);
-        float progress = clamp01(1.0F - (((float) windupTimer - BRIGHT_WINDOW_TICKS) / animationTicks));
+        float progress = clamp01((float) (totalWindup - windupTimer) / (float) animationTicks);
 
         AttackDisplayConfig.AnimationStyle style = AttackDisplayConfig.AnimationStyle.values()[
                 Math.max(0, Math.min(AttackDisplayConfig.AnimationStyle.values().length - 1, entity.getStyle()))
