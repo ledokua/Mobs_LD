@@ -48,6 +48,6 @@ public class FangMob extends BaseDungeonMob {
 
     @Override
     protected AttackDisplayConfig displayConfig() {
-        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.APPEAR, 0xFF3A0060, 0xFFAA00FF);
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.SWEEP, 0xFF3A0060, 0xFFAA00FF);
     }
 }

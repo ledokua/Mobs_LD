@@ -25,11 +25,15 @@ public class AttackZoneVisualEntity extends Entity {
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_INVOKE_COLOR =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_PREVIEW_COLOR =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_WINDUP_TIMER =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_TOTAL_WINDUP =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_FORCE_INVOKE =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_IS_PREVIEW =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
 
     public AttackZoneVisualEntity(EntityType<? extends AttackZoneVisualEntity> entityType, Level level) {
@@ -44,12 +48,14 @@ public class AttackZoneVisualEntity extends Entity {
         builder.define(DATA_PARAM_B, 0.0F);
         builder.define(DATA_PARAM_C, 0.0F);
         builder.define(DATA_YAW_DEGREES, 0.0F);
-        builder.define(DATA_STYLE, AttackDisplayConfig.AnimationStyle.GROW.ordinal());
+        builder.define(DATA_STYLE, AttackDisplayConfig.AnimationStyle.DEFAULT.ordinal());
         builder.define(DATA_PREPARE_COLOR, 0xFF8B0000);
         builder.define(DATA_INVOKE_COLOR, 0xFFFF0000);
+        builder.define(DATA_PREVIEW_COLOR, 0x408B0000);
         builder.define(DATA_WINDUP_TIMER, 0);
         builder.define(DATA_TOTAL_WINDUP, 1);
         builder.define(DATA_FORCE_INVOKE, false);
+        builder.define(DATA_IS_PREVIEW, false);
     }
 
     @Override
@@ -70,7 +76,7 @@ public class AttackZoneVisualEntity extends Entity {
         return false;
     }
 
-    public void configure(AttackZone zone, float yawDegrees, AttackDisplayConfig config, int totalWindupTicks) {
+    public void configure(AttackZone zone, float yawDegrees, AttackDisplayConfig config, int totalWindupTicks, boolean preview) {
         switch (zone) {
             case AttackZone.Rectangle r -> {
                 entityData.set(DATA_ZONE_KIND, 0);
@@ -101,9 +107,11 @@ public class AttackZoneVisualEntity extends Entity {
         entityData.set(DATA_STYLE, config.animationStyle().ordinal());
         entityData.set(DATA_PREPARE_COLOR, config.prepareColor());
         entityData.set(DATA_INVOKE_COLOR, config.invokeColor());
+        entityData.set(DATA_PREVIEW_COLOR, config.resolvedPreviewColor());
         entityData.set(DATA_TOTAL_WINDUP, Math.max(1, totalWindupTicks));
         entityData.set(DATA_WINDUP_TIMER, totalWindupTicks);
         entityData.set(DATA_FORCE_INVOKE, false);
+        entityData.set(DATA_IS_PREVIEW, preview);
     }
 
     public void setWindupTimer(int windupTimer) {
@@ -156,5 +164,13 @@ public class AttackZoneVisualEntity extends Entity {
 
     public boolean isForceInvoke() {
         return entityData.get(DATA_FORCE_INVOKE);
+    }
+
+    public int getPreviewColor() {
+        return entityData.get(DATA_PREVIEW_COLOR);
+    }
+
+    public boolean isPreview() {
+        return entityData.get(DATA_IS_PREVIEW);
     }
 }

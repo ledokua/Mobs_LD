@@ -31,6 +31,21 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         VertexConsumer buffer = bufferSource.getBuffer(RenderType.debugQuads());
         Matrix4f matrix = poseStack.last().pose();
 
+        if (entity.isPreview()) {
+            renderPreview(entity, matrix, buffer);
+        } else {
+            renderFill(entity, matrix, buffer);
+        }
+
+        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+    }
+
+    private void renderPreview(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer) {
+        int color = entity.isForceInvoke() ? entity.getInvokeColor() : entity.getPreviewColor();
+        dispatchShape(entity, matrix, buffer, color, 1.0F, 1.0F);
+    }
+
+    private void renderFill(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer) {
         int totalWindup = Math.max(1, entity.getTotalWindup());
         int windupTimer = entity.getWindupTimer();
         float progress = clamp01(1.0F - ((float) windupTimer / totalWindup));
@@ -39,41 +54,61 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
                 Math.max(0, Math.min(AttackDisplayConfig.AnimationStyle.values().length - 1, entity.getStyle()))
         ];
 
-        float scaleMult = switch (style) {
-            case APPEAR -> 1.0F;
-            case GROW -> progress;
-            case PULSE -> 1.0F + 0.1F * (float) Math.sin(progress * Math.PI * 6.0);
-            case FADE_IN -> 1.0F;
-        };
+        float scaleMult = 1.0F;
+        float sweepProgress = 1.0F;
+        int color;
 
-        int color = lerpColor(entity.getPrepareColor(), entity.getInvokeColor(), progress);
-        if (style == AttackDisplayConfig.AnimationStyle.FADE_IN) {
-            int alpha = Math.round(progress * 255.0F);
-            color = (alpha << 24) | (color & 0x00FFFFFF);
-        }
         if (entity.isForceInvoke() || windupTimer <= BRIGHT_WINDOW_TICKS) {
             color = entity.getInvokeColor();
+        } else {
+            int alpha = Math.round(progress * 255.0F);
+            color = (alpha << 24) | (entity.getPrepareColor() & 0x00FFFFFF);
+
+            scaleMult = switch (style) {
+                case GROW -> progress;
+                case DEFAULT, SWEEP -> 1.0F;
+            };
+            sweepProgress = switch (style) {
+                case SWEEP -> progress;
+                case GROW, DEFAULT -> 1.0F;
+            };
         }
 
+        dispatchShape(entity, matrix, buffer, color, scaleMult, sweepProgress);
+    }
+
+    private void dispatchShape(
+            AttackZoneVisualEntity entity,
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float scaleMult,
+            float sweepProgress
+    ) {
         switch (entity.getZoneKind()) {
-            case 0 -> renderRectangle(entity, matrix, buffer, color, scaleMult);
-            case 1 -> renderCone(entity, matrix, buffer, color, scaleMult);
+            case 0 -> renderRectangle(entity, matrix, buffer, color, scaleMult, sweepProgress);
+            case 1 -> renderCone(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 2, 3 -> renderCircle(entity, matrix, buffer, color, scaleMult);
             default -> {
             }
         }
-
-        super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
     }
 
-    private void renderRectangle(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
+    private void renderRectangle(
+            AttackZoneVisualEntity entity,
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float scaleMult,
+            float sweepProgress
+    ) {
         float width = entity.getParamA();
         float length = entity.getParamB();
         float offsetForward = entity.getParamC();
         float yaw = (float) Math.toRadians(entity.getYawDegrees());
 
-        float halfWidth = (width * scale) * 0.5F;
-        float scaledLength = length * scale;
+        float halfWidth = (width * scaleMult) * 0.5F;
+        float scaledLength = length * sweepProgress;
 
         float backF = offsetForward;
         float frontF = offsetForward + scaledLength;
@@ -85,15 +120,22 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
                 rotateX(-halfWidth, frontF, yaw), rotateZ(-halfWidth, frontF, yaw));
     }
 
-    private void renderCone(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
-        float dist = entity.getParamA() * scale;
+    private void renderCone(
+            AttackZoneVisualEntity entity,
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float scaleMult,
+            float sweepProgress
+    ) {
+        float dist = entity.getParamA() * sweepProgress;
         float angle = entity.getParamB();
         float yaw = (float) Math.toRadians(entity.getYawDegrees());
         float halfAngle = (float) Math.toRadians(angle * 0.5F);
 
-        float llx = (float) (-Math.sin(halfAngle) * dist);
+        float llx = (float) (-Math.sin(halfAngle) * dist * scaleMult);
         float llz = (float) (Math.cos(halfAngle) * dist);
-        float rlx = (float) (Math.sin(halfAngle) * dist);
+        float rlx = (float) (Math.sin(halfAngle) * dist * scaleMult);
         float rlz = (float) (Math.cos(halfAngle) * dist);
 
         float lx = rotateX(llx, llz, yaw);
@@ -166,15 +208,4 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         return Math.max(0.0F, Math.min(1.0F, value));
     }
 
-    private static int lerpColor(int from, int to, float t) {
-        int a = lerp((from >>> 24) & 0xFF, (to >>> 24) & 0xFF, t);
-        int r = lerp((from >>> 16) & 0xFF, (to >>> 16) & 0xFF, t);
-        int g = lerp((from >>> 8) & 0xFF, (to >>> 8) & 0xFF, t);
-        int b = lerp(from & 0xFF, to & 0xFF, t);
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    private static int lerp(int a, int b, float t) {
-        return Math.round(a + (b - a) * t);
-    }
 }

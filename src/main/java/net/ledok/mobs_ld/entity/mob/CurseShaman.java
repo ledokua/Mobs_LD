@@ -58,6 +58,6 @@ public class CurseShaman extends BaseDungeonMob {
 
     @Override
     protected AttackDisplayConfig displayConfig() {
-        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.PULSE, 0xFF1A5C1A, 0xFF00FF44);
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.DEFAULT, 0xFF1A5C1A, 0xFF00FF44);
     }
 }

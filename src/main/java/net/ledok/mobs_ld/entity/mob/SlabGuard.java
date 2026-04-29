@@ -48,6 +48,6 @@ public class SlabGuard extends BaseDungeonMob {
 
     @Override
     protected AttackDisplayConfig displayConfig() {
-        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.FADE_IN, 0xFF5A5000, 0xFFFFEE00);
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.DEFAULT, 0xFF5A5000, 0xFFFFEE00);
     }
 }
