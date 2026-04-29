@@ -50,6 +50,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         int windupTimer = entity.getWindupTimer();
         int animationTicks = Math.max(1, totalWindup - BRIGHT_WINDOW_TICKS);
         float progress = clamp01((float) (totalWindup - windupTimer) / (float) animationTicks);
+        float displayProgress = (float) Math.pow(progress, 0.4F);
 
         AttackDisplayConfig.AnimationStyle style = AttackDisplayConfig.AnimationStyle.values()[
                 Math.max(0, Math.min(AttackDisplayConfig.AnimationStyle.values().length - 1, entity.getStyle()))
@@ -62,11 +63,11 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         if (entity.isForceInvoke() || windupTimer <= BRIGHT_WINDOW_TICKS) {
             color = entity.getInvokeColor();
         } else {
-            int alpha = Math.round(progress * 255.0F);
+            int alpha = Math.round(displayProgress * 255.0F);
             color = (alpha << 24) | (entity.getPrepareColor() & 0x00FFFFFF);
 
             scaleMult = switch (style) {
-                case GROW -> progress;
+                case GROW -> displayProgress;
                 case DEFAULT, SWEEP -> 1.0F;
             };
             sweepProgress = switch (style) {
@@ -129,26 +130,31 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             float scaleMult,
             float sweepProgress
     ) {
-        float dist = entity.getParamA() * sweepProgress;
+        float dist = entity.getParamA() * sweepProgress * scaleMult;
         float angle = entity.getParamB();
         float yaw = (float) Math.toRadians(entity.getYawDegrees());
         float halfAngle = (float) Math.toRadians(angle * 0.5F);
-
-        float llx = (float) (-Math.sin(halfAngle) * dist * scaleMult);
-        float llz = (float) (Math.cos(halfAngle) * dist);
-        float rlx = (float) (Math.sin(halfAngle) * dist * scaleMult);
-        float rlz = (float) (Math.cos(halfAngle) * dist);
-
-        float lx = rotateX(llx, llz, yaw);
-        float lz = rotateZ(llx, llz, yaw);
-        float rx = rotateX(rlx, rlz, yaw);
-        float rz = rotateZ(rlx, rlz, yaw);
-
+        int segments = Math.max(8, (int) (angle / 5.0F));
         float y = 0.02F;
-        buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-        buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-        buffer.addVertex(matrix, lx, y, lz).setColor(color);
-        buffer.addVertex(matrix, rx, y, rz).setColor(color);
+        for (int i = 0; i < segments; i++) {
+            float a1 = -halfAngle + (2.0F * halfAngle * i / segments);
+            float a2 = -halfAngle + (2.0F * halfAngle * (i + 1) / segments);
+
+            float localX1 = (float) (Math.sin(a1) * dist);
+            float localZ1 = (float) (Math.cos(a1) * dist);
+            float localX2 = (float) (Math.sin(a2) * dist);
+            float localZ2 = (float) (Math.cos(a2) * dist);
+
+            float x1 = rotateX(localX1, localZ1, yaw);
+            float z1 = rotateZ(localX1, localZ1, yaw);
+            float x2 = rotateX(localX2, localZ2, yaw);
+            float z2 = rotateZ(localX2, localZ2, yaw);
+
+            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
+            buffer.addVertex(matrix, x1, y, z1).setColor(color);
+            buffer.addVertex(matrix, x2, y, z2).setColor(color);
+        }
     }
 
     private void renderCircle(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
@@ -202,7 +208,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
     @Override
     public boolean shouldRender(AttackZoneVisualEntity entity, Frustum frustum, double x, double y, double z) {
-        return true;
+        return (x * x + y * y + z * z) < (32.0 * 32.0);
     }
 
     private static float clamp01(float value) {
