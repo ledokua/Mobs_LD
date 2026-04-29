@@ -1,11 +1,12 @@
 package net.ledok.mobs_ld.entity.attack;
 
 import com.mojang.math.Transformation;
+import net.ledok.mobs_ld.registry.ModBlocks;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
@@ -14,8 +15,6 @@ import org.joml.Vector3f;
 import java.lang.reflect.Method;
 
 public class AttackZoneDisplay {
-    private static final BlockState PREPARE_BLOCK = Blocks.RED_STAINED_GLASS.defaultBlockState();
-    private static final BlockState INVOKE_BLOCK = Blocks.SHROOMLIGHT.defaultBlockState();
     private static final Brightness BRIGHTNESS_DIM = new Brightness(7, 7);
     private static final Brightness BRIGHTNESS_FLASH = new Brightness(15, 15);
     private static final float THICKNESS = 0.0625F;
@@ -27,9 +26,11 @@ public class AttackZoneDisplay {
     private static final Method SET_TRANSFORM_INTERPOLATION_DELAY = findMethod(Display.class, "setTransformationInterpolationDelay", int.class);
 
     private final Display.BlockDisplay entity;
+    private final AttackZone zone;
 
-    private AttackZoneDisplay(Display.BlockDisplay entity) {
+    private AttackZoneDisplay(Display.BlockDisplay entity, AttackZone zone) {
         this.entity = entity;
+        this.zone = zone;
     }
 
     public static AttackZoneDisplay spawn(ServerLevel world, Vec3 origin, float yawDegrees, AttackZone zone) {
@@ -44,14 +45,14 @@ public class AttackZoneDisplay {
         display.setShadowRadius(0.0F);
         display.setShadowStrength(0.0F);
 
-        invoke(SET_BLOCK_STATE, display, PREPARE_BLOCK);
+        invoke(SET_BLOCK_STATE, display, prepareState(zone));
         invoke(SET_TRANSFORMATION, display, computeTransformation(yawDegrees, zone));
         invoke(SET_BRIGHTNESS_OVERRIDE, display, BRIGHTNESS_DIM);
         invoke(SET_TRANSFORM_INTERPOLATION_DURATION, display, 0);
         invoke(SET_TRANSFORM_INTERPOLATION_DELAY, display, 0);
 
         world.addFreshEntity(display);
-        return new AttackZoneDisplay(display);
+        return new AttackZoneDisplay(display, zone);
     }
 
     public void drawDimRed() {
@@ -59,12 +60,29 @@ public class AttackZoneDisplay {
     }
 
     public void setBrightRed() {
-        invoke(SET_BLOCK_STATE, entity, INVOKE_BLOCK);
+        invoke(SET_BLOCK_STATE, entity, invokeState(zone));
         invoke(SET_BRIGHTNESS_OVERRIDE, entity, BRIGHTNESS_FLASH);
     }
 
     public void remove() {
         entity.discard();
+    }
+
+    private static BlockState prepareState(AttackZone zone) {
+        return blockFor(zone).defaultBlockState().setValue(ModBlocks.PHASE, false);
+    }
+
+    private static BlockState invokeState(AttackZone zone) {
+        return blockFor(zone).defaultBlockState().setValue(ModBlocks.PHASE, true);
+    }
+
+    private static Block blockFor(AttackZone zone) {
+        return switch (zone) {
+            case AttackZone.Rectangle r -> ModBlocks.ATTACK_ZONE_RECT;
+            case AttackZone.Cone c -> ModBlocks.ATTACK_ZONE_CONE;
+            case AttackZone.Circle c -> ModBlocks.ATTACK_ZONE_CIRCLE;
+            case AttackZone.CircleTarget ct -> ModBlocks.ATTACK_ZONE_CIRCLE;
+        };
     }
 
     private static Transformation computeTransformation(float yawDegrees, AttackZone zone) {

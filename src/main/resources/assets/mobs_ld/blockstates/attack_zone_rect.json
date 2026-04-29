@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "phase=false": {
+      "model": "mobs_ld:block/attack_zone_rect_prepare"
+    },
+    "phase=true": {
+      "model": "mobs_ld:block/attack_zone_rect_invoke"
+    }
+  }
+}
