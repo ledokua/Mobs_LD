@@ -90,16 +90,22 @@ public class AttackZoneDisplay {
         Quaternionf yawRot = new Quaternionf().rotationY((float) Math.toRadians(-yawDegrees));
 
         return switch (zone) {
-            case AttackZone.Rectangle r -> new Transformation(
-                    new Vector3f(-r.width() * 0.5F, 0.0F, r.offsetForward()),
-                    yawRot,
-                    new Vector3f(r.width(), THICKNESS, r.length()),
-                    noRot
-            );
+            case AttackZone.Rectangle r -> {
+                Vector3f offset = new Vector3f(-r.width() * 0.5F, 0.0F, r.offsetForward());
+                offset.rotate(yawRot);
+                yield new Transformation(
+                        offset,
+                        yawRot,
+                        new Vector3f(r.width(), THICKNESS, r.length()),
+                        noRot
+                );
+            }
             case AttackZone.Cone c -> {
                 float approxWidth = (float) (2.0 * c.maxDistance() * Math.sin(Math.toRadians(c.angleDegrees() * 0.5)));
+                Vector3f offset = new Vector3f(-approxWidth * 0.5F, 0.0F, 0.0F);
+                offset.rotate(yawRot);
                 yield new Transformation(
-                        new Vector3f(-approxWidth * 0.5F, 0.0F, 0.0F),
+                        offset,
                         yawRot,
                         new Vector3f(approxWidth, THICKNESS, c.maxDistance()),
                         noRot
