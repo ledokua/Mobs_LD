@@ -1,6 +1,6 @@
 package net.ledok.mobs_ld.entity.attack;
 
-public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone, AttackZone.Circle {
+public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone, AttackZone.Circle, AttackZone.CircleTarget {
     float maxForwardReach();
 
     record Rectangle(float width, float length, float offsetForward) implements AttackZone {
@@ -18,6 +18,13 @@ public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone
     }
 
     record Circle(float radius) implements AttackZone {
+        @Override
+        public float maxForwardReach() {
+            return radius;
+        }
+    }
+
+    record CircleTarget(float radius) implements AttackZone {
         @Override
         public float maxForwardReach() {
             return radius;

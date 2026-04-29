@@ -1,12 +1,14 @@
 package net.ledok.mobs_ld.entity.ai;
 
 import net.ledok.mobs_ld.entity.BaseDungeonMob;
+import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
 public class MoveToIdealDistanceGoal extends Goal {
-    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 1.5F;
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0.5F;
+    private static final float CIRCLE_TARGET_TRIGGER_RANGE = 12.0F;
 
     private final BaseDungeonMob mob;
     private final double speedModifier;
@@ -65,7 +67,13 @@ public class MoveToIdealDistanceGoal extends Goal {
     }
 
     private boolean canAttackNow(LivingEntity target) {
-        return mob.getAttackCooldown() <= 0
-                && mob.distanceTo(target) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
+        if (mob.getAttackCooldown() > 0) {
+            return false;
+        }
+        AttackZone zone = mob.getAttackZone();
+        if (zone instanceof AttackZone.CircleTarget) {
+            return mob.distanceTo(target) <= CIRCLE_TARGET_TRIGGER_RANGE;
+        }
+        return mob.distanceTo(target) <= zone.maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
     }
 }

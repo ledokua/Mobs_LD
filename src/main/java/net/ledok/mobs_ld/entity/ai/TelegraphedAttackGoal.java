@@ -17,13 +17,15 @@ import java.util.UUID;
 
 public class TelegraphedAttackGoal extends Goal {
     private static final int BRIGHT_WINDOW_TICKS = 5;
-    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 1.5F;
+    private static final float ATTACK_TRIGGER_EXTRA_RANGE = 0.5F;
+    private static final float CIRCLE_TARGET_TRIGGER_RANGE = 12.0F;
 
     private final BaseDungeonMob mob;
     private int windupTimer = -1;
     private int damageTimer = -1;
     private AttackZoneDisplay display;
     private Vec3 lockedOrigin = Vec3.ZERO;
+    private Vec3 lockedTargetPos = Vec3.ZERO;
     private float lockedYaw;
     private final Set<UUID> alreadyHit = new HashSet<>();
 
@@ -52,8 +54,16 @@ public class TelegraphedAttackGoal extends Goal {
             }
         }
 
-        return mob.getAttackCooldown() <= 0
-                && mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
+        if (mob.getAttackCooldown() > 0) {
+            return false;
+        }
+
+        AttackZone zone = mob.getAttackZone();
+        if (zone instanceof AttackZone.CircleTarget) {
+            return mob.distanceTo(mob.getTarget()) <= CIRCLE_TARGET_TRIGGER_RANGE;
+        }
+
+        return mob.distanceTo(mob.getTarget()) <= zone.maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
     }
 
     @Override
@@ -66,6 +76,11 @@ public class TelegraphedAttackGoal extends Goal {
         windupTimer = mob.getWindupTicks();
         damageTimer = -1;
         lockedOrigin = mob.position();
+        if (mob.getAttackZone() instanceof AttackZone.CircleTarget && mob.getTarget() != null) {
+            lockedTargetPos = mob.getTarget().position();
+        } else {
+            lockedTargetPos = Vec3.ZERO;
+        }
         if (mob.getTarget() != null) {
             Vec3 toTarget = mob.getTarget().position().subtract(mob.position());
             if (toTarget.lengthSqr() > 1.0e-6) {
@@ -76,10 +91,14 @@ public class TelegraphedAttackGoal extends Goal {
         } else {
             lockedYaw = mob.getYRot();
         }
-        display = AttackZoneDisplay.spawn((ServerLevel) mob.level(), lockedOrigin, lockedYaw, mob.getAttackZone());
+        Vec3 displayOrigin = getZoneOrigin();
+        display = AttackZoneDisplay.spawn((ServerLevel) mob.level(), displayOrigin, lockedYaw, mob.getAttackZone());
         alreadyHit.clear();
         mob.getNavigation().stop();
         mob.setWindingUp(true);
+        if (mob.isCooldownStartingAtWindupStart()) {
+            mob.setAttackCooldown(mob.getAttackCooldownTicks());
+        }
     }
 
     @Override
@@ -99,7 +118,9 @@ public class TelegraphedAttackGoal extends Goal {
                 int persist = mob.getDamagePersistTicks();
                 if (persist > 0) {
                     damageTimer = persist;
-                    mob.setWindingUp(false);
+                    if (mob.canMoveWhilePersistingPhase()) {
+                        mob.setWindingUp(false);
+                    }
                     if (display != null) {
                         display.setBrightRed();
                     }
@@ -117,7 +138,9 @@ public class TelegraphedAttackGoal extends Goal {
                 }
                 windupTimer = -1;
                 mob.setWindingUp(false);
-                mob.setAttackCooldown(mob.getAttackCooldownTicks());
+                if (!mob.isCooldownStartingAtWindupStart()) {
+                    mob.setAttackCooldown(mob.getAttackCooldownTicks());
+                }
                 return;
             }
         }
@@ -134,7 +157,10 @@ public class TelegraphedAttackGoal extends Goal {
                     display = null;
                 }
                 damageTimer = -1;
-                mob.setAttackCooldown(mob.getAttackCooldownTicks());
+                mob.setWindingUp(false);
+                if (!mob.isCooldownStartingAtWindupStart()) {
+                    mob.setAttackCooldown(mob.getAttackCooldownTicks());
+                }
             }
         }
     }
@@ -147,6 +173,7 @@ public class TelegraphedAttackGoal extends Goal {
         }
         windupTimer = -1;
         damageTimer = -1;
+        lockedTargetPos = Vec3.ZERO;
         alreadyHit.clear();
         mob.setWindingUp(false);
     }
@@ -154,8 +181,9 @@ public class TelegraphedAttackGoal extends Goal {
     private void applyDamage() {
         ServerLevel world = (ServerLevel) mob.level();
         AttackZone zone = mob.getAttackZone();
+        Vec3 zoneOrigin = getZoneOrigin();
         float reach = zone.maxForwardReach();
-        AABB broad = new AABB(lockedOrigin, lockedOrigin).inflate(reach + 1.0F);
+        AABB broad = new AABB(zoneOrigin, zoneOrigin).inflate(reach + 1.0F);
         List<ServerPlayer> candidates = world.getEntitiesOfClass(ServerPlayer.class, broad);
 
         Vec3 forward = new Vec3(
@@ -168,7 +196,7 @@ public class TelegraphedAttackGoal extends Goal {
             if (alreadyHit.contains(player.getUUID())) {
                 continue;
             }
-            if (isInZone(player.position(), forward, zone)) {
+            if (isInZone(player.position(), forward, zone, zoneOrigin)) {
                 player.hurt(
                         world.damageSources().mobAttack(mob),
                         (float) mob.getAttributeValue(Attributes.ATTACK_DAMAGE)
@@ -178,8 +206,8 @@ public class TelegraphedAttackGoal extends Goal {
         }
     }
 
-    private boolean isInZone(Vec3 pos, Vec3 forward, AttackZone zone) {
-        Vec3 toTarget = pos.subtract(lockedOrigin);
+    private boolean isInZone(Vec3 pos, Vec3 forward, AttackZone zone, Vec3 zoneOrigin) {
+        Vec3 toTarget = pos.subtract(zoneOrigin);
 
         return switch (zone) {
             case AttackZone.Rectangle r -> {
@@ -199,6 +227,14 @@ public class TelegraphedAttackGoal extends Goal {
                 yield angle <= c.angleDegrees() / 2.0F;
             }
             case AttackZone.Circle c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
+            case AttackZone.CircleTarget c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
         };
+    }
+
+    private Vec3 getZoneOrigin() {
+        if (mob.getAttackZone() instanceof AttackZone.CircleTarget) {
+            return lockedTargetPos;
+        }
+        return lockedOrigin;
     }
 }

@@ -47,6 +47,7 @@ public class AttackZoneDisplay {
             case AttackZone.Rectangle r -> drawRectangleOutline(particle, forward, right, r, points);
             case AttackZone.Cone c -> drawConeOutline(particle, forward, c, points);
             case AttackZone.Circle c -> drawCircleOutline(particle, c, points);
+            case AttackZone.CircleTarget c -> drawCircleOutline(particle, new AttackZone.Circle(c.radius()), points);
         }
     }
 

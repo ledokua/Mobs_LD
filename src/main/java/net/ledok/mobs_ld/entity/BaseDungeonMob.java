@@ -33,6 +33,14 @@ public abstract class BaseDungeonMob extends Monster {
 
     protected abstract double idealAttackDistance();
 
+    protected boolean canMoveWhilePersisting() {
+        return false;
+    }
+
+    protected boolean cooldownStartsAtWindupStart() {
+        return true;
+    }
+
     public int getAttackCooldown() {
         return attackCooldown;
     }
@@ -98,5 +106,13 @@ public abstract class BaseDungeonMob extends Monster {
 
     public double getIdealAttackDistance() {
         return idealAttackDistance();
+    }
+
+    public boolean canMoveWhilePersistingPhase() {
+        return canMoveWhilePersisting();
+    }
+
+    public boolean isCooldownStartingAtWindupStart() {
+        return cooldownStartsAtWindupStart();
     }
 }
