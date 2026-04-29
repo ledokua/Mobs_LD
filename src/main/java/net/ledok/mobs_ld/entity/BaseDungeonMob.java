@@ -29,6 +29,8 @@ public abstract class BaseDungeonMob extends Monster {
 
     protected abstract int attackCooldownTicks();
 
+    protected abstract int damagePersistTicks();
+
     protected abstract double idealAttackDistance();
 
     public int getAttackCooldown() {
@@ -88,6 +90,10 @@ public abstract class BaseDungeonMob extends Monster {
 
     public int getAttackCooldownTicks() {
         return attackCooldownTicks();
+    }
+
+    public int getDamagePersistTicks() {
+        return damagePersistTicks();
     }
 
     public double getIdealAttackDistance() {

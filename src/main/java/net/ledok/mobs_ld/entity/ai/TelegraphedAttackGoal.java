@@ -10,7 +10,10 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class TelegraphedAttackGoal extends Goal {
     private static final int BRIGHT_WINDOW_TICKS = 5;
@@ -18,9 +21,11 @@ public class TelegraphedAttackGoal extends Goal {
 
     private final BaseDungeonMob mob;
     private int windupTimer = -1;
+    private int damageTimer = -1;
     private AttackZoneDisplay display;
     private Vec3 lockedOrigin = Vec3.ZERO;
     private float lockedYaw;
+    private final Set<UUID> alreadyHit = new HashSet<>();
 
     public TelegraphedAttackGoal(BaseDungeonMob mob) {
         this.mob = mob;
@@ -53,43 +58,84 @@ public class TelegraphedAttackGoal extends Goal {
 
     @Override
     public boolean canContinueToUse() {
-        return windupTimer >= 0;
+        return windupTimer >= 0 || damageTimer >= 0;
     }
 
     @Override
     public void start() {
         windupTimer = mob.getWindupTicks();
+        damageTimer = -1;
         lockedOrigin = mob.position();
-        lockedYaw = mob.getYRot();
+        if (mob.getTarget() != null) {
+            Vec3 toTarget = mob.getTarget().position().subtract(mob.position());
+            if (toTarget.lengthSqr() > 1.0e-6) {
+                lockedYaw = (float) Math.toDegrees(Math.atan2(-toTarget.x, toTarget.z));
+            } else {
+                lockedYaw = mob.getYRot();
+            }
+        } else {
+            lockedYaw = mob.getYRot();
+        }
         display = AttackZoneDisplay.spawn((ServerLevel) mob.level(), lockedOrigin, lockedYaw, mob.getAttackZone());
+        alreadyHit.clear();
         mob.getNavigation().stop();
         mob.setWindingUp(true);
     }
 
     @Override
     public void tick() {
-        windupTimer--;
+        if (windupTimer >= 0) {
+            windupTimer--;
 
-        if (display != null) {
-            if (windupTimer > BRIGHT_WINDOW_TICKS) {
-                display.drawDimRed();
-            } else if (windupTimer > 0) {
-                display.setBrightRed();
+            if (display != null) {
+                if (windupTimer > BRIGHT_WINDOW_TICKS) {
+                    display.drawDimRed();
+                } else if (windupTimer > 0) {
+                    display.setBrightRed();
+                }
+            }
+
+            if (windupTimer <= 0) {
+                int persist = mob.getDamagePersistTicks();
+                if (persist > 0) {
+                    damageTimer = persist;
+                    mob.setWindingUp(false);
+                    if (display != null) {
+                        display.setBrightRed();
+                    }
+                    windupTimer = -1;
+                    return;
+                }
+
+                if (display != null) {
+                    display.setBrightRed();
+                }
+                applyDamage();
+                if (display != null) {
+                    display.remove();
+                    display = null;
+                }
+                windupTimer = -1;
+                mob.setWindingUp(false);
+                mob.setAttackCooldown(mob.getAttackCooldownTicks());
+                return;
             }
         }
 
-        if (windupTimer <= 0) {
+        if (damageTimer > 0) {
+            applyDamage();
+            damageTimer--;
             if (display != null) {
                 display.setBrightRed();
             }
-            applyDamage();
-            if (display != null) {
-                display.remove();
-                display = null;
+            if (damageTimer == 0) {
+                if (display != null) {
+                    display.remove();
+                    display = null;
+                }
+                damageTimer = -1;
+                mob.setAttackCooldown(mob.getAttackCooldownTicks());
             }
-            windupTimer = -1;
-            mob.setWindingUp(false);
-            mob.setAttackCooldown(mob.getAttackCooldownTicks());
         }
     }
 
@@ -100,6 +146,8 @@ public class TelegraphedAttackGoal extends Goal {
             display = null;
         }
         windupTimer = -1;
+        damageTimer = -1;
+        alreadyHit.clear();
         mob.setWindingUp(false);
     }
 
@@ -117,11 +165,15 @@ public class TelegraphedAttackGoal extends Goal {
         );
 
         for (ServerPlayer player : candidates) {
+            if (alreadyHit.contains(player.getUUID())) {
+                continue;
+            }
             if (isInZone(player.position(), forward, zone)) {
                 player.hurt(
                         world.damageSources().mobAttack(mob),
                         (float) mob.getAttributeValue(Attributes.ATTACK_DAMAGE)
                 );
+                alreadyHit.add(player.getUUID());
             }
         }
     }

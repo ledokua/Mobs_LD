@@ -27,7 +27,7 @@ public class CryptGuard extends BaseDungeonMob {
 
     @Override
     protected int windupTicks() {
-        return 20;
+        return 10;
     }
 
     @Override
@@ -36,7 +36,12 @@ public class CryptGuard extends BaseDungeonMob {
     }
 
     @Override
+    protected int damagePersistTicks() {
+        return 40;
+    }
+
+    @Override
     protected double idealAttackDistance() {
-        return 0.5;
+        return 0.65;
     }
 }
