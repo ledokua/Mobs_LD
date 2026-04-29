@@ -66,15 +66,11 @@ public class TelegraphedAttackGoal extends Goal {
     @Override
     public void tick() {
         windupTimer--;
-        if (display != null) {
-            if (windupTimer > mob.getWindupTicks() / 2) {
-                display.drawDimRed();
-            } else {
-                display.setBrightRed();
-            }
-        }
 
         if (windupTimer <= 0) {
+            if (display != null) {
+                display.setBrightRed();
+            }
             applyDamage();
             if (display != null) {
                 display.remove();

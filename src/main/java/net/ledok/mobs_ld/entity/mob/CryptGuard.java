@@ -22,7 +22,7 @@ public class CryptGuard extends BaseDungeonMob {
 
     @Override
     protected AttackZone attackZone() {
-        return new AttackZone.Rectangle(2.5F, 2.5F, 0.5F);
+        return new AttackZone.Rectangle(2F, 2F, 0.25F);
     }
 
     @Override
@@ -37,6 +37,6 @@ public class CryptGuard extends BaseDungeonMob {
 
     @Override
     protected double idealAttackDistance() {
-        return 2.0;
+        return 0.5;
     }
 }

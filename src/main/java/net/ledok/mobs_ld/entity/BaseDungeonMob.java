@@ -4,11 +4,11 @@ import net.ledok.mobs_ld.entity.ai.MoveToIdealDistanceGoal;
 import net.ledok.mobs_ld.entity.ai.TelegraphedAttackGoal;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
@@ -49,7 +49,7 @@ public abstract class BaseDungeonMob extends Monster {
 
     public static AttributeSupplier.Builder createBaseAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.FOLLOW_RANGE, 16.0)
+                .add(Attributes.FOLLOW_RANGE, 32.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 0.0);
     }
 
@@ -58,8 +58,7 @@ public abstract class BaseDungeonMob extends Monster {
         goalSelector.addGoal(1, new FloatGoal(this));
         goalSelector.addGoal(2, new TelegraphedAttackGoal(this));
         goalSelector.addGoal(3, new MoveToIdealDistanceGoal(this, 1.0D));
-        goalSelector.addGoal(4, new WaterAvoidingRandomStrollGoal(this, 0.8D));
-        goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
 
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
@@ -68,8 +67,14 @@ public abstract class BaseDungeonMob extends Monster {
     @Override
     public void aiStep() {
         super.aiStep();
-        if (!level().isClientSide && attackCooldown > 0) {
-            attackCooldown--;
+        if (!level().isClientSide) {
+            if (attackCooldown > 0) {
+                attackCooldown--;
+            }
+            LivingEntity target = getTarget();
+            if (target != null) {
+                getLookControl().setLookAt(target, 30.0F, 30.0F);
+            }
         }
     }
 

@@ -47,7 +47,5 @@ public class MoveToIdealDistanceGoal extends Goal {
                 mob.getNavigation().stop();
             }
         }
-
-        mob.getLookControl().setLookAt(target, 30F, 30F);
     }
 }
