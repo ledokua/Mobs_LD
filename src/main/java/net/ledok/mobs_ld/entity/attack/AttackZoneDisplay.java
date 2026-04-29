@@ -1,125 +1,128 @@
 package net.ledok.mobs_ld.entity.attack;
 
-import net.minecraft.core.particles.DustParticleOptions;
+import com.mojang.math.Transformation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Brightness;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.lang.reflect.Method;
+
 public class AttackZoneDisplay {
-    private static final DustParticleOptions DIM_RED = new DustParticleOptions(new Vector3f(0.6F, 0.0F, 0.0F), 1.0F);
-    private static final DustParticleOptions BRIGHT_RED = new DustParticleOptions(new Vector3f(1.0F, 0.0F, 0.0F), 1.2F);
+    private static final BlockState PREPARE_BLOCK = Blocks.RED_STAINED_GLASS.defaultBlockState();
+    private static final BlockState INVOKE_BLOCK = Blocks.SHROOMLIGHT.defaultBlockState();
+    private static final Brightness BRIGHTNESS_DIM = new Brightness(7, 7);
+    private static final Brightness BRIGHTNESS_FLASH = new Brightness(15, 15);
+    private static final float THICKNESS = 0.0625F;
 
-    private final ServerLevel world;
-    private final Vec3 origin;
-    private final float yawDegrees;
-    private final AttackZone zone;
+    private static final Method SET_BLOCK_STATE = findMethod(Display.BlockDisplay.class, "setBlockState", BlockState.class);
+    private static final Method SET_TRANSFORMATION = findMethod(Display.class, "setTransformation", Transformation.class);
+    private static final Method SET_BRIGHTNESS_OVERRIDE = findMethod(Display.class, "setBrightnessOverride", Brightness.class);
+    private static final Method SET_TRANSFORM_INTERPOLATION_DURATION = findMethod(Display.class, "setTransformationInterpolationDuration", int.class);
+    private static final Method SET_TRANSFORM_INTERPOLATION_DELAY = findMethod(Display.class, "setTransformationInterpolationDelay", int.class);
 
-    private AttackZoneDisplay(ServerLevel world, Vec3 origin, float yawDegrees, AttackZone zone) {
-        this.world = world;
-        this.origin = origin;
-        this.yawDegrees = yawDegrees;
-        this.zone = zone;
+    private final Display.BlockDisplay entity;
+
+    private AttackZoneDisplay(Display.BlockDisplay entity) {
+        this.entity = entity;
     }
 
     public static AttackZoneDisplay spawn(ServerLevel world, Vec3 origin, float yawDegrees, AttackZone zone) {
-        return new AttackZoneDisplay(world, origin, yawDegrees, zone);
+        Display.BlockDisplay display = EntityType.BLOCK_DISPLAY.create(world);
+        if (display == null) {
+            throw new IllegalStateException("Failed to create block display");
+        }
+
+        display.setPos(origin.x, origin.y + 0.02, origin.z);
+        display.setNoGravity(true);
+        display.setInvulnerable(true);
+        display.setShadowRadius(0.0F);
+        display.setShadowStrength(0.0F);
+
+        invoke(SET_BLOCK_STATE, display, PREPARE_BLOCK);
+        invoke(SET_TRANSFORMATION, display, computeTransformation(yawDegrees, zone));
+        invoke(SET_BRIGHTNESS_OVERRIDE, display, BRIGHTNESS_DIM);
+        invoke(SET_TRANSFORM_INTERPOLATION_DURATION, display, 0);
+        invoke(SET_TRANSFORM_INTERPOLATION_DELAY, display, 0);
+
+        world.addFreshEntity(display);
+        return new AttackZoneDisplay(display);
     }
 
     public void drawDimRed() {
-        draw(DIM_RED);
+        // Persistent display; no redraw required.
     }
 
     public void setBrightRed() {
-        draw(BRIGHT_RED);
+        invoke(SET_BLOCK_STATE, entity, INVOKE_BLOCK);
+        invoke(SET_BRIGHTNESS_OVERRIDE, entity, BRIGHTNESS_FLASH);
     }
 
     public void remove() {
-        // Particle telegraph has no persistent entity to remove.
+        entity.discard();
     }
 
-    private void draw(DustParticleOptions particle) {
-        float reach = zone.maxForwardReach();
-        int points = Math.max(12, (int) (reach * 16));
-        double yawRad = Math.toRadians(yawDegrees);
-        Vec3 forward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
-        Vec3 right = new Vec3(-forward.z, 0.0, forward.x);
-        switch (zone) {
-            case AttackZone.Rectangle r -> drawRectangleOutline(particle, forward, right, r, points);
-            case AttackZone.Cone c -> drawConeOutline(particle, forward, c, points);
-            case AttackZone.Circle c -> drawCircleOutline(particle, c, points);
-            case AttackZone.CircleTarget c -> drawCircleOutline(particle, new AttackZone.Circle(c.radius()), points);
+    private static Transformation computeTransformation(float yawDegrees, AttackZone zone) {
+        Quaternionf noRot = new Quaternionf();
+        Quaternionf yawRot = new Quaternionf().rotationY((float) Math.toRadians(-yawDegrees));
+
+        return switch (zone) {
+            case AttackZone.Rectangle r -> new Transformation(
+                    new Vector3f(-r.width() * 0.5F, 0.0F, r.offsetForward()),
+                    yawRot,
+                    new Vector3f(r.width(), THICKNESS, r.length()),
+                    noRot
+            );
+            case AttackZone.Cone c -> {
+                float approxWidth = (float) (2.0 * c.maxDistance() * Math.sin(Math.toRadians(c.angleDegrees() * 0.5)));
+                yield new Transformation(
+                        new Vector3f(-approxWidth * 0.5F, 0.0F, 0.0F),
+                        yawRot,
+                        new Vector3f(approxWidth, THICKNESS, c.maxDistance()),
+                        noRot
+                );
+            }
+            case AttackZone.Circle c -> {
+                float radius = c.radius();
+                yield new Transformation(
+                        new Vector3f(-radius, 0.0F, -radius),
+                        noRot,
+                        new Vector3f(radius * 2.0F, THICKNESS, radius * 2.0F),
+                        noRot
+                );
+            }
+            case AttackZone.CircleTarget c -> {
+                float radius = c.radius();
+                yield new Transformation(
+                        new Vector3f(-radius, 0.0F, -radius),
+                        noRot,
+                        new Vector3f(radius * 2.0F, THICKNESS, radius * 2.0F),
+                        noRot
+                );
+            }
+        };
+    }
+
+    private static Method findMethod(Class<?> owner, String name, Class<?>... params) {
+        try {
+            Method method = owner.getDeclaredMethod(name, params);
+            method.setAccessible(true);
+            return method;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Missing method: " + owner.getName() + "#" + name, e);
         }
     }
 
-    private void drawRectangleOutline(
-            DustParticleOptions particle,
-            Vec3 forward,
-            Vec3 right,
-            AttackZone.Rectangle rectangle,
-            int points
-    ) {
-        Vec3 center = origin.add(forward.scale(rectangle.offsetForward() + rectangle.length() * 0.5));
-        Vec3 halfForward = forward.scale(rectangle.length() * 0.5);
-        Vec3 halfRight = right.scale(rectangle.width() * 0.5);
-
-        Vec3 frontLeft = center.add(halfForward).subtract(halfRight);
-        Vec3 frontRight = center.add(halfForward).add(halfRight);
-        Vec3 backLeft = center.subtract(halfForward).subtract(halfRight);
-        Vec3 backRight = center.subtract(halfForward).add(halfRight);
-
-        int edgePoints = Math.max(6, points / 4);
-        drawLine(particle, backLeft, frontLeft, edgePoints);
-        drawLine(particle, backRight, frontRight, edgePoints);
-        drawLine(particle, backLeft, backRight, edgePoints);
-        drawLine(particle, frontLeft, frontRight, edgePoints);
-    }
-
-    private void drawConeOutline(DustParticleOptions particle, Vec3 forward, AttackZone.Cone cone, int points) {
-        double halfAngle = Math.toRadians(cone.angleDegrees() * 0.5);
-        Vec3 leftDir = rotateY(forward, -halfAngle).normalize();
-        Vec3 rightDir = rotateY(forward, halfAngle).normalize();
-
-        int sidePoints = Math.max(6, points / 3);
-        drawLine(particle, origin, origin.add(leftDir.scale(cone.maxDistance())), sidePoints);
-        drawLine(particle, origin, origin.add(rightDir.scale(cone.maxDistance())), sidePoints);
-
-        int arcPoints = Math.max(10, points);
-        for (int i = 0; i <= arcPoints; i++) {
-            double t = (double) i / arcPoints;
-            double angle = -halfAngle + (halfAngle * 2.0) * t;
-            Vec3 arcDir = rotateY(forward, angle).normalize();
-            spawnParticle(particle, origin.add(arcDir.scale(cone.maxDistance())));
+    private static void invoke(Method method, Object target, Object... args) {
+        try {
+            method.invoke(target, args);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed invoking " + method.getName(), e);
         }
-    }
-
-    private void drawCircleOutline(DustParticleOptions particle, AttackZone.Circle circle, int points) {
-        for (int i = 0; i < points; i++) {
-            double t = (double) i / points;
-            double angle = (Math.PI * 2.0) * t;
-            Vec3 pos = origin.add(Math.cos(angle) * circle.radius(), 0.0, Math.sin(angle) * circle.radius());
-            spawnParticle(particle, pos);
-        }
-    }
-
-    private void drawLine(DustParticleOptions particle, Vec3 start, Vec3 end, int points) {
-        for (int i = 0; i <= points; i++) {
-            double t = (double) i / points;
-            Vec3 pos = start.lerp(end, t);
-            spawnParticle(particle, pos);
-        }
-    }
-
-    private Vec3 rotateY(Vec3 vec, double radians) {
-        double cos = Math.cos(radians);
-        double sin = Math.sin(radians);
-        return new Vec3(
-                vec.x * cos - vec.z * sin,
-                0.0,
-                vec.x * sin + vec.z * cos
-        );
-    }
-
-    private void spawnParticle(DustParticleOptions particle, Vec3 pos) {
-        world.sendParticles(particle, pos.x, origin.y + 0.05, pos.z, 1, 0.0, 0.0, 0.0, 0.0);
     }
 }
