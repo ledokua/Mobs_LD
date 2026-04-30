@@ -17,6 +17,10 @@ public abstract class AbilityDefinition {
 
     public abstract int cooldownTicks();
 
+    public boolean canUse(ServerLevel world, BaseBossMob boss) {
+        return boss.getTarget() != null;
+    }
+
     public AttackZone zone() {
         return null;
     }
@@ -52,6 +56,10 @@ public abstract class AbilityDefinition {
     }
 
     public void onPersistTick(ServerLevel world, BaseBossMob boss, int persistTimer) {
+    }
+
+    public boolean keepDamageImmuneAfterEnd() {
+        return false;
     }
 
     public void onEnd(ServerLevel world, BaseBossMob boss) {

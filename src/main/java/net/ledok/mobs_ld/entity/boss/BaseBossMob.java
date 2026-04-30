@@ -444,6 +444,10 @@ public abstract class BaseBossMob extends Monster {
         return attackCooldown;
     }
 
+    public int getGlobalAttackLockout() {
+        return 0;
+    }
+
     public void setAttackCooldown(int attackCooldown) {
         this.attackCooldown = Math.max(0, attackCooldown);
     }
@@ -507,5 +511,9 @@ public abstract class BaseBossMob extends Monster {
                 abilityGoal.forceActivate();
             }
         });
+    }
+
+    public net.ledok.mobs_ld.entity.boss.ai.BossAbilityGoal getBossAbilityGoal() {
+        return bossAbilityGoal;
     }
 }
