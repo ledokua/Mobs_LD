@@ -239,6 +239,11 @@ public class TelegraphedAttackGoal extends Goal {
             }
             case AttackZone.Circle c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleTarget c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
+            case AttackZone.Ring r -> {
+                double horizontalDist = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
+                double halfWidth = r.rectangleWidth() * 0.5;
+                yield horizontalDist >= r.radius() - halfWidth && horizontalDist <= r.radius() + halfWidth;
+            }
         };
     }
 
