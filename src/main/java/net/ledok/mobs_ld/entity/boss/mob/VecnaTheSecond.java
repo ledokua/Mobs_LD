@@ -92,7 +92,9 @@ public class VecnaTheSecond extends BaseBossMob {
             if (trackerDisplay != null) {
                 trackerDisplay.updatePosition(position().add(0, 0.05, 0));
             }
-            if (distanceToSqr(undergroundTarget) <= 1.0) {
+            double dx = undergroundTarget.getX() - getX();
+            double dz = undergroundTarget.getZ() - getZ();
+            if (dx * dx + dz * dz <= 1.0) {
                 forceActivateCurrentAbility();
             }
         }

@@ -138,7 +138,6 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         if (speedAttr != null) {
             speedAttr.removeModifier(UNDERGROUND_SPEED_MOD_ID);
         }
-        vecna.setDamageImmune(false);
         vecna.setIsUnderground(false);
         vecna.setUndergroundTarget(null);
         vecna.getNavigation().stop();
