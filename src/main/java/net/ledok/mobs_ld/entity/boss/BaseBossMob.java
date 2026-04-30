@@ -137,7 +137,8 @@ public abstract class BaseBossMob extends Monster {
     public void die(DamageSource source) {
         super.die(source);
         bossBar.setVisible(false);
-        cancelActiveAbility();
+        bossBar.removeAllPlayers();
+        goalSelector.getAvailableGoals().forEach(wrappedGoal -> wrappedGoal.getGoal().stop());
         passiveDisplays.values().forEach(AttackZoneDisplay::remove);
         passiveDisplays.clear();
     }

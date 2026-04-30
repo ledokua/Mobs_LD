@@ -116,6 +116,7 @@ public class BossAbilityGoal extends Goal {
             if (!activated) {
                 activateAbility(ability, world);
             }
+            ability.onPersistTick(world, boss, damageTimer);
             damageTimer--;
             if (damageTimer < 0) {
                 endAbility(ability, world);

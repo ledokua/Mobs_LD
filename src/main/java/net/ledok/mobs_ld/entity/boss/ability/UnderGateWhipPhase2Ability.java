@@ -98,6 +98,17 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
     }
 
     @Override
+    public void onWindupTick(ServerLevel world, BaseBossMob boss, int windupTimer) {
+        if (secondaryDisplay == null) {
+            return;
+        }
+        secondaryDisplay.update(windupTimer, Math.max(1, windupTicks()));
+        if (windupTimer <= 2) {
+            secondaryDisplay.setBrightRed();
+        }
+    }
+
+    @Override
     public void onEnd(ServerLevel world, BaseBossMob boss) {
         if (secondaryDisplay != null) {
             secondaryDisplay.remove();

@@ -11,6 +11,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -19,9 +21,15 @@ import java.util.Comparator;
 import java.util.List;
 
 public class UnderGateAttackAbility extends AbilityDefinition {
+    private static final net.minecraft.resources.ResourceLocation UNDERGROUND_SPEED_MOD_ID =
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("mobs_ld", "vecna_underground_speed");
+
     private boolean firstCast = true;
     private AttackZoneDisplay trackerDisplay;
+    private AttackZoneDisplay surfaceDisplay;
     private boolean undergroundStarted = false;
+    private Vec3 surfaceOrigin;
+    private float surfaceYaw;
 
     @Override
     public String id() {
@@ -53,11 +61,16 @@ public class UnderGateAttackAbility extends AbilityDefinition {
 
     @Override
     public AttackZone zone() {
-        return new AttackZone.CircleTarget(100.0F, 8.0F);
+        return null;
     }
 
     @Override
     public int windupTicks() {
+        return 40;
+    }
+
+    @Override
+    public int damagePersistTicks() {
         return 40;
     }
 
@@ -69,6 +82,8 @@ public class UnderGateAttackAbility extends AbilityDefinition {
     @Override
     public void onWindupStart(ServerLevel world, BaseBossMob boss) {
         undergroundStarted = false;
+        surfaceOrigin = null;
+        surfaceYaw = 0.0F;
     }
 
     @Override
@@ -86,6 +101,15 @@ public class UnderGateAttackAbility extends AbilityDefinition {
                 .orElse(vecna.getTarget() instanceof ServerPlayer p ? p : null);
 
         vecna.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 2400, 0, false, false));
+        AttributeInstance speedAttr = vecna.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speedAttr != null) {
+            speedAttr.removeModifier(UNDERGROUND_SPEED_MOD_ID);
+            speedAttr.addTransientModifier(new AttributeModifier(
+                    UNDERGROUND_SPEED_MOD_ID,
+                    0.5D,
+                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
+            ));
+        }
         vecna.setDamageImmune(true);
         vecna.setIsUnderground(true);
         vecna.setUndergroundTarget(target);
@@ -110,6 +134,10 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         firstCast = false;
 
         vecna.removeEffect(MobEffects.INVISIBILITY);
+        AttributeInstance speedAttr = vecna.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speedAttr != null) {
+            speedAttr.removeModifier(UNDERGROUND_SPEED_MOD_ID);
+        }
         vecna.setDamageImmune(false);
         vecna.setIsUnderground(false);
         vecna.setUndergroundTarget(null);
@@ -121,12 +149,25 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         }
         vecna.setTrackerDisplay(null);
 
-        float damage = (float) boss.getAttributeValue(Attributes.ATTACK_DAMAGE);
-        boss.applyZoneDamage(zone(), zoneOrigin, yaw, damage);
+        surfaceOrigin = vecna.position();
+        surfaceYaw = vecna.getYRot();
+        surfaceDisplay = AttackZoneDisplay.spawn(
+                world,
+                surfaceOrigin,
+                surfaceYaw,
+                new AttackZone.Circle(8.0F),
+                displayConfig(),
+                damagePersistTicks()
+        );
+    }
 
-        List<ServerPlayer> hit = world.getEntitiesOfClass(ServerPlayer.class, new AABB(zoneOrigin, zoneOrigin).inflate(8.0));
-        for (ServerPlayer player : hit) {
-            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 1));
+    @Override
+    public void onPersistTick(ServerLevel world, BaseBossMob boss, int persistTimer) {
+        if (surfaceDisplay != null) {
+            surfaceDisplay.update(persistTimer, Math.max(1, damagePersistTicks()));
+            if (persistTimer <= 2) {
+                surfaceDisplay.setBrightRed();
+            }
         }
     }
 
@@ -134,6 +175,10 @@ public class UnderGateAttackAbility extends AbilityDefinition {
     public void onEnd(ServerLevel world, BaseBossMob boss) {
         if (boss instanceof VecnaTheSecond vecna) {
             vecna.removeEffect(MobEffects.INVISIBILITY);
+            AttributeInstance speedAttr = vecna.getAttribute(Attributes.MOVEMENT_SPEED);
+            if (speedAttr != null) {
+                speedAttr.removeModifier(UNDERGROUND_SPEED_MOD_ID);
+            }
             vecna.setDamageImmune(false);
             vecna.setIsUnderground(false);
             vecna.setUndergroundTarget(null);
@@ -143,6 +188,20 @@ public class UnderGateAttackAbility extends AbilityDefinition {
             trackerDisplay.remove();
             trackerDisplay = null;
         }
+        if (surfaceDisplay != null) {
+            surfaceDisplay.remove();
+            surfaceDisplay = null;
+        }
+        if (surfaceOrigin != null) {
+            float damage = (float) boss.getAttributeValue(Attributes.ATTACK_DAMAGE);
+            boss.applyZoneDamage(new AttackZone.Circle(8.0F), surfaceOrigin, surfaceYaw, damage);
+            List<ServerPlayer> hit = world.getEntitiesOfClass(ServerPlayer.class, new AABB(surfaceOrigin, surfaceOrigin).inflate(8.0));
+            for (ServerPlayer player : hit) {
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 1));
+            }
+        }
+        surfaceOrigin = null;
+        surfaceYaw = 0.0F;
         undergroundStarted = false;
     }
 }

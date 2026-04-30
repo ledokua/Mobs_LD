@@ -21,6 +21,7 @@ public class VecnaTheSecond extends BaseBossMob {
     private boolean underground = false;
     private ServerPlayer undergroundTarget;
     private AttackZoneDisplay trackerDisplay;
+    private int undergroundTimer = -1;
 
     public VecnaTheSecond(EntityType<? extends VecnaTheSecond> entityType, Level level) {
         super(entityType, level);
@@ -69,7 +70,13 @@ public class VecnaTheSecond extends BaseBossMob {
             if (trackerDisplay != null) {
                 trackerDisplay.updatePosition(position().add(0, 0.05, 0));
             }
-            if (distanceToSqr(undergroundTarget) <= 4.0) {
+            if (distanceToSqr(undergroundTarget) <= 1.0) {
+                forceActivateCurrentAbility();
+            }
+        }
+        if (underground && undergroundTimer >= 0) {
+            undergroundTimer--;
+            if (undergroundTimer <= 0) {
                 forceActivateCurrentAbility();
             }
         }
@@ -81,6 +88,9 @@ public class VecnaTheSecond extends BaseBossMob {
 
     public void setIsUnderground(boolean underground) {
         this.underground = underground;
+        if (!underground) {
+            undergroundTimer = -1;
+        }
     }
 
     public ServerPlayer getUndergroundTarget() {
@@ -89,6 +99,9 @@ public class VecnaTheSecond extends BaseBossMob {
 
     public void setUndergroundTarget(ServerPlayer undergroundTarget) {
         this.undergroundTarget = undergroundTarget;
+        if (undergroundTarget != null) {
+            undergroundTimer = 600;
+        }
     }
 
     public AttackZoneDisplay getTrackerDisplay() {

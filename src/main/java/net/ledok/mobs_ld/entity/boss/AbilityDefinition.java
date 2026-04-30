@@ -51,6 +51,9 @@ public abstract class AbilityDefinition {
         boss.applyZoneDamage(zone(), zoneOrigin, yawDegrees, damage);
     }
 
+    public void onPersistTick(ServerLevel world, BaseBossMob boss, int persistTimer) {
+    }
+
     public void onEnd(ServerLevel world, BaseBossMob boss) {
     }
 }
