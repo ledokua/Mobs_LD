@@ -252,6 +252,9 @@ public abstract class BaseBossMob extends Monster {
     }
 
     private void tickBossBar() {
+        if (!isAlive()) {
+            return;
+        }
         if (!(level() instanceof ServerLevel world)) {
             return;
         }
@@ -282,6 +285,18 @@ public abstract class BaseBossMob extends Monster {
         for (ServerPlayer player : inRange) {
             bossBar.addPlayer(player);
         }
+    }
+
+    @Override
+    public void startSeenByPlayer(ServerPlayer player) {
+        super.startSeenByPlayer(player);
+        bossBar.addPlayer(player);
+    }
+
+    @Override
+    public void stopSeenByPlayer(ServerPlayer player) {
+        super.stopSeenByPlayer(player);
+        bossBar.removePlayer(player);
     }
 
     private void tickPassiveAbilities() {
