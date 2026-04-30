@@ -1,29 +1,20 @@
 package net.ledok.mobs_ld.entity.boss.mob;
 
-import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.boss.*;
-import net.ledok.mobs_ld.entity.boss.ability.UnderGateAttackAbility;
 import net.ledok.mobs_ld.entity.boss.ability.UnderGateWhipAbility;
 import net.ledok.mobs_ld.entity.boss.ability.UnderGateWhipPhase2Ability;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class VecnaTheSecond extends BaseBossMob {
-    private boolean underground = false;
-    private ServerPlayer undergroundTarget;
-    private AttackZoneDisplay trackerDisplay;
-    private int undergroundTimer = -1;
-
     public VecnaTheSecond(EntityType<? extends VecnaTheSecond> entityType, Level level) {
         super(entityType, level);
     }
@@ -32,8 +23,7 @@ public class VecnaTheSecond extends BaseBossMob {
     protected Map<String, AbilityDefinition> defineAbilities() {
         return Map.of(
                 "whip", new UnderGateWhipAbility(),
-                "whip_phase2", new UnderGateWhipPhase2Ability(),
-                "under_gate", new UnderGateAttackAbility()
+                "whip_phase2", new UnderGateWhipPhase2Ability()
         );
     }
 
@@ -41,7 +31,7 @@ public class VecnaTheSecond extends BaseBossMob {
     protected List<BossPhase> definePhases() {
         return List.of(
                 new BossPhase(1.0F, new ArrayList<>(List.of("whip")), MovementType.FREE, true, DamageProfile.NONE),
-                new BossPhase(0.75F, new ArrayList<>(List.of("whip_phase2", "under_gate")), MovementType.FREE, true, DamageProfile.NONE)
+                new BossPhase(0.75F, new ArrayList<>(List.of("whip_phase2")), MovementType.FREE, true, DamageProfile.NONE)
         );
     }
 
@@ -58,96 +48,6 @@ public class VecnaTheSecond extends BaseBossMob {
     @Override
     protected Component getBossBarName() {
         return Component.literal("Vecna The Second");
-    }
-
-    @Override
-    public boolean isMovementLocked() {
-        return underground;
-    }
-
-    @Override
-    public void aiStep() {
-        super.aiStep();
-        if (level().isClientSide) {
-            return;
-        }
-        if (underground) {
-            if (undergroundTarget == null || !undergroundTarget.isAlive() || undergroundTarget.isRemoved()) {
-                undergroundTarget = selectLowestHpTarget();
-                if (undergroundTarget == null) {
-                    forceActivateCurrentAbility();
-                    return;
-                }
-            }
-
-            // Underground travel uses direct steering to avoid path recalculation stalls.
-            getNavigation().stop();
-            Vec3 toTarget = undergroundTarget.position().subtract(position());
-            Vec3 flat = new Vec3(toTarget.x, 0.0, toTarget.z);
-            if (flat.lengthSqr() > 1.0e-6) {
-                double speed = getAttributeValue(Attributes.MOVEMENT_SPEED) * 1.2D;
-                Vec3 step = flat.normalize().scale(Math.min(speed, flat.length()));
-                setPos(getX() + step.x, getY(), getZ() + step.z);
-            }
-            if (trackerDisplay != null) {
-                trackerDisplay.updatePosition(position().add(0, 0.05, 0));
-            }
-            double dx = undergroundTarget.getX() - getX();
-            double dz = undergroundTarget.getZ() - getZ();
-            if (dx * dx + dz * dz <= 1.0) {
-                forceActivateCurrentAbility();
-            }
-        }
-        if (underground && undergroundTimer >= 0) {
-            undergroundTimer--;
-            if (undergroundTimer <= 0) {
-                forceActivateCurrentAbility();
-            }
-        }
-    }
-
-    private ServerPlayer selectLowestHpTarget() {
-        if (!(level() instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
-            return null;
-        }
-        double followRange = getAttributeValue(Attributes.FOLLOW_RANGE);
-        return serverLevel.getEntitiesOfClass(
-                        ServerPlayer.class,
-                        getBoundingBox().inflate(followRange)
-                ).stream()
-                .filter(player -> player.isAlive() && !player.isRemoved())
-                .min(java.util.Comparator.comparingDouble(ServerPlayer::getHealth))
-                .orElse(null);
-    }
-
-    public boolean isUnderground() {
-        return underground;
-    }
-
-    public void setIsUnderground(boolean underground) {
-        this.underground = underground;
-        if (!underground) {
-            undergroundTimer = -1;
-        }
-    }
-
-    public ServerPlayer getUndergroundTarget() {
-        return undergroundTarget;
-    }
-
-    public void setUndergroundTarget(ServerPlayer undergroundTarget) {
-        this.undergroundTarget = undergroundTarget;
-        if (undergroundTarget != null) {
-            undergroundTimer = 600;
-        }
-    }
-
-    public AttackZoneDisplay getTrackerDisplay() {
-        return trackerDisplay;
-    }
-
-    public void setTrackerDisplay(AttackZoneDisplay trackerDisplay) {
-        this.trackerDisplay = trackerDisplay;
     }
 
     public static AttributeSupplier.Builder createAttributes() {

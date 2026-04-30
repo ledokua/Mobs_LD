@@ -161,6 +161,7 @@ public class BossAbilityGoal extends Goal {
     }
 
     private void cancelAbility() {
+        AbilityDefinition ability = boss.getActiveAbility();
         for (AttackZoneDisplay display : displays) {
             display.remove();
         }
@@ -168,6 +169,10 @@ public class BossAbilityGoal extends Goal {
         windupTimer = -1;
         damageTimer = -1;
         activated = false;
+
+        if (ability != null && boss.level() instanceof ServerLevel world) {
+            ability.onEnd(world, boss);
+        }
         boss.cancelActiveAbility();
     }
 
