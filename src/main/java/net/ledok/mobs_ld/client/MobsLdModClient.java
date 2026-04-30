@@ -14,6 +14,7 @@ public class MobsLdModClient implements ClientModInitializer {
         EntityRendererRegistry.register(ModEntities.SPINNER_MOB, ctx -> new DungeonMobRenderer<>(ctx, "spinner_mob"));
         EntityRendererRegistry.register(ModEntities.FANG_MOB, ctx -> new DungeonMobRenderer<>(ctx, "fang_mob"));
         EntityRendererRegistry.register(ModEntities.CURSE_SHAMAN, ctx -> new DungeonMobRenderer<>(ctx, "curse_shaman"));
+        EntityRendererRegistry.register(ModEntities.VECNA_THE_SECOND, ctx -> new DungeonMobRenderer<>(ctx, "vecna_the_second"));
         EntityRendererRegistry.register(ModEntities.ATTACK_ZONE_VISUAL, AttackZoneVisualRenderer::new);
     }
 }

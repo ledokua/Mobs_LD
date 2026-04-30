@@ -4,9 +4,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+
+import java.util.UUID;
 
 public class AttackZoneVisualEntity extends Entity {
     private static final EntityDataAccessor<Integer> DATA_ZONE_KIND =
@@ -35,6 +39,9 @@ public class AttackZoneVisualEntity extends Entity {
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_IS_PREVIEW =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_ALWAYS_RENDER =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
+    private UUID trackedEntityId;
 
     public AttackZoneVisualEntity(EntityType<? extends AttackZoneVisualEntity> entityType, Level level) {
         super(entityType, level);
@@ -56,14 +63,21 @@ public class AttackZoneVisualEntity extends Entity {
         builder.define(DATA_TOTAL_WINDUP, 1);
         builder.define(DATA_FORCE_INVOKE, false);
         builder.define(DATA_IS_PREVIEW, false);
+        builder.define(DATA_ALWAYS_RENDER, false);
     }
 
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
+        if (tag.hasUUID("tracked_entity")) {
+            trackedEntityId = tag.getUUID("tracked_entity");
+        }
     }
 
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
+        if (trackedEntityId != null) {
+            tag.putUUID("tracked_entity", trackedEntityId);
+        }
     }
 
     @Override
@@ -178,5 +192,29 @@ public class AttackZoneVisualEntity extends Entity {
 
     public boolean isPreview() {
         return entityData.get(DATA_IS_PREVIEW);
+    }
+
+    public void setAlwaysRender(boolean alwaysRender) {
+        entityData.set(DATA_ALWAYS_RENDER, alwaysRender);
+    }
+
+    public boolean isAlwaysRender() {
+        return entityData.get(DATA_ALWAYS_RENDER);
+    }
+
+    public void followEntity(LivingEntity entity) {
+        trackedEntityId = entity.getUUID();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (!(level() instanceof ServerLevel world) || trackedEntityId == null) {
+            return;
+        }
+        Entity tracked = world.getEntity(trackedEntityId);
+        if (tracked != null) {
+            setPos(tracked.getX(), tracked.getY() + 0.16, tracked.getZ());
+        }
     }
 }
