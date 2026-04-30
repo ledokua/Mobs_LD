@@ -15,6 +15,7 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -48,6 +49,8 @@ public abstract class BaseBossMob extends Monster {
 
     private final Map<String, Integer> passiveWindupTimers = new HashMap<>();
     private final Map<String, AttackZoneDisplay> passiveDisplays = new HashMap<>();
+    private BossAbilityGoal bossAbilityGoal;
+    private boolean cleanedUp = false;
 
     private int currentPhase = 0;
     private BossPhase activePhase;
@@ -91,7 +94,8 @@ public abstract class BaseBossMob extends Monster {
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(1, new FloatGoal(this));
-        goalSelector.addGoal(2, new BossAbilityGoal(this));
+        bossAbilityGoal = new BossAbilityGoal(this);
+        goalSelector.addGoal(2, bossAbilityGoal);
         goalSelector.addGoal(3, new BossMovementGoal(this));
         goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 16.0F));
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
@@ -135,10 +139,27 @@ public abstract class BaseBossMob extends Monster {
 
     @Override
     public void die(DamageSource source) {
+        cleanupBossState();
         super.die(source);
+    }
+
+    @Override
+    public void remove(Entity.RemovalReason reason) {
+        cleanupBossState();
+        super.remove(reason);
+    }
+
+    private void cleanupBossState() {
+        if (cleanedUp) {
+            return;
+        }
+        cleanedUp = true;
+        if (bossAbilityGoal != null) {
+            bossAbilityGoal.stop();
+        }
+        goalSelector.getAvailableGoals().forEach(wrappedGoal -> wrappedGoal.getGoal().stop());
         bossBar.setVisible(false);
         bossBar.removeAllPlayers();
-        goalSelector.getAvailableGoals().forEach(wrappedGoal -> wrappedGoal.getGoal().stop());
         passiveDisplays.values().forEach(AttackZoneDisplay::remove);
         passiveDisplays.clear();
     }
@@ -414,6 +435,10 @@ public abstract class BaseBossMob extends Monster {
 
     public double getIdealAttackDistance() {
         return idealAttackDistance();
+    }
+
+    public boolean isMovementLocked() {
+        return false;
     }
 
     public void applyZoneDamage(AttackZone zone, Vec3 origin, float yawDegrees, float damage) {
