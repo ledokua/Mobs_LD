@@ -34,10 +34,13 @@ public class BossAbilityGoal extends Goal {
         if (!(boss.level() instanceof ServerLevel)) {
             return false;
         }
-        if (boss.getTarget() == null || boss.getAttackCooldown() > 0) {
+        if (boss.getGlobalAttackLockout() > 0) {
             return false;
         }
-        AbilityDefinition next = selectNextAbility();
+        if (boss.getAttackCooldown() > 0) {
+            return false;
+        }
+        AbilityDefinition next = selectNextAbility((ServerLevel) boss.level());
         if (next == null) {
             return false;
         }
@@ -152,7 +155,9 @@ public class BossAbilityGoal extends Goal {
         boss.setCooldown(ability.id(), boss.resolvedCooldown(ability));
         boss.setActiveAbility(null);
         boss.setWindingUp(false);
-        boss.setDamageImmune(false);
+        if (!ability.keepDamageImmuneAfterEnd()) {
+            boss.setDamageImmune(false);
+        }
         boss.setAttackCooldown(2);
 
         windupTimer = -1;
@@ -182,13 +187,20 @@ public class BossAbilityGoal extends Goal {
         }
     }
 
-    private AbilityDefinition selectNextAbility() {
+    public void endPersistEarly() {
+        if (damageTimer >= 0) {
+            damageTimer = 0;
+        }
+    }
+
+    private AbilityDefinition selectNextAbility(ServerLevel world) {
         return boss.getActivePhase().abilityIds().stream()
                 .map(boss.getAbilities()::get)
                 .filter(Objects::nonNull)
                 .filter(a -> !a.isPassive())
                 .filter(a -> boss.getCooldown(a.id()) <= 0)
                 .filter(boss::canTrigger)
+                .filter(a -> a.canUse(world, boss))
                 .max(Comparator.comparingInt(AbilityDefinition::priority))
                 .orElse(null);
     }
