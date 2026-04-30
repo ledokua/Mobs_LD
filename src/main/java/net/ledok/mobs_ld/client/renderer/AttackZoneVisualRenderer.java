@@ -208,7 +208,10 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
     @Override
     public boolean shouldRender(AttackZoneVisualEntity entity, Frustum frustum, double x, double y, double z) {
-        return (x * x + y * y + z * z) < (32.0 * 32.0);
+        double dx = entity.getX() - x;
+        double dy = entity.getY() - y;
+        double dz = entity.getZ() - z;
+        return (dx * dx + dy * dy + dz * dz) < (32.0 * 32.0);
     }
 
     private static float clamp01(float value) {

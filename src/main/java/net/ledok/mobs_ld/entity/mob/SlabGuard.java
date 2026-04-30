@@ -23,12 +23,12 @@ public class SlabGuard extends BaseDungeonMob {
 
     @Override
     protected AttackZone attackZone() {
-        return new AttackZone.Rectangle(3.0F, 4.0F, 0.5F);
+        return new AttackZone.Rectangle(8.0F, 3.0F, 2F);
     }
 
     @Override
     protected int windupTicks() {
-        return 25;
+        return 10;
     }
 
     @Override
@@ -43,11 +43,11 @@ public class SlabGuard extends BaseDungeonMob {
 
     @Override
     protected double idealAttackDistance() {
-        return 1.5;
+        return 3.5;
     }
 
     @Override
     protected AttackDisplayConfig displayConfig() {
-        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.DEFAULT, 0xFF5A5000, 0xFFFFEE00);
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.SWEEP, 0xFFFF2EAB, 0xFFFF2EAB);
     }
 }
