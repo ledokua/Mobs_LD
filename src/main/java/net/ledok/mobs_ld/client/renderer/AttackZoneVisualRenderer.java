@@ -91,6 +91,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             case 0 -> renderRectangle(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 1 -> renderCone(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 2, 3 -> renderCircle(entity, matrix, buffer, color, scaleMult);
+            case 4 -> renderRing(entity, matrix, buffer, color, scaleMult);
             default -> {
             }
         }
@@ -174,6 +175,34 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             buffer.addVertex(matrix, x1, y, z1).setColor(color);
             buffer.addVertex(matrix, x2, y, z2).setColor(color);
             buffer.addVertex(matrix, x2, y, z2).setColor(color);
+        }
+    }
+
+    private void renderRing(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
+        float radius = entity.getParamA() * scale;
+        float width = entity.getParamC() * scale;
+        float inner = Math.max(0.0F, radius - width * 0.5F);
+        float outer = radius + width * 0.5F;
+        int segments = 48;
+        float y = 0.02F;
+
+        for (int i = 0; i < segments; i++) {
+            float a1 = (float) (2.0 * Math.PI * i / segments);
+            float a2 = (float) (2.0 * Math.PI * (i + 1) / segments);
+
+            float ix1 = (float) Math.cos(a1) * inner;
+            float iz1 = (float) Math.sin(a1) * inner;
+            float ox1 = (float) Math.cos(a1) * outer;
+            float oz1 = (float) Math.sin(a1) * outer;
+            float ix2 = (float) Math.cos(a2) * inner;
+            float iz2 = (float) Math.sin(a2) * inner;
+            float ox2 = (float) Math.cos(a2) * outer;
+            float oz2 = (float) Math.sin(a2) * outer;
+
+            buffer.addVertex(matrix, ix1, y, iz1).setColor(color);
+            buffer.addVertex(matrix, ox1, y, oz1).setColor(color);
+            buffer.addVertex(matrix, ox2, y, oz2).setColor(color);
+            buffer.addVertex(matrix, ix2, y, iz2).setColor(color);
         }
     }
 
