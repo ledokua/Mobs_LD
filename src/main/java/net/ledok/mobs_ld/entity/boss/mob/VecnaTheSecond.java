@@ -12,6 +12,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,8 +66,21 @@ public class VecnaTheSecond extends BaseBossMob {
         if (level().isClientSide) {
             return;
         }
-        if (underground && undergroundTarget != null) {
-            getNavigation().moveTo(undergroundTarget, 1.2D);
+        if (underground) {
+            if (undergroundTarget == null || !undergroundTarget.isAlive() || undergroundTarget.isRemoved()) {
+                undergroundTarget = selectLowestHpTarget();
+                if (undergroundTarget == null) {
+                    forceActivateCurrentAbility();
+                    return;
+                }
+            }
+
+            getNavigation().moveTo(
+                    undergroundTarget.getX(),
+                    undergroundTarget.getY(),
+                    undergroundTarget.getZ(),
+                    1.2D
+            );
             if (trackerDisplay != null) {
                 trackerDisplay.updatePosition(position().add(0, 0.05, 0));
             }
@@ -80,6 +94,20 @@ public class VecnaTheSecond extends BaseBossMob {
                 forceActivateCurrentAbility();
             }
         }
+    }
+
+    private ServerPlayer selectLowestHpTarget() {
+        if (!(level() instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
+            return null;
+        }
+        double followRange = getAttributeValue(Attributes.FOLLOW_RANGE);
+        return serverLevel.getEntitiesOfClass(
+                        ServerPlayer.class,
+                        getBoundingBox().inflate(followRange)
+                ).stream()
+                .filter(player -> player.isAlive() && !player.isRemoved())
+                .min(java.util.Comparator.comparingDouble(ServerPlayer::getHealth))
+                .orElse(null);
     }
 
     public boolean isUnderground() {
