@@ -94,6 +94,7 @@ public class BossAbilityGoal extends Goal {
 
         if (windupTimer >= 0) {
             windupTimer--;
+            ability.onWindupTick(world, boss, windupTimer);
             for (AttackZoneDisplay display : displays) {
                 display.update(windupTimer, Math.max(1, ability.windupTicks()));
                 if (windupTimer <= BRIGHT_WINDOW_TICKS) {
@@ -132,6 +133,7 @@ public class BossAbilityGoal extends Goal {
             return;
         }
         activated = true;
+        boss.consumePhaseEntryAbility(ability.id());
         Vec3 origin = getZoneOrigin(ability);
         ability.onActivate(world, boss, origin, lockedYaw);
         if (ability.trigger() instanceof TriggerCondition.AtHpThreshold) {
@@ -166,6 +168,12 @@ public class BossAbilityGoal extends Goal {
         damageTimer = -1;
         activated = false;
         boss.cancelActiveAbility();
+    }
+
+    public void forceActivate() {
+        if (boss.getActiveAbility() != null) {
+            windupTimer = 0;
+        }
     }
 
     private AbilityDefinition selectNextAbility() {

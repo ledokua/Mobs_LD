@@ -40,6 +40,7 @@ public abstract class BaseBossMob extends Monster {
     private final EnrageConfig enrageConfig;
 
     private final Set<String> usedThresholdAbilities = new HashSet<>();
+    private final Set<String> pendingPhaseEntryAbilities = new HashSet<>();
     private final Set<UUID> trackedPlayerIds = new HashSet<>();
     private final ServerBossEvent bossBar = new ServerBossEvent(
             Component.empty(), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS
@@ -337,12 +338,19 @@ public abstract class BaseBossMob extends Monster {
             case TriggerCondition.RandomFromPool ignored -> true;
             case TriggerCondition.AtHpThreshold t -> (getHealth() / getMaxHealth() <= t.threshold())
                     && !usedThresholdAbilities.contains(ability.id());
-            case TriggerCondition.OnPhaseEntry ignored -> false;
+            case TriggerCondition.OnPhaseEntry ignored -> pendingPhaseEntryAbilities.contains(ability.id());
         };
     }
 
     public void scheduleAbility(AbilityDefinition ability) {
         abilityCooldowns.put(ability.id(), 0);
+        if (ability.trigger() instanceof TriggerCondition.OnPhaseEntry) {
+            pendingPhaseEntryAbilities.add(ability.id());
+        }
+    }
+
+    public void consumePhaseEntryAbility(String abilityId) {
+        pendingPhaseEntryAbilities.remove(abilityId);
     }
 
     public void markThresholdAbilityUsed(String abilityId) {
@@ -450,5 +458,13 @@ public abstract class BaseBossMob extends Monster {
                 yield horizontal >= r.radius() - halfWidth && horizontal <= r.radius() + halfWidth;
             }
         };
+    }
+
+    public void forceActivateCurrentAbility() {
+        goalSelector.getAvailableGoals().forEach(wrapped -> {
+            if (wrapped.getGoal() instanceof net.ledok.mobs_ld.entity.boss.ai.BossAbilityGoal abilityGoal) {
+                abilityGoal.forceActivate();
+            }
+        });
     }
 }

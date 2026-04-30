@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.entity.attack;
 
 import net.ledok.mobs_ld.registry.ModEntities;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 public class AttackZoneDisplay {
@@ -44,6 +45,21 @@ public class AttackZoneDisplay {
     public void setBrightRed() {
         preview.setForceInvoke(true);
         fill.setForceInvoke(true);
+    }
+
+    public void updatePosition(Vec3 pos) {
+        preview.setPos(pos.x, pos.y + 0.16, pos.z);
+        fill.setPos(pos.x, pos.y + 0.18, pos.z);
+    }
+
+    public void followEntity(LivingEntity entity) {
+        preview.followEntity(entity);
+        fill.followEntity(entity);
+    }
+
+    public void setAlwaysRender(boolean alwaysRender) {
+        preview.setAlwaysRender(alwaysRender);
+        fill.setAlwaysRender(alwaysRender);
     }
 
     public void remove() {

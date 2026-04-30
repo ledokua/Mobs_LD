@@ -40,6 +40,9 @@ public abstract class AbilityDefinition {
     public void onWindupStart(ServerLevel world, BaseBossMob boss) {
     }
 
+    public void onWindupTick(ServerLevel world, BaseBossMob boss, int windupTimer) {
+    }
+
     public void onActivate(ServerLevel world, BaseBossMob boss, Vec3 zoneOrigin, float yawDegrees) {
         if (zone() == null) {
             return;

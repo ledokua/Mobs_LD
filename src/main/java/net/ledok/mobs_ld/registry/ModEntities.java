@@ -3,6 +3,7 @@ package net.ledok.mobs_ld.registry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.entity.attack.AttackZoneVisualEntity;
+import net.ledok.mobs_ld.entity.boss.mob.VecnaTheSecond;
 import net.ledok.mobs_ld.entity.mob.CurseShaman;
 import net.ledok.mobs_ld.entity.mob.CryptGuard;
 import net.ledok.mobs_ld.entity.mob.FangMob;
@@ -63,6 +64,14 @@ public final class ModEntities {
                     .clientTrackingRange(64)
                     .build()
     );
+    public static final EntityType<VecnaTheSecond> VECNA_THE_SECOND = Registry.register(
+            BuiltInRegistries.ENTITY_TYPE,
+            ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "vecna_the_second"),
+            EntityType.Builder.of(VecnaTheSecond::new, MobCategory.MONSTER)
+                    .sized(0.8F, 2.2F)
+                    .clientTrackingRange(10)
+                    .build()
+    );
 
     private ModEntities() {
     }
@@ -73,5 +82,6 @@ public final class ModEntities {
         FabricDefaultAttributeRegistry.register(SPINNER_MOB, SpinnerMob.createAttributes());
         FabricDefaultAttributeRegistry.register(FANG_MOB, FangMob.createAttributes());
         FabricDefaultAttributeRegistry.register(CURSE_SHAMAN, CurseShaman.createAttributes());
+        FabricDefaultAttributeRegistry.register(VECNA_THE_SECOND, VecnaTheSecond.createAttributes());
     }
 }
