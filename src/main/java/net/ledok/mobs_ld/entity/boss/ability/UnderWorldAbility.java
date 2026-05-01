@@ -139,8 +139,23 @@ public class UnderWorldAbility extends AbilityDefinition {
         }
 
         undergroundTimer--;
-        if (undergroundTimer % 10 == 0) {
-            recalculateIntercept(world, vecna);
+        recalculateIntercept(world, vecna);
+        vecna.getNavigation().stop();
+
+        Vec3 toIntercept = interceptTarget.subtract(vecna.position());
+        Vec3 flatToIntercept = new Vec3(toIntercept.x, 0.0, toIntercept.z);
+        if (flatToIntercept.lengthSqr() > 1.0e-6) {
+            ServerPlayer target = vecna.getUndergroundTarget();
+            double targetSpeed = 0.0;
+            if (target != null) {
+                Vec3 tv = target.getDeltaMovement();
+                targetSpeed = Math.sqrt(tv.x * tv.x + tv.z * tv.z);
+            }
+            double baseSpeed = vecna.getAttributeValue(Attributes.MOVEMENT_SPEED) * 3.5;
+            double stepPerTick = Math.max(baseSpeed, targetSpeed + 0.35);
+            stepPerTick = Math.max(0.40, Math.min(1.20, stepPerTick));
+            Vec3 step = flatToIntercept.normalize().scale(Math.min(stepPerTick, flatToIntercept.length()));
+            vecna.setPos(vecna.getX() + step.x, vecna.getY(), vecna.getZ() + step.z);
         }
 
         AttackZoneDisplay tracker = vecna.getTrackerDisplay();
@@ -148,11 +163,20 @@ public class UnderWorldAbility extends AbilityDefinition {
             tracker.updatePosition(vecna.position().add(0.0, 0.05, 0.0));
         }
 
-        double dx = interceptTarget.x - vecna.getX();
-        double dz = interceptTarget.z - vecna.getZ();
-        if (dx * dx + dz * dz <= 0.01) {
-            triggerSurface(vecna);
-            return;
+        ServerPlayer target = vecna.getUndergroundTarget();
+        if (target != null && target.isAlive() && !target.isRemoved()) {
+            Vec3 leadDir = computeLeadDirection(target, vecna);
+            double dxIntercept = interceptTarget.x - vecna.getX();
+            double dzIntercept = interceptTarget.z - vecna.getZ();
+            double distToInterceptSqr = dxIntercept * dxIntercept + dzIntercept * dzIntercept;
+
+            Vec3 fromTargetToVecna = new Vec3(vecna.getX() - target.getX(), 0.0, vecna.getZ() - target.getZ());
+            double aheadDistance = fromTargetToVecna.dot(leadDir);
+
+            if (distToInterceptSqr <= 1.0 && aheadDistance >= 2.0) {
+                triggerSurface(vecna);
+                return;
+            }
         }
 
         if (undergroundTimer <= 0) {
@@ -203,19 +227,18 @@ public class UnderWorldAbility extends AbilityDefinition {
         }
 
         Vec3 playerVel = target.getDeltaMovement();
+        Vec3 horizontalVel = new Vec3(playerVel.x, 0.0, playerVel.z);
+        Vec3 leadDir = computeLeadDirection(target, vecna);
         double vecnaSpeed = Math.max(0.01, vecna.getAttributeValue(Attributes.MOVEMENT_SPEED));
-        Vec3 toPlayer = target.position().subtract(vecna.position());
-        double travelTime = toPlayer.length() / vecnaSpeed;
+        double distToPlayer = target.position().distanceTo(vecna.position());
+        double predictionTicks = Math.min(12.0, Math.max(2.0, (distToPlayer / vecnaSpeed) * 0.35));
 
-        Vec3 targetPos;
-        if (playerVel.lengthSqr() < 0.001) {
-            targetPos = target.position();
-        } else {
-            targetPos = target.position().add(playerVel.scale(travelTime + 10.0));
-        }
+        Vec3 predictedBase = horizontalVel.lengthSqr() < 1.0e-4
+                ? target.position()
+                : target.position().add(horizontalVel.scale(predictionTicks));
 
-        interceptTarget = new Vec3(targetPos.x, vecna.getY(), targetPos.z);
-        vecna.getNavigation().moveTo(interceptTarget.x, vecna.getY(), interceptTarget.z, 1.0D);
+        Vec3 desired = predictedBase.add(leadDir.scale(3.0));
+        interceptTarget = new Vec3(desired.x, vecna.getY(), desired.z);
     }
 
     private void triggerSurface(VecnaTheSecond vecna) {
@@ -235,5 +258,26 @@ public class UnderWorldAbility extends AbilityDefinition {
                 .filter(player -> player.isAlive() && !player.isRemoved())
                 .min(Comparator.comparingDouble(ServerPlayer::getHealth))
                 .orElse(null);
+    }
+
+    private Vec3 computeLeadDirection(ServerPlayer target, VecnaTheSecond vecna) {
+        Vec3 velocity = target.getDeltaMovement();
+        Vec3 flatVelocity = new Vec3(velocity.x, 0.0, velocity.z);
+        if (flatVelocity.lengthSqr() > 1.0e-4) {
+            return flatVelocity.normalize();
+        }
+
+        Vec3 look = target.getLookAngle();
+        Vec3 flatLook = new Vec3(look.x, 0.0, look.z);
+        if (flatLook.lengthSqr() > 1.0e-4) {
+            return flatLook.normalize();
+        }
+
+        Vec3 toTarget = target.position().subtract(vecna.position());
+        Vec3 flatToTarget = new Vec3(toTarget.x, 0.0, toTarget.z);
+        if (flatToTarget.lengthSqr() > 1.0e-6) {
+            return flatToTarget.normalize();
+        }
+        return new Vec3(0.0, 0.0, 1.0);
     }
 }

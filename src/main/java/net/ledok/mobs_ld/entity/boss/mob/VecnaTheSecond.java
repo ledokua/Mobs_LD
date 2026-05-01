@@ -125,6 +125,25 @@ public class VecnaTheSecond extends BaseBossMob {
         this.undergroundTarget = undergroundTarget;
     }
 
+    @Override
+    public boolean isPushable() {
+        return !underground && super.isPushable();
+    }
+
+    @Override
+    protected void doPush(net.minecraft.world.entity.Entity entity) {
+        if (!underground) {
+            super.doPush(entity);
+        }
+    }
+
+    @Override
+    public void push(double x, double y, double z) {
+        if (!underground) {
+            super.push(x, y, z);
+        }
+    }
+
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
                 .add(Attributes.MAX_HEALTH, 350.0)
