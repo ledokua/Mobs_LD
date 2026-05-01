@@ -237,7 +237,7 @@ public class UnderWorldAbility extends AbilityDefinition {
                 ? target.position()
                 : target.position().add(horizontalVel.scale(predictionTicks));
 
-        Vec3 desired = predictedBase.add(leadDir.scale(3.0));
+        Vec3 desired = predictedBase.add(leadDir.scale(1.0));
         interceptTarget = new Vec3(desired.x, vecna.getY(), desired.z);
     }
 

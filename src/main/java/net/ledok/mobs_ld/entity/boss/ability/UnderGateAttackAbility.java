@@ -72,7 +72,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
 
     @Override
     public AttackDisplayConfig displayConfig() {
-        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.DEFAULT, 0xFF1A0033, 0xFF6600CC);
+        return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.GROW, 0xFF1A0033, 0xFF6600CC);
     }
 
     @Override
