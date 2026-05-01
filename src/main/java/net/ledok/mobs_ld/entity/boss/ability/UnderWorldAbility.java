@@ -27,6 +27,8 @@ public class UnderWorldAbility extends AbilityDefinition {
 
     private int undergroundTimer = 0;
     private Vec3 interceptTarget = Vec3.ZERO;
+    private Vec3 lastTargetSamplePos = null;
+    private Vec3 sampledTargetMove = Vec3.ZERO;
 
     @Override
     public String id() {
@@ -128,6 +130,8 @@ public class UnderWorldAbility extends AbilityDefinition {
         vecna.setTrackerDisplay(tracker);
 
         vecna.setUndergroundTarget(selectLowestHpPlayer(world, vecna));
+        lastTargetSamplePos = null;
+        sampledTargetMove = Vec3.ZERO;
         undergroundTimer = 600;
         recalculateIntercept(world, vecna);
     }
@@ -165,7 +169,7 @@ public class UnderWorldAbility extends AbilityDefinition {
 
         ServerPlayer target = vecna.getUndergroundTarget();
         if (target != null && target.isAlive() && !target.isRemoved()) {
-            Vec3 leadDir = computeLeadDirection(target, vecna);
+            Vec3 leadDir = computeLeadDirection(target, vecna, sampledTargetMove);
             double dxIntercept = interceptTarget.x - vecna.getX();
             double dzIntercept = interceptTarget.z - vecna.getZ();
             double distToInterceptSqr = dxIntercept * dxIntercept + dzIntercept * dzIntercept;
@@ -173,7 +177,12 @@ public class UnderWorldAbility extends AbilityDefinition {
             Vec3 fromTargetToVecna = new Vec3(vecna.getX() - target.getX(), 0.0, vecna.getZ() - target.getZ());
             double aheadDistance = fromTargetToVecna.dot(leadDir);
 
-            if (distToInterceptSqr <= 1.0 && aheadDistance >= 2.0) {
+            Vec3 frontOffset = new Vec3(interceptTarget.x - target.getX(), 0.0, interceptTarget.z - target.getZ());
+            double interceptFrontDistance = frontOffset.length();
+            double requiredAheadDistance = Math.max(0.15, Math.min(2.0, interceptFrontDistance * 0.7));
+            double arrivalRadius = Math.max(0.35, interceptFrontDistance * 0.8);
+
+            if (distToInterceptSqr <= arrivalRadius * arrivalRadius && aheadDistance >= requiredAheadDistance) {
                 triggerSurface(vecna);
                 return;
             }
@@ -207,6 +216,8 @@ public class UnderWorldAbility extends AbilityDefinition {
         vecna.setIsUnderground(false);
         vecna.setReadyToSurface(false);
         vecna.setUndergroundTarget(null);
+        lastTargetSamplePos = null;
+        sampledTargetMove = Vec3.ZERO;
 
         AttackZoneDisplay tracker = vecna.getTrackerDisplay();
         if (tracker != null) {
@@ -224,11 +235,13 @@ public class UnderWorldAbility extends AbilityDefinition {
                 triggerSurface(vecna);
                 return;
             }
+            lastTargetSamplePos = null;
+            sampledTargetMove = Vec3.ZERO;
         }
 
-        Vec3 playerVel = target.getDeltaMovement();
-        Vec3 horizontalVel = new Vec3(playerVel.x, 0.0, playerVel.z);
-        Vec3 leadDir = computeLeadDirection(target, vecna);
+        Vec3 moveVector = sampleTargetMovement(target);
+        Vec3 horizontalVel = new Vec3(moveVector.x, 0.0, moveVector.z);
+        Vec3 leadDir = computeLeadDirection(target, vecna, horizontalVel);
         double vecnaSpeed = Math.max(0.01, vecna.getAttributeValue(Attributes.MOVEMENT_SPEED));
         double distToPlayer = target.position().distanceTo(vecna.position());
         double predictionTicks = Math.min(12.0, Math.max(2.0, (distToPlayer / vecnaSpeed) * 0.35));
@@ -237,7 +250,7 @@ public class UnderWorldAbility extends AbilityDefinition {
                 ? target.position()
                 : target.position().add(horizontalVel.scale(predictionTicks));
 
-        Vec3 desired = predictedBase.add(leadDir.scale(1.0));
+        Vec3 desired = predictedBase.add(leadDir.scale(3.0));
         interceptTarget = new Vec3(desired.x, vecna.getY(), desired.z);
     }
 
@@ -260,9 +273,32 @@ public class UnderWorldAbility extends AbilityDefinition {
                 .orElse(null);
     }
 
-    private Vec3 computeLeadDirection(ServerPlayer target, VecnaTheSecond vecna) {
-        Vec3 velocity = target.getDeltaMovement();
-        Vec3 flatVelocity = new Vec3(velocity.x, 0.0, velocity.z);
+    private Vec3 sampleTargetMovement(ServerPlayer target) {
+        Vec3 currentPos = target.position();
+        Vec3 sampledDelta = Vec3.ZERO;
+        if (lastTargetSamplePos != null) {
+            sampledDelta = new Vec3(
+                    currentPos.x - lastTargetSamplePos.x,
+                    0.0,
+                    currentPos.z - lastTargetSamplePos.z
+            );
+        }
+        lastTargetSamplePos = currentPos;
+
+        Vec3 deltaMovement = target.getDeltaMovement();
+        Vec3 flatDeltaMovement = new Vec3(deltaMovement.x, 0.0, deltaMovement.z);
+        Vec3 chosen = sampledDelta.lengthSqr() >= flatDeltaMovement.lengthSqr() * 0.5
+                ? sampledDelta
+                : flatDeltaMovement;
+
+        if (chosen.lengthSqr() <= 1.0e-5) {
+            chosen = sampledTargetMove.scale(0.6);
+        }
+        sampledTargetMove = chosen;
+        return chosen;
+    }
+
+    private Vec3 computeLeadDirection(ServerPlayer target, VecnaTheSecond vecna, Vec3 flatVelocity) {
         if (flatVelocity.lengthSqr() > 1.0e-4) {
             return flatVelocity.normalize();
         }

@@ -15,6 +15,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public class UnderGateAttackAbility extends AbilityDefinition {
     private static final ResourceLocation UNDERGROUND_SPEED_ID =
@@ -62,7 +63,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
 
     @Override
     public int windupTicks() {
-        return 30;
+        return 20;
     }
 
     @Override
@@ -90,7 +91,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
     }
 
     @Override
-    public void onActivate(ServerLevel world, BaseBossMob boss, net.minecraft.world.phys.Vec3 zoneOrigin, float yawDegrees) {
+    public void onActivate(ServerLevel world, BaseBossMob boss, Vec3 zoneOrigin, float yawDegrees) {
         if (!(boss instanceof VecnaTheSecond vecna)) {
             return;
         }
@@ -110,9 +111,16 @@ public class UnderGateAttackAbility extends AbilityDefinition {
             vecna.setTrackerDisplay(null);
         }
 
-        AABB damageBox = new AABB(vecna.blockPosition()).inflate(12.0);
+        float radius = ((AttackZone.Circle) zone()).radius();
+        double radiusSqr = radius * radius;
+        AABB damageBox = new AABB(zoneOrigin, zoneOrigin).inflate(radius);
         float damage = (float) vecna.getAttributeValue(Attributes.ATTACK_DAMAGE);
         for (ServerPlayer player : world.getEntitiesOfClass(ServerPlayer.class, damageBox)) {
+            double dx = player.getX() - zoneOrigin.x;
+            double dz = player.getZ() - zoneOrigin.z;
+            if (dx * dx + dz * dz > radiusSqr) {
+                continue;
+            }
             player.hurt(world.damageSources().mobAttack(vecna), damage);
             player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
         }
