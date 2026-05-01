@@ -274,6 +274,13 @@ public class UnderWorldAbility extends AbilityDefinition {
     }
 
     private Vec3 sampleTargetMovement(ServerPlayer target) {
+        Vec3 knownMovement = target.getKnownMovement();
+        Vec3 flatKnownMovement = new Vec3(knownMovement.x, 0.0, knownMovement.z);
+        if (flatKnownMovement.lengthSqr() > 1.0e-5) {
+            sampledTargetMove = flatKnownMovement;
+            return flatKnownMovement;
+        }
+
         Vec3 currentPos = target.position();
         Vec3 sampledDelta = Vec3.ZERO;
         if (lastTargetSamplePos != null) {
