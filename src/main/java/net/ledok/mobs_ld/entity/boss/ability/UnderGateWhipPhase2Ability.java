@@ -37,7 +37,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public TriggerCondition trigger() {
-        return new TriggerCondition.OnTimer(15);
+        return new TriggerCondition.OnTimer(30);
     }
 
     @Override
@@ -67,10 +67,16 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public Vec3 resolveTargetOrigin(LivingEntity target) {
-        Vec3 velocity = target.getDeltaMovement();
-        if (velocity.horizontalDistanceSqr() > 0.0001) {
-            Vec3 direction = new Vec3(velocity.x, 0.0, velocity.z).normalize();
-            return target.position().add(direction.scale(0.3));
+        Vec3 known = target.getKnownMovement();
+        Vec3 horizontalKnown = new Vec3(known.x, 0.0, known.z);
+        if (horizontalKnown.lengthSqr() > 0.0001) {
+            return target.position().add(horizontalKnown.normalize().scale(0.7));
+        }
+
+        Vec3 delta = target.getDeltaMovement();
+        Vec3 horizontalDelta = new Vec3(delta.x, 0.0, delta.z);
+        if (horizontalDelta.lengthSqr() > 0.0001) {
+            return target.position().add(horizontalDelta.normalize().scale(0.7));
         }
         return target.position();
     }

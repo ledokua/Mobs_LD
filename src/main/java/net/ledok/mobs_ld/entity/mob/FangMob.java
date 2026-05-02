@@ -23,7 +23,7 @@ public class FangMob extends BaseDungeonMob {
 
     @Override
     protected AttackZone attackZone() {
-        return new AttackZone.Cone(10.0F, 270.0F);
+        return new AttackZone.Cone(10.0F, 120.0F);
     }
 
     @Override
