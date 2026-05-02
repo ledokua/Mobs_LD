@@ -53,7 +53,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
-        if (!(boss instanceof VecnaTheSecond vecna) || vecna.isUnderground()) {
+        if (!(boss instanceof VecnaTheSecond vecna) || vecna.isUnderground() || vecna.isWhipMadnessActive()) {
             return false;
         }
         return boss.getTarget() != null && boss.getTarget().isAlive() && !boss.getTarget().isRemoved();

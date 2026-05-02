@@ -24,6 +24,7 @@ import java.util.Comparator;
 public class UnderWorldAbility extends AbilityDefinition {
     private static final ResourceLocation UNDERGROUND_SPEED_ID =
             ResourceLocation.fromNamespaceAndPath("mobs_ld", "vecna_underground_speed");
+    private static final int EMERGE_WINDUP_TICKS = 20;
 
     private int undergroundTimer = 0;
     private Vec3 interceptTarget = Vec3.ZERO;
@@ -58,6 +59,9 @@ public class UnderWorldAbility extends AbilityDefinition {
     @Override
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
         if (!(boss instanceof VecnaTheSecond vecna)) {
+            return false;
+        }
+        if (vecna.isWhipMadnessActive()) {
             return false;
         }
         return !vecna.isUnderground()
@@ -105,7 +109,7 @@ public class UnderWorldAbility extends AbilityDefinition {
         }
 
         vecna.setIsUnderground(true);
-        vecna.setDamageImmune(true);
+        vecna.startUndergroundImmunityWindow(EMERGE_WINDUP_TICKS);
         vecna.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, Integer.MAX_VALUE, 0, false, false));
 
         AttributeInstance speed = vecna.getAttribute(Attributes.MOVEMENT_SPEED);
@@ -143,6 +147,7 @@ public class UnderWorldAbility extends AbilityDefinition {
         }
 
         undergroundTimer--;
+        vecna.tickUndergroundImmunityBudget();
         recalculateIntercept(world, vecna);
         vecna.getNavigation().stop();
 
@@ -212,7 +217,6 @@ public class UnderWorldAbility extends AbilityDefinition {
             speed.removeModifier(UNDERGROUND_SPEED_ID);
         }
         vecna.removeEffect(MobEffects.INVISIBILITY);
-        vecna.setDamageImmune(false);
         vecna.setIsUnderground(false);
         vecna.setReadyToSurface(false);
         vecna.setUndergroundTarget(null);

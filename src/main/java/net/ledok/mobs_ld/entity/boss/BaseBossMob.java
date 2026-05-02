@@ -355,7 +355,9 @@ public abstract class BaseBossMob extends Monster {
                     passiveWindupTimers.remove(id);
                     passiveOrigins.remove(id);
                     passiveYaws.remove(id);
-                    abilityCooldowns.put(id, resolvedCooldown(ability));
+                    if (ability.startsCooldownOnActivate()) {
+                        abilityCooldowns.put(id, resolvedCooldown(ability));
+                    }
                 }
                 continue;
             }
@@ -388,7 +390,9 @@ public abstract class BaseBossMob extends Monster {
             } else {
                 ability.onActivate(world, this, origin, yaw);
                 ability.onEnd(world, this);
-                abilityCooldowns.put(id, resolvedCooldown(ability));
+                if (ability.startsCooldownOnActivate()) {
+                    abilityCooldowns.put(id, resolvedCooldown(ability));
+                }
                 passiveOrigins.remove(id);
                 passiveYaws.remove(id);
             }
@@ -492,6 +496,10 @@ public abstract class BaseBossMob extends Monster {
 
     public void setDamageImmune(boolean damageImmune) {
         this.damageImmune = damageImmune;
+    }
+
+    protected boolean isDamageImmune() {
+        return damageImmune;
     }
 
     public void cancelActiveAbility() {

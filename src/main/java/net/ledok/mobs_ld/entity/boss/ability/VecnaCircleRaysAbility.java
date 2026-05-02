@@ -59,6 +59,11 @@ public class VecnaCircleRaysAbility extends AbilityDefinition {
     }
 
     @Override
+    public double damageScale() {
+        return 1.5;
+    }
+
+    @Override
     public boolean canMoveWhilePersisting() {
         return false;
     }

@@ -43,8 +43,16 @@ public abstract class AbilityDefinition {
         return 0;
     }
 
+    public double damageScale() {
+        return 1.0;
+    }
+
     public boolean canMoveWhilePersisting() {
         return false;
+    }
+
+    public boolean startsCooldownOnActivate() {
+        return true;
     }
 
     public AttackDisplayConfig displayConfig() {
@@ -65,7 +73,7 @@ public abstract class AbilityDefinition {
         if (zone() == null) {
             return;
         }
-        float damage = (float) boss.getAttributeValue(Attributes.ATTACK_DAMAGE);
+        float damage = (float) (boss.getAttributeValue(Attributes.ATTACK_DAMAGE) * damageScale());
         boss.applyZoneDamage(zone(), zoneOrigin, yawDegrees, damage);
     }
 

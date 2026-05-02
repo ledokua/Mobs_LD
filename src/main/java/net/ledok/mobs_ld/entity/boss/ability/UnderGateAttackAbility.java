@@ -51,6 +51,9 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         if (!(boss instanceof VecnaTheSecond vecna)) {
             return false;
         }
+        if (vecna.isWhipMadnessActive()) {
+            return false;
+        }
         return vecna.isUnderground()
                 && vecna.isReadyToSurface()
                 && vecna.getGlobalAttackLockout() <= 0;
@@ -72,6 +75,11 @@ public class UnderGateAttackAbility extends AbilityDefinition {
     }
 
     @Override
+    public double damageScale() {
+        return 5.0;
+    }
+
+    @Override
     public AttackDisplayConfig displayConfig() {
         return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.GROW, 0xFF1A0033, 0xFF6600CC);
     }
@@ -86,7 +94,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         if (boss instanceof VecnaTheSecond vecna) {
             vecna.setReadyToSurface(false);
             vecna.getNavigation().stop();
-            vecna.setDamageImmune(true);
+            vecna.startEmergingImmunityPhase();
         }
     }
 
@@ -102,7 +110,6 @@ public class UnderGateAttackAbility extends AbilityDefinition {
             speed.removeModifier(UNDERGROUND_SPEED_ID);
         }
         vecna.setIsUnderground(false);
-        vecna.setDamageImmune(false);
         vecna.setUndergroundTarget(null);
 
         AttackZoneDisplay tracker = vecna.getTrackerDisplay();
@@ -114,7 +121,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
         float radius = ((AttackZone.Circle) zone()).radius();
         double radiusSqr = radius * radius;
         AABB damageBox = new AABB(zoneOrigin, zoneOrigin).inflate(radius);
-        float damage = (float) vecna.getAttributeValue(Attributes.ATTACK_DAMAGE);
+        float damage = (float) (vecna.getAttributeValue(Attributes.ATTACK_DAMAGE) * damageScale());
         for (ServerPlayer player : world.getEntitiesOfClass(ServerPlayer.class, damageBox)) {
             double dx = player.getX() - zoneOrigin.x;
             double dz = player.getZ() - zoneOrigin.z;
@@ -136,7 +143,6 @@ public class UnderGateAttackAbility extends AbilityDefinition {
                 speed.removeModifier(UNDERGROUND_SPEED_ID);
             }
             vecna.removeEffect(MobEffects.INVISIBILITY);
-            vecna.setDamageImmune(false);
             vecna.setIsUnderground(false);
             vecna.setReadyToSurface(false);
             vecna.setUndergroundTarget(null);

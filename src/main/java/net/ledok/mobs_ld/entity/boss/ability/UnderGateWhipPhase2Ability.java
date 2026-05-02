@@ -62,7 +62,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
-        if (!(boss instanceof VecnaTheSecond vecna) || vecna.isUnderground()) {
+        if (!(boss instanceof VecnaTheSecond vecna) || vecna.isUnderground() || vecna.isWhipMadnessActive()) {
             return false;
         }
         return boss.getTarget() != null && boss.getTarget().isAlive() && !boss.getTarget().isRemoved();
@@ -118,7 +118,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
     public void onActivate(ServerLevel world, BaseBossMob boss, Vec3 zoneOrigin, float yaw) {
         super.onActivate(world, boss, zoneOrigin, yaw);
         if (secondaryLockedPos != null) {
-            float damage = (float) boss.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+            float damage = (float) (boss.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) * damageScale());
             boss.applyZoneDamage(zone(), secondaryLockedPos, yaw, damage);
         }
     }
