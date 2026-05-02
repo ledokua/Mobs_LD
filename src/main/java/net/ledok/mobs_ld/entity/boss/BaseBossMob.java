@@ -49,6 +49,8 @@ public abstract class BaseBossMob extends Monster {
 
     private final Map<String, Integer> passiveWindupTimers = new HashMap<>();
     private final Map<String, AttackZoneDisplay> passiveDisplays = new HashMap<>();
+    private final Map<String, Vec3> passiveOrigins = new HashMap<>();
+    private final Map<String, Float> passiveYaws = new HashMap<>();
     private BossAbilityGoal bossAbilityGoal;
     private boolean cleanedUp = false;
 
@@ -162,6 +164,9 @@ public abstract class BaseBossMob extends Monster {
         bossBar.removeAllPlayers();
         passiveDisplays.values().forEach(AttackZoneDisplay::remove);
         passiveDisplays.clear();
+        passiveWindupTimers.clear();
+        passiveOrigins.clear();
+        passiveYaws.clear();
     }
 
     public void tickCooldowns() {
@@ -303,6 +308,14 @@ public abstract class BaseBossMob extends Monster {
         if (!(level() instanceof ServerLevel world)) {
             return;
         }
+        Set<String> phaseAbilityIds = new HashSet<>(activePhase.abilityIds());
+        for (String id : new HashSet<>(passiveWindupTimers.keySet())) {
+            if (phaseAbilityIds.contains(id)) {
+                continue;
+            }
+            cleanupPassiveAbility(id, world);
+        }
+
         for (String id : activePhase.abilityIds()) {
             AbilityDefinition ability = abilities.get(id);
             if (ability == null || !ability.isPassive()) {
@@ -313,6 +326,7 @@ public abstract class BaseBossMob extends Monster {
             if (windup >= 0) {
                 int newTimer = windup - 1;
                 passiveWindupTimers.put(id, newTimer);
+                ability.onWindupTick(world, this, newTimer);
                 AttackZoneDisplay display = passiveDisplays.get(id);
                 if (display != null) {
                     display.update(newTimer, Math.max(1, ability.windupTicks()));
@@ -321,14 +335,17 @@ public abstract class BaseBossMob extends Monster {
                     }
                 }
                 if (newTimer <= 0) {
-                    Vec3 origin = position();
-                    float yaw = getYRot();
+                    Vec3 origin = passiveOrigins.getOrDefault(id, position());
+                    float yaw = passiveYaws.getOrDefault(id, getYRot());
                     ability.onActivate(world, this, origin, yaw);
+                    ability.onEnd(world, this);
                     if (display != null) {
                         display.remove();
                     }
                     passiveDisplays.remove(id);
                     passiveWindupTimers.remove(id);
+                    passiveOrigins.remove(id);
+                    passiveYaws.remove(id);
                     abilityCooldowns.put(id, resolvedCooldown(ability));
                 }
                 continue;
@@ -338,21 +355,66 @@ public abstract class BaseBossMob extends Monster {
             if (cd > 0) {
                 continue;
             }
+            if (!canTrigger(ability) || !ability.canUse(world, this)) {
+                continue;
+            }
+
+            Vec3 origin = resolvePassiveOrigin(ability);
+            float yaw = resolvePassiveYaw();
+            passiveOrigins.put(id, origin);
+            passiveYaws.put(id, yaw);
+            ability.onWindupStart(world, this);
 
             if (ability.windupTicks() > 0) {
                 passiveWindupTimers.put(id, ability.windupTicks());
                 if (ability.zone() != null) {
                     AttackDisplayConfig cfg = ability.displayConfig() != null
                             ? ability.displayConfig() : AttackDisplayConfig.DEFAULT;
+                    float displayYaw = ability.zone() instanceof AttackZone.CircleRays ? 0.0F : yaw;
                     AttackZoneDisplay display = AttackZoneDisplay.spawn(
-                            world, position(), getYRot(), ability.zone(), cfg, ability.windupTicks()
+                            world, origin, displayYaw, ability.zone(), cfg, ability.windupTicks()
                     );
                     passiveDisplays.put(id, display);
                 }
             } else {
-                ability.onActivate(world, this, position(), getYRot());
+                ability.onActivate(world, this, origin, yaw);
+                ability.onEnd(world, this);
                 abilityCooldowns.put(id, resolvedCooldown(ability));
+                passiveOrigins.remove(id);
+                passiveYaws.remove(id);
             }
+        }
+    }
+
+    private Vec3 resolvePassiveOrigin(AbilityDefinition ability) {
+        if (ability.zone() instanceof AttackZone.CircleTarget && getTarget() != null) {
+            return getTarget().position();
+        }
+        return position();
+    }
+
+    private float resolvePassiveYaw() {
+        if (getTarget() == null) {
+            return getYRot();
+        }
+        Vec3 toTarget = getTarget().position().subtract(position());
+        if (toTarget.lengthSqr() > 1.0e-6) {
+            return (float) Math.toDegrees(Math.atan2(-toTarget.x, toTarget.z));
+        }
+        return getYRot();
+    }
+
+    private void cleanupPassiveAbility(String id, ServerLevel world) {
+        AttackZoneDisplay display = passiveDisplays.remove(id);
+        if (display != null) {
+            display.remove();
+        }
+        passiveWindupTimers.remove(id);
+        passiveOrigins.remove(id);
+        passiveYaws.remove(id);
+        AbilityDefinition ability = abilities.get(id);
+        if (ability != null) {
+            ability.onEnd(world, this);
         }
     }
 
@@ -497,10 +559,20 @@ public abstract class BaseBossMob extends Monster {
             }
             case AttackZone.Circle c -> to.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleTarget c -> to.lengthSqr() <= (double) c.radius() * c.radius();
-            case AttackZone.Ring r -> {
-                double horizontal = Math.sqrt(to.x * to.x + to.z * to.z);
-                double halfWidth = r.rectangleWidth() * 0.5;
-                yield horizontal >= r.radius() - halfWidth && horizontal <= r.radius() + halfWidth;
+            case AttackZone.CircleRays r -> {
+                int rectCount = Math.max(1, r.rayCount() / 2);
+                Vec3 toFlat = new Vec3(to.x, 0.0, to.z);
+                for (int i = 0; i < rectCount; i++) {
+                    float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
+                    Vec3 rayForward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
+                    Vec3 rayRight = new Vec3(-rayForward.z, 0.0, rayForward.x);
+                    double alongRay = Math.abs(toFlat.dot(rayForward));
+                    double acrossRay = Math.abs(toFlat.dot(rayRight));
+                    if (alongRay <= r.length() && acrossRay <= r.width() * 0.5F) {
+                        yield true;
+                    }
+                }
+                yield false;
             }
         };
     }

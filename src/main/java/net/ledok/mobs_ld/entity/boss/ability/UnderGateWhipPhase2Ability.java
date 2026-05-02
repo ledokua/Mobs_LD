@@ -30,7 +30,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public boolean isPassive() {
-        return false;
+        return true;
     }
 
     @Override

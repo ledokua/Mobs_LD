@@ -91,7 +91,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             case 0 -> renderRectangle(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 1 -> renderCone(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 2, 3 -> renderCircle(entity, matrix, buffer, color, scaleMult);
-            case 4 -> renderRing(entity, matrix, buffer, color, scaleMult);
+            case 4 -> renderCircleRays(entity, matrix, buffer, color, scaleMult, sweepProgress);
             default -> {
             }
         }
@@ -178,31 +178,38 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         }
     }
 
-    private void renderRing(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
-        float radius = entity.getParamA() * scale;
-        float width = entity.getParamC() * scale;
-        float inner = Math.max(0.0F, radius - width * 0.5F);
-        float outer = radius + width * 0.5F;
-        int segments = 48;
-        float y = 0.02F;
+    private void renderCircleRays(
+            AttackZoneVisualEntity entity,
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float scaleMult,
+            float sweepProgress
+    ) {
+        int rayCount = Math.max(2, Math.round(entity.getParamA()));
+        int rectCount = Math.max(1, rayCount / 2);
+        float length = entity.getParamB();
+        float halfWidth = entity.getParamC() * 0.5F;
+        float effectiveLength = length * sweepProgress * scaleMult;
+        float effectiveHalfWidth = halfWidth * scaleMult;
+        float y = 0.03F;
 
-        for (int i = 0; i < segments; i++) {
-            float a1 = (float) (2.0 * Math.PI * i / segments);
-            float a2 = (float) (2.0 * Math.PI * (i + 1) / segments);
+        for (int i = 0; i < rectCount; i++) {
+            float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
 
-            float ix1 = (float) Math.cos(a1) * inner;
-            float iz1 = (float) Math.sin(a1) * inner;
-            float ox1 = (float) Math.cos(a1) * outer;
-            float oz1 = (float) Math.sin(a1) * outer;
-            float ix2 = (float) Math.cos(a2) * inner;
-            float iz2 = (float) Math.sin(a2) * inner;
-            float ox2 = (float) Math.cos(a2) * outer;
-            float oz2 = (float) Math.sin(a2) * outer;
+            float x0 = rotateX(-effectiveHalfWidth, -effectiveLength, yawRad);
+            float z0 = rotateZ(-effectiveHalfWidth, -effectiveLength, yawRad);
+            float x1 = rotateX(effectiveHalfWidth, -effectiveLength, yawRad);
+            float z1 = rotateZ(effectiveHalfWidth, -effectiveLength, yawRad);
+            float x2 = rotateX(effectiveHalfWidth, effectiveLength, yawRad);
+            float z2 = rotateZ(effectiveHalfWidth, effectiveLength, yawRad);
+            float x3 = rotateX(-effectiveHalfWidth, effectiveLength, yawRad);
+            float z3 = rotateZ(-effectiveHalfWidth, effectiveLength, yawRad);
 
-            buffer.addVertex(matrix, ix1, y, iz1).setColor(color);
-            buffer.addVertex(matrix, ox1, y, oz1).setColor(color);
-            buffer.addVertex(matrix, ox2, y, oz2).setColor(color);
-            buffer.addVertex(matrix, ix2, y, iz2).setColor(color);
+            buffer.addVertex(matrix, x0, y, z0).setColor(color);
+            buffer.addVertex(matrix, x1, y, z1).setColor(color);
+            buffer.addVertex(matrix, x2, y, z2).setColor(color);
+            buffer.addVertex(matrix, x3, y, z3).setColor(color);
         }
     }
 

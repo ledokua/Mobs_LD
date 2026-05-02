@@ -33,6 +33,10 @@ public abstract class AbilityDefinition {
         return 0;
     }
 
+    public boolean canMoveWhilePersisting() {
+        return false;
+    }
+
     public AttackDisplayConfig displayConfig() {
         return null;
     }

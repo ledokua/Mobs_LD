@@ -116,11 +116,11 @@ public class AttackZoneVisualEntity extends Entity {
                 entityData.set(DATA_PARAM_B, 0.0F);
                 entityData.set(DATA_PARAM_C, 0.0F);
             }
-            case AttackZone.Ring r -> {
+            case AttackZone.CircleRays r -> {
                 entityData.set(DATA_ZONE_KIND, 4);
-                entityData.set(DATA_PARAM_A, r.radius());
-                entityData.set(DATA_PARAM_B, (float) r.rectanglesPerSide());
-                entityData.set(DATA_PARAM_C, r.rectangleWidth());
+                entityData.set(DATA_PARAM_A, (float) r.rayCount());
+                entityData.set(DATA_PARAM_B, r.length());
+                entityData.set(DATA_PARAM_C, r.width());
             }
         }
         entityData.set(DATA_YAW_DEGREES, yawDegrees);

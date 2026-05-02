@@ -6,6 +6,7 @@ import net.ledok.mobs_ld.entity.boss.ability.UnderGateAttackAbility;
 import net.ledok.mobs_ld.entity.boss.ability.UnderWorldAbility;
 import net.ledok.mobs_ld.entity.boss.ability.UnderGateWhipAbility;
 import net.ledok.mobs_ld.entity.boss.ability.UnderGateWhipPhase2Ability;
+import net.ledok.mobs_ld.entity.boss.ability.VecnaCircleRaysAbility;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -35,17 +36,19 @@ public class VecnaTheSecond extends BaseBossMob {
                 "whip", new UnderGateWhipAbility(),
                 "whip_phase2", new UnderGateWhipPhase2Ability(),
                 "under_world", new UnderWorldAbility(),
-                "under_gate_attack", new UnderGateAttackAbility()
+                "under_gate_attack", new UnderGateAttackAbility(),
+                "rays_8", new VecnaCircleRaysAbility(8, 400),
+                "rays_12", new VecnaCircleRaysAbility(12, 300)
         );
     }
 
     @Override
     protected List<BossPhase> definePhases() {
         return List.of(
-                new BossPhase(1.0F, new ArrayList<>(List.of("whip")), MovementType.FREE, true, DamageProfile.NONE),
+                new BossPhase(1.0F, new ArrayList<>(List.of("whip", "rays_8")), MovementType.FREE, true, DamageProfile.NONE),
                 new BossPhase(
                         0.75F,
-                        new ArrayList<>(List.of("whip_phase2", "under_world", "under_gate_attack")),
+                        new ArrayList<>(List.of("whip_phase2", "under_world", "under_gate_attack", "rays_12")),
                         MovementType.FREE,
                         true,
                         DamageProfile.NONE

@@ -113,6 +113,9 @@ public class BossAbilityGoal extends Goal {
                     endAbility(ability, world);
                     return;
                 }
+                if (ability.canMoveWhilePersisting()) {
+                    boss.setWindingUp(false);
+                }
                 windupTimer = -1;
             }
         } else if (damageTimer >= 0) {
@@ -219,44 +222,10 @@ public class BossAbilityGoal extends Goal {
         }
         AttackDisplayConfig cfg = ability.displayConfig() != null
                 ? ability.displayConfig() : AttackDisplayConfig.DEFAULT;
-
-        if (zone instanceof AttackZone.Ring ring) {
-            int segments = Math.max(1, ring.rectanglesPerSide());
-            float sideLength = ring.radius() * 2.0F;
-            float segmentLength = sideLength / segments;
-            float half = ring.radius();
-            float y = (float) lockedOrigin.y;
-
-            for (int i = 0; i < segments; i++) {
-                float t0 = -half + (i + 0.5F) * segmentLength;
-                addRingSegmentDisplay(world, cfg, y, t0, -half, 0.0F, ring.rectangleWidth(), segmentLength);
-                addRingSegmentDisplay(world, cfg, y, t0, half, 180.0F, ring.rectangleWidth(), segmentLength);
-                addRingSegmentDisplay(world, cfg, y, -half, t0, 90.0F, ring.rectangleWidth(), segmentLength);
-                addRingSegmentDisplay(world, cfg, y, half, t0, -90.0F, ring.rectangleWidth(), segmentLength);
-            }
-        } else {
-            Vec3 displayOrigin = getZoneOrigin(ability);
-            AttackZoneDisplay display = AttackZoneDisplay.spawn(
-                    world, displayOrigin, lockedYaw, zone, cfg, Math.max(1, ability.windupTicks())
-            );
-            displays.add(display);
-        }
-    }
-
-    private void addRingSegmentDisplay(
-            ServerLevel world,
-            AttackDisplayConfig cfg,
-            float y,
-            float localX,
-            float localZ,
-            float yaw,
-            float width,
-            float length
-    ) {
-        Vec3 origin = new Vec3(lockedOrigin.x + localX, y, lockedOrigin.z + localZ);
-        AttackZone segmentZone = new AttackZone.Rectangle(width, length, -length * 0.5F);
+        Vec3 displayOrigin = getZoneOrigin(ability);
+        float displayYaw = zone instanceof AttackZone.CircleRays ? 0.0F : lockedYaw;
         AttackZoneDisplay display = AttackZoneDisplay.spawn(
-                world, origin, yaw, segmentZone, cfg, Math.max(1, boss.getActiveAbility().windupTicks())
+                world, displayOrigin, displayYaw, zone, cfg, Math.max(1, ability.windupTicks())
         );
         displays.add(display);
     }

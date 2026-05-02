@@ -239,10 +239,20 @@ public class TelegraphedAttackGoal extends Goal {
             }
             case AttackZone.Circle c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleTarget c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
-            case AttackZone.Ring r -> {
-                double horizontalDist = Math.sqrt(toTarget.x * toTarget.x + toTarget.z * toTarget.z);
-                double halfWidth = r.rectangleWidth() * 0.5;
-                yield horizontalDist >= r.radius() - halfWidth && horizontalDist <= r.radius() + halfWidth;
+            case AttackZone.CircleRays r -> {
+                int rectCount = Math.max(1, r.rayCount() / 2);
+                Vec3 toFlat = new Vec3(toTarget.x, 0.0, toTarget.z);
+                for (int i = 0; i < rectCount; i++) {
+                    float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
+                    Vec3 rayForward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
+                    Vec3 rayRight = new Vec3(-rayForward.z, 0.0, rayForward.x);
+                    double alongRay = Math.abs(toFlat.dot(rayForward));
+                    double acrossRay = Math.abs(toFlat.dot(rayRight));
+                    if (alongRay <= r.length() && acrossRay <= r.width() * 0.5F) {
+                        yield true;
+                    }
+                }
+                yield false;
             }
         };
     }

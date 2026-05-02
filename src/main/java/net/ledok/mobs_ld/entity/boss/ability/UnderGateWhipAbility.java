@@ -18,7 +18,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public boolean isPassive() {
-        return false;
+        return true;
     }
 
     @Override
