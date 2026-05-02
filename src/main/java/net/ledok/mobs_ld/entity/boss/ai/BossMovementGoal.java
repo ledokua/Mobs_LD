@@ -18,18 +18,22 @@ public class BossMovementGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (boss.isMovementLocked()) {
-            return false;
-        }
         return boss.getActivePhase().movementType() == MovementType.FREE
                 && boss.getTarget() != null
                 && !boss.isWindingUp()
+                && !boss.isInPersistPhase()
+                && !boss.isMovementLocked()
                 && !canAttackNow();
     }
 
     @Override
     public boolean canContinueToUse() {
-        return canUse();
+        return boss.getActivePhase().movementType() == MovementType.FREE
+                && boss.getTarget() != null
+                && !boss.isWindingUp()
+                && !boss.isInPersistPhase()
+                && !boss.isMovementLocked()
+                && !canAttackNow();
     }
 
     @Override

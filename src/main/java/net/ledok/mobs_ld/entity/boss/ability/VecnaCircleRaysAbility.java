@@ -44,13 +44,18 @@ public class VecnaCircleRaysAbility extends AbilityDefinition {
     }
 
     @Override
+    public int initialCooldown() {
+        return cooldown;
+    }
+
+    @Override
     public int windupTicks() {
         return 15;
     }
 
     @Override
     public int damagePersistTicks() {
-        return 10;
+        return 5;
     }
 
     @Override

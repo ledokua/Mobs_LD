@@ -3,6 +3,7 @@ package net.ledok.mobs_ld.entity.boss;
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
 
@@ -17,8 +18,17 @@ public abstract class AbilityDefinition {
 
     public abstract int cooldownTicks();
 
+    // Override to set a cooldown when this ability first becomes available.
+    public int initialCooldown() {
+        return 0;
+    }
+
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
         return boss.getTarget() != null;
+    }
+
+    public Vec3 resolveTargetOrigin(LivingEntity target) {
+        return target.position();
     }
 
     public AttackZone zone() {

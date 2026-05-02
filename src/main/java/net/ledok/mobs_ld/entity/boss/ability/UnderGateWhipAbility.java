@@ -7,6 +7,8 @@ import net.ledok.mobs_ld.entity.boss.BaseBossMob;
 import net.ledok.mobs_ld.entity.boss.TriggerCondition;
 import net.ledok.mobs_ld.entity.boss.mob.VecnaTheSecond;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
 public class UnderGateWhipAbility extends AbilityDefinition {
     @Override
@@ -52,5 +54,15 @@ public class UnderGateWhipAbility extends AbilityDefinition {
     @Override
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
         return boss instanceof VecnaTheSecond vecna && !vecna.isUnderground();
+    }
+
+    @Override
+    public Vec3 resolveTargetOrigin(LivingEntity target) {
+        Vec3 velocity = target.getDeltaMovement();
+        if (velocity.horizontalDistanceSqr() > 0.0001) {
+            Vec3 direction = new Vec3(velocity.x, 0.0, velocity.z).normalize();
+            return target.position().add(direction.scale(5));
+        }
+        return target.position();
     }
 }

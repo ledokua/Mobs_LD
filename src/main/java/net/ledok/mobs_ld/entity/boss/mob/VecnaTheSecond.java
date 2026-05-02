@@ -37,18 +37,18 @@ public class VecnaTheSecond extends BaseBossMob {
                 "whip_phase2", new UnderGateWhipPhase2Ability(),
                 "under_world", new UnderWorldAbility(),
                 "under_gate_attack", new UnderGateAttackAbility(),
-                "rays_8", new VecnaCircleRaysAbility(16, 300),
-                "rays_12", new VecnaCircleRaysAbility(24, 200)
+                "rays_16", new VecnaCircleRaysAbility(16, 300),
+                "rays_24", new VecnaCircleRaysAbility(24, 200)
         );
     }
 
     @Override
     protected List<BossPhase> definePhases() {
         return List.of(
-                new BossPhase(1.0F, new ArrayList<>(List.of("whip", "rays_8")), MovementType.FREE, true, DamageProfile.NONE),
+                new BossPhase(1.0F, new ArrayList<>(List.of("whip", "rays_16")), MovementType.FREE, true, DamageProfile.NONE),
                 new BossPhase(
                         0.75F,
-                        new ArrayList<>(List.of("whip_phase2", "under_world", "under_gate_attack", "rays_12")),
+                        new ArrayList<>(List.of("whip_phase2", "under_world", "under_gate_attack", "rays_24")),
                         MovementType.FREE,
                         true,
                         DamageProfile.NONE

@@ -73,7 +73,7 @@ public abstract class BaseBossMob extends Monster {
         if (phases.isEmpty()) {
             throw new IllegalStateException("Boss must define at least one phase");
         }
-        this.activePhase = phases.get(0);
+        transitionToPhase(0);
         this.bossBar.setName(getBossBarName());
     }
 
@@ -162,6 +162,10 @@ public abstract class BaseBossMob extends Monster {
         goalSelector.getAvailableGoals().forEach(wrappedGoal -> wrappedGoal.getGoal().stop());
         bossBar.setVisible(false);
         bossBar.removeAllPlayers();
+        if (level() instanceof ServerLevel world) {
+            new HashSet<>(passiveWindupTimers.keySet())
+                    .forEach(id -> cleanupPassiveAbility(id, world));
+        }
         passiveDisplays.values().forEach(AttackZoneDisplay::remove);
         passiveDisplays.clear();
         passiveWindupTimers.clear();
@@ -191,7 +195,12 @@ public abstract class BaseBossMob extends Monster {
         activePhase = phases.get(index);
         cancelActiveAbility();
         for (String id : activePhase.abilityIds()) {
-            abilityCooldowns.putIfAbsent(id, 0);
+            AbilityDefinition ability = abilities.get(id);
+            if (ability != null && !abilityCooldowns.containsKey(id)) {
+                abilityCooldowns.put(id, Math.max(0, ability.initialCooldown()));
+            } else {
+                abilityCooldowns.putIfAbsent(id, 0);
+            }
         }
         activePhase.abilityIds().stream()
                 .map(abilities::get)
@@ -388,7 +397,7 @@ public abstract class BaseBossMob extends Monster {
 
     private Vec3 resolvePassiveOrigin(AbilityDefinition ability) {
         if (ability.zone() instanceof AttackZone.CircleTarget && getTarget() != null) {
-            return getTarget().position();
+            return ability.resolveTargetOrigin(getTarget());
         }
         return position();
     }
@@ -509,6 +518,14 @@ public abstract class BaseBossMob extends Monster {
 
     public int getGlobalAttackLockout() {
         return 0;
+    }
+
+    public boolean isInPersistPhase() {
+        AbilityDefinition active = getActiveAbility();
+        if (active == null || active.canMoveWhilePersisting()) {
+            return false;
+        }
+        return bossAbilityGoal != null && bossAbilityGoal.isInPersistPhase();
     }
 
     public void setAttackCooldown(int attackCooldown) {

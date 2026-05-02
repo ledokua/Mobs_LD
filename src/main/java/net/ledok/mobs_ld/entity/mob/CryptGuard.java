@@ -23,7 +23,7 @@ public class CryptGuard extends BaseDungeonMob {
 
     @Override
     protected AttackZone attackZone() {
-        return new AttackZone.CircleRays(8, 20F, 0.5F);
+        return new AttackZone.CircleRays(3, 20F, 0.5F);
     }
 
     @Override

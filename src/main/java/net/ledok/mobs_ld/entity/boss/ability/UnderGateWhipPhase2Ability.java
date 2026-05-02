@@ -9,6 +9,7 @@ import net.ledok.mobs_ld.entity.boss.TriggerCondition;
 import net.ledok.mobs_ld.entity.boss.mob.VecnaTheSecond;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -65,6 +66,16 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
     }
 
     @Override
+    public Vec3 resolveTargetOrigin(LivingEntity target) {
+        Vec3 velocity = target.getDeltaMovement();
+        if (velocity.horizontalDistanceSqr() > 0.0001) {
+            Vec3 direction = new Vec3(velocity.x, 0.0, velocity.z).normalize();
+            return target.position().add(direction.scale(0.3));
+        }
+        return target.position();
+    }
+
+    @Override
     public void onWindupStart(ServerLevel world, BaseBossMob boss) {
         List<ServerPlayer> players = new ArrayList<>(world.getEntitiesOfClass(
                 ServerPlayer.class, new AABB(boss.blockPosition()).inflate(64.0)
@@ -83,7 +94,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
             }
         }
 
-        secondaryLockedPos = second.position();
+        secondaryLockedPos = resolveTargetOrigin(second);
         secondaryDisplay = AttackZoneDisplay.spawn(
                 world,
                 secondaryLockedPos,

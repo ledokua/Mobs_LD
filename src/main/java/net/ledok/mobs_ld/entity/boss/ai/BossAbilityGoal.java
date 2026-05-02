@@ -28,6 +28,7 @@ public class BossAbilityGoal extends Goal {
 
     public BossAbilityGoal(BaseBossMob boss) {
         this.boss = boss;
+        this.setFlags(EnumSet.of(Flag.MOVE));
     }
 
     @Override
@@ -80,6 +81,7 @@ public class BossAbilityGoal extends Goal {
         }
 
         boss.setWindingUp(true);
+        boss.getNavigation().stop();
         if (ability.grantsImmunityDuringWindup()) {
             boss.setDamageImmune(true);
         }
@@ -195,6 +197,10 @@ public class BossAbilityGoal extends Goal {
         if (damageTimer >= 0) {
             damageTimer = 0;
         }
+    }
+
+    public boolean isInPersistPhase() {
+        return damageTimer >= 0;
     }
 
     private AbilityDefinition selectNextAbility(ServerLevel world) {
