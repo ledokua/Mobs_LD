@@ -28,7 +28,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public int cooldownTicks() {
-        return 15;
+        return 13;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public int windupTicks() {
-        return 8;
+        return 5;
     }
 
     @Override

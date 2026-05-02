@@ -58,7 +58,7 @@ public class UnderGateAttackAbility extends AbilityDefinition {
 
     @Override
     public AttackZone zone() {
-        return new AttackZone.Circle(12.0F);
+        return new AttackZone.Circle(10.0F);
     }
 
     @Override
