@@ -28,7 +28,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public TriggerCondition trigger() {
-        return new TriggerCondition.OnTimer(30);
+        return new TriggerCondition.OnTimer(0);
     }
 
     @Override
@@ -43,7 +43,7 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public int windupTicks() {
-        return 7;
+        return 15;
     }
 
     @Override
@@ -53,7 +53,10 @@ public class UnderGateWhipAbility extends AbilityDefinition {
 
     @Override
     public boolean canUse(ServerLevel world, BaseBossMob boss) {
-        return boss instanceof VecnaTheSecond vecna && !vecna.isUnderground();
+        if (!(boss instanceof VecnaTheSecond vecna) || vecna.isUnderground()) {
+            return false;
+        }
+        return boss.getTarget() != null && boss.getTarget().isAlive() && !boss.getTarget().isRemoved();
     }
 
     @Override
@@ -61,13 +64,13 @@ public class UnderGateWhipAbility extends AbilityDefinition {
         Vec3 known = target.getKnownMovement();
         Vec3 horizontalKnown = new Vec3(known.x, 0.0, known.z);
         if (horizontalKnown.lengthSqr() > 0.0001) {
-            return target.position().add(horizontalKnown.normalize().scale(0.6));
+            return target.position().add(horizontalKnown.normalize().scale(0.4));
         }
 
         Vec3 delta = target.getDeltaMovement();
         Vec3 horizontalDelta = new Vec3(delta.x, 0.0, delta.z);
         if (horizontalDelta.lengthSqr() > 0.0001) {
-            return target.position().add(horizontalDelta.normalize().scale(0.7));
+            return target.position().add(horizontalDelta.normalize().scale(0.4));
         }
         return target.position();
     }
