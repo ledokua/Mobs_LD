@@ -192,10 +192,11 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float halfWidth = entity.getParamC() * 0.5F;
         float effectiveLength = length * sweepProgress * scaleMult;
         float effectiveHalfWidth = halfWidth * scaleMult;
+        float baseYawRad = (float) Math.toRadians(entity.getYawDegrees());
         float y = 0.03F;
 
         for (int i = 0; i < rectCount; i++) {
-            float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
+            float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
 
             float x0 = rotateX(-effectiveHalfWidth, -effectiveLength, yawRad);
             float z0 = rotateZ(-effectiveHalfWidth, -effectiveLength, yawRad);

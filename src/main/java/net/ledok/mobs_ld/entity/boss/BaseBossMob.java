@@ -360,7 +360,7 @@ public abstract class BaseBossMob extends Monster {
             }
 
             Vec3 origin = resolvePassiveOrigin(ability);
-            float yaw = resolvePassiveYaw();
+            float yaw = resolvePassiveYaw(ability);
             passiveOrigins.put(id, origin);
             passiveYaws.put(id, yaw);
             ability.onWindupStart(world, this);
@@ -370,7 +370,7 @@ public abstract class BaseBossMob extends Monster {
                 if (ability.zone() != null) {
                     AttackDisplayConfig cfg = ability.displayConfig() != null
                             ? ability.displayConfig() : AttackDisplayConfig.DEFAULT;
-                    float displayYaw = ability.zone() instanceof AttackZone.CircleRays ? 0.0F : yaw;
+                    float displayYaw = yaw;
                     AttackZoneDisplay display = AttackZoneDisplay.spawn(
                             world, origin, displayYaw, ability.zone(), cfg, ability.windupTicks()
                     );
@@ -393,13 +393,14 @@ public abstract class BaseBossMob extends Monster {
         return position();
     }
 
-    private float resolvePassiveYaw() {
-        if (getTarget() == null) {
-            return getYRot();
-        }
-        Vec3 toTarget = getTarget().position().subtract(position());
-        if (toTarget.lengthSqr() > 1.0e-6) {
-            return (float) Math.toDegrees(Math.atan2(-toTarget.x, toTarget.z));
+    private float resolvePassiveYaw(AbilityDefinition ability) {
+        if (ability.zone() instanceof AttackZone.CircleRays) {
+            LivingEntity target = getTarget();
+            if (target != null) {
+                double dx = target.getX() - getX();
+                double dz = target.getZ() - getZ();
+                return (float) Math.toDegrees(Math.atan2(-dx, dz));
+            }
         }
         return getYRot();
     }
@@ -560,10 +561,11 @@ public abstract class BaseBossMob extends Monster {
             case AttackZone.Circle c -> to.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleTarget c -> to.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleRays r -> {
+                float baseYawRad = (float) Math.atan2(-forward.x, forward.z);
                 int rectCount = Math.max(1, r.rayCount() / 2);
                 Vec3 toFlat = new Vec3(to.x, 0.0, to.z);
                 for (int i = 0; i < rectCount; i++) {
-                    float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
+                    float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
                     Vec3 rayForward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
                     Vec3 rayRight = new Vec3(-rayForward.z, 0.0, rayForward.x);
                     double alongRay = Math.abs(toFlat.dot(rayForward));

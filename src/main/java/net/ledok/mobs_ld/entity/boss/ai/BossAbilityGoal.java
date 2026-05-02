@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.entity.boss.AbilityDefinition;
 import net.ledok.mobs_ld.entity.boss.BaseBossMob;
 import net.ledok.mobs_ld.entity.boss.TriggerCondition;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
@@ -223,7 +224,17 @@ public class BossAbilityGoal extends Goal {
         AttackDisplayConfig cfg = ability.displayConfig() != null
                 ? ability.displayConfig() : AttackDisplayConfig.DEFAULT;
         Vec3 displayOrigin = getZoneOrigin(ability);
-        float displayYaw = zone instanceof AttackZone.CircleRays ? 0.0F : lockedYaw;
+        float displayYaw = lockedYaw;
+        if (zone instanceof AttackZone.CircleRays) {
+            LivingEntity target = boss.getTarget();
+            if (target != null) {
+                double dx = target.getX() - displayOrigin.x;
+                double dz = target.getZ() - displayOrigin.z;
+                if (dx * dx + dz * dz > 1.0e-6) {
+                    displayYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+                }
+            }
+        }
         AttackZoneDisplay display = AttackZoneDisplay.spawn(
                 world, displayOrigin, displayYaw, zone, cfg, Math.max(1, ability.windupTicks())
         );

@@ -37,8 +37,8 @@ public class VecnaTheSecond extends BaseBossMob {
                 "whip_phase2", new UnderGateWhipPhase2Ability(),
                 "under_world", new UnderWorldAbility(),
                 "under_gate_attack", new UnderGateAttackAbility(),
-                "rays_8", new VecnaCircleRaysAbility(8, 400),
-                "rays_12", new VecnaCircleRaysAbility(12, 300)
+                "rays_8", new VecnaCircleRaysAbility(16, 300),
+                "rays_12", new VecnaCircleRaysAbility(24, 200)
         );
     }
 

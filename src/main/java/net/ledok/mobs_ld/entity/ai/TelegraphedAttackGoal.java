@@ -240,10 +240,11 @@ public class TelegraphedAttackGoal extends Goal {
             case AttackZone.Circle c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleTarget c -> toTarget.lengthSqr() <= (double) c.radius() * c.radius();
             case AttackZone.CircleRays r -> {
+                float baseYawRad = (float) Math.atan2(-forward.x, forward.z);
                 int rectCount = Math.max(1, r.rayCount() / 2);
                 Vec3 toFlat = new Vec3(toTarget.x, 0.0, toTarget.z);
                 for (int i = 0; i < rectCount; i++) {
-                    float yawRad = (float) Math.toRadians(i * (180.0 / rectCount));
+                    float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
                     Vec3 rayForward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
                     Vec3 rayRight = new Vec3(-rayForward.z, 0.0, rayForward.x);
                     double alongRay = Math.abs(toFlat.dot(rayForward));

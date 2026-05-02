@@ -6,6 +6,7 @@ import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.boss.AbilityDefinition;
 import net.ledok.mobs_ld.entity.boss.BaseBossMob;
 import net.ledok.mobs_ld.entity.boss.TriggerCondition;
+import net.ledok.mobs_ld.entity.boss.mob.VecnaTheSecond;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.AABB;
@@ -40,7 +41,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public int cooldownTicks() {
-        return 13;
+        return 15;
     }
 
     @Override
@@ -50,12 +51,17 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
 
     @Override
     public int windupTicks() {
-        return 5;
+        return 7;
     }
 
     @Override
     public AttackDisplayConfig displayConfig() {
         return new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.GROW, 0xFF8B0000, 0xFFFF0000);
+    }
+
+    @Override
+    public boolean canUse(ServerLevel world, BaseBossMob boss) {
+        return boss instanceof VecnaTheSecond vecna && !vecna.isUnderground();
     }
 
     @Override
