@@ -589,6 +589,10 @@ public abstract class BaseBossMob extends Monster {
         }
     }
 
+    public boolean isInAttackZone(Vec3 position, AttackZone zone, Vec3 origin, Vec3 forward) {
+        return isInZone(position, zone, origin, forward);
+    }
+
     private boolean isInZone(Vec3 pos, AttackZone zone, Vec3 origin, Vec3 forward) {
         Vec3 to = pos.subtract(origin);
         return switch (zone) {
