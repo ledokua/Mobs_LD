@@ -65,9 +65,9 @@ public class BossAbilityGoal extends Goal {
         windupTimer = Math.max(0, ability.windupTicks());
         damageTimer = -1;
         activated = false;
-        lockedOrigin = boss.position();
+        lockedOrigin = boss.snapToGround(boss.position());
         if (ability.zone() instanceof AttackZone.CircleTarget && boss.getTarget() != null) {
-            lockedTargetPos = boss.getTarget().position();
+            lockedTargetPos = boss.snapToGround(boss.getTarget().position());
         } else {
             lockedTargetPos = Vec3.ZERO;
         }
@@ -158,7 +158,9 @@ public class BossAbilityGoal extends Goal {
         displays.clear();
 
         ability.onEnd(world, boss);
-        boss.setCooldown(ability.id(), boss.resolvedCooldown(ability));
+        if (ability.startsCooldownOnActivate()) {
+            boss.setCooldown(ability.id(), boss.resolvedCooldown(ability));
+        }
         boss.setActiveAbility(null);
         boss.setWindingUp(false);
         if (!ability.keepDamageImmuneAfterEnd()) {

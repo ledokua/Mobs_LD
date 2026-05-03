@@ -10,7 +10,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -401,9 +404,31 @@ public abstract class BaseBossMob extends Monster {
 
     private Vec3 resolvePassiveOrigin(AbilityDefinition ability) {
         if (ability.zone() instanceof AttackZone.CircleTarget && getTarget() != null) {
-            return ability.resolveTargetOrigin(getTarget());
+            return snapToGround(ability.resolveTargetOrigin(getTarget()));
         }
-        return position();
+        return snapToGround(position());
+    }
+
+    public Vec3 snapToGround(Vec3 position) {
+        if (!(level() instanceof ServerLevel world)) {
+            return position;
+        }
+        int x = Mth.floor(position.x);
+        int z = Mth.floor(position.z);
+        int minY = world.getMinBuildHeight();
+        int maxY = world.getMaxBuildHeight() - 1;
+        int startY = Mth.clamp(Mth.floor(position.y) + 2, minY, maxY);
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, startY, z);
+
+        for (int y = startY; y >= minY; y--) {
+            cursor.setY(y);
+            var shape = world.getBlockState(cursor).getCollisionShape(world, cursor);
+            if (!shape.isEmpty()) {
+                double top = y + shape.max(Direction.Axis.Y);
+                return new Vec3(position.x, top + 0.05, position.z);
+            }
+        }
+        return position;
     }
 
     private float resolvePassiveYaw(AbilityDefinition ability) {

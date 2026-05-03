@@ -3,8 +3,11 @@ package net.ledok.mobs_ld.entity.ai;
 import net.ledok.mobs_ld.entity.BaseDungeonMob;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.AABB;
@@ -71,9 +74,9 @@ public class TelegraphedAttackGoal extends Goal {
     public void start() {
         windupTimer = mob.getWindupTicks();
         damageTimer = -1;
-        lockedOrigin = mob.position();
+        lockedOrigin = snapToGround(mob.position());
         if (mob.getAttackZone() instanceof AttackZone.CircleTarget && mob.getTarget() != null) {
-            lockedTargetPos = mob.getTarget().position();
+            lockedTargetPos = snapToGround(mob.getTarget().position());
         } else {
             lockedTargetPos = Vec3.ZERO;
         }
@@ -263,5 +266,27 @@ public class TelegraphedAttackGoal extends Goal {
             return lockedTargetPos;
         }
         return lockedOrigin;
+    }
+
+    private Vec3 snapToGround(Vec3 position) {
+        if (!(mob.level() instanceof ServerLevel world)) {
+            return position;
+        }
+        int x = Mth.floor(position.x);
+        int z = Mth.floor(position.z);
+        int minY = world.getMinBuildHeight();
+        int maxY = world.getMaxBuildHeight() - 1;
+        int startY = Mth.clamp(Mth.floor(position.y) + 2, minY, maxY);
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, startY, z);
+
+        for (int y = startY; y >= minY; y--) {
+            cursor.setY(y);
+            var shape = world.getBlockState(cursor).getCollisionShape(world, cursor);
+            if (!shape.isEmpty()) {
+                double top = y + shape.max(Direction.Axis.Y);
+                return new Vec3(position.x, top + 0.05, position.z);
+            }
+        }
+        return position;
     }
 }

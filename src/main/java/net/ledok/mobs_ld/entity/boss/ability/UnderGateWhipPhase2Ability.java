@@ -103,7 +103,7 @@ public class UnderGateWhipPhase2Ability extends AbilityDefinition {
             }
         }
 
-        secondaryLockedPos = resolveTargetOrigin(second);
+        secondaryLockedPos = boss.snapToGround(resolveTargetOrigin(second));
         secondaryDisplay = AttackZoneDisplay.spawn(
                 world,
                 secondaryLockedPos,

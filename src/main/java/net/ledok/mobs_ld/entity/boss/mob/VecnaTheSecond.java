@@ -234,9 +234,10 @@ public class VecnaTheSecond extends BaseBossMob {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 550.0)
+                .add(Attributes.MAX_HEALTH, 1000.0)
                 .add(Attributes.MOVEMENT_SPEED, 0.22)
-                .add(Attributes.ATTACK_DAMAGE, 8.0)
-                .add(Attributes.FOLLOW_RANGE, 32.0);
+                .add(Attributes.ATTACK_DAMAGE, 32.0)
+                .add(Attributes.FOLLOW_RANGE, 32.0)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 10.0);
     }
 }

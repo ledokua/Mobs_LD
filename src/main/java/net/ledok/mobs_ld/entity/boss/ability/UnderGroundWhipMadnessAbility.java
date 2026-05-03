@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UnderGroundWhipMadnessAbility extends AbilityDefinition {
-    private static final AttackZone DAMAGE_ZONE = new AttackZone.Circle(1.25F);
+    private static final AttackZone DAMAGE_ZONE = new AttackZone.Circle(1.5F);
     private final List<AttackZoneDisplay> displays = new ArrayList<>();
     private final List<Vec3> lockedOrigins = new ArrayList<>();
 
@@ -43,7 +43,7 @@ public class UnderGroundWhipMadnessAbility extends AbilityDefinition {
 
     @Override
     public int cooldownTicks() {
-        return 15;
+        return 12;
     }
 
     @Override
@@ -75,7 +75,7 @@ public class UnderGroundWhipMadnessAbility extends AbilityDefinition {
             if (!player.isAlive() || player.isRemoved()) {
                 continue;
             }
-            Vec3 origin = resolveTargetOrigin(player);
+            Vec3 origin = boss.snapToGround(resolveTargetOrigin(player));
             lockedOrigins.add(origin);
             displays.add(AttackZoneDisplay.spawn(
                     world,

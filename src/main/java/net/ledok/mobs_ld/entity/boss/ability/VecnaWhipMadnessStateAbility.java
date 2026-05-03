@@ -31,7 +31,7 @@ public class VecnaWhipMadnessStateAbility extends AbilityDefinition {
 
     @Override
     public boolean isPassive() {
-        return true;
+        return false;
     }
 
     @Override
