@@ -8,9 +8,12 @@ import net.ledok.mobs_ld.entity.boss.BaseBossMob;
 import net.ledok.mobs_ld.entity.boss.TriggerCondition;
 import net.ledok.mobs_ld.entity.boss.mob.VecnaTheSecond;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -25,6 +28,8 @@ public class UnderWorldAbility extends AbilityDefinition {
     private static final ResourceLocation UNDERGROUND_SPEED_ID =
             ResourceLocation.fromNamespaceAndPath("mobs_ld", "vecna_underground_speed");
     private static final int EMERGE_WINDUP_TICKS = 20;
+    private static final double MAX_SURFACE_STEP_UP = 0.2;
+    private static final double MAX_SURFACE_STEP_DOWN = 1.0;
 
     private int undergroundTimer = 0;
     private Vec3 interceptTarget = Vec3.ZERO;
@@ -259,11 +264,138 @@ public class UnderWorldAbility extends AbilityDefinition {
     }
 
     private void triggerSurface(VecnaTheSecond vecna) {
+        if (vecna.level() instanceof ServerLevel world) {
+            Vec3 safeSurface = findNearestSafeSurfaceTowardTarget(world, vecna);
+            if (safeSurface != null) {
+                vecna.setPos(safeSurface.x, safeSurface.y, safeSurface.z);
+            }
+        }
         vecna.setReadyToSurface(true);
         vecna.getNavigation().stop();
         if (vecna.getBossAbilityGoal() != null) {
             vecna.getBossAbilityGoal().endPersistEarly();
         }
+    }
+
+    private Vec3 findNearestSafeSurfaceTowardTarget(ServerLevel world, VecnaTheSecond vecna) {
+        Vec3 origin = vecna.position();
+        ServerPlayer target = vecna.getUndergroundTarget();
+        Vec3 towardTarget = target != null
+                ? new Vec3(target.getX() - origin.x, 0.0, target.getZ() - origin.z)
+                : Vec3.ZERO;
+        Vec3 towardTargetDir = towardTarget.lengthSqr() > 1.0e-4 ? towardTarget.normalize() : Vec3.ZERO;
+
+        if (towardTargetDir.lengthSqr() > 0.0) {
+            Vec3 dir = towardTargetDir;
+            for (double dist = 0.25; dist <= 3.0; dist += 0.25) {
+                Vec3 candidate = origin.add(dir.scale(dist));
+                Vec3 safe = tryProjectToSafeSurface(world, vecna, candidate);
+                if (safe != null) {
+                    return safe;
+                }
+            }
+        }
+
+        Vec3 bestForwardSafe = null;
+        double bestForwardScore = Double.NEGATIVE_INFINITY;
+        Vec3 bestAnySafe = null;
+        double bestAnyScore = Double.NEGATIVE_INFINITY;
+
+        for (double radius = 0.5; radius <= 3.0; radius += 0.5) {
+            int samples = Math.max(8, (int) Math.round(16 * radius));
+            for (int i = 0; i < samples; i++) {
+                double angle = (2.0 * Math.PI * i) / samples;
+                Vec3 candidate = origin.add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+                Vec3 safe = tryProjectToSafeSurface(world, vecna, candidate);
+                if (safe == null) {
+                    continue;
+                }
+
+                double score = scoreSurfacingCandidate(safe, origin, target, towardTargetDir);
+                if (score > bestAnyScore) {
+                    bestAnyScore = score;
+                    bestAnySafe = safe;
+                }
+
+                if (towardTargetDir.lengthSqr() > 0.0) {
+                    Vec3 fromOrigin = new Vec3(safe.x - origin.x, 0.0, safe.z - origin.z);
+                    if (fromOrigin.lengthSqr() > 1.0e-6 && fromOrigin.normalize().dot(towardTargetDir) > 0.0 && score > bestForwardScore) {
+                        bestForwardScore = score;
+                        bestForwardSafe = safe;
+                    }
+                }
+            }
+        }
+
+        if (bestForwardSafe != null) {
+            return bestForwardSafe;
+        }
+        if (bestAnySafe != null) {
+            return bestAnySafe;
+        }
+        return tryProjectToSafeSurface(world, vecna, origin);
+    }
+
+    private double scoreSurfacingCandidate(Vec3 safe, Vec3 origin, ServerPlayer target, Vec3 towardTargetDir) {
+        Vec3 offset = new Vec3(safe.x - origin.x, 0.0, safe.z - origin.z);
+        double radiusPenalty = offset.length();
+        double facingBonus = 0.0;
+        if (towardTargetDir.lengthSqr() > 0.0 && offset.lengthSqr() > 1.0e-6) {
+            facingBonus = offset.normalize().dot(towardTargetDir);
+        }
+
+        double targetDistancePenalty = 0.0;
+        if (target != null) {
+            double dx = target.getX() - safe.x;
+            double dz = target.getZ() - safe.z;
+            targetDistancePenalty = Math.sqrt(dx * dx + dz * dz);
+        }
+
+        return facingBonus * 4.0 - radiusPenalty * 0.5 - targetDistancePenalty;
+    }
+
+    private Vec3 tryProjectToSafeSurface(ServerLevel world, VecnaTheSecond vecna, Vec3 horizontalPos) {
+        int minY = world.getMinBuildHeight();
+        int maxY = world.getMaxBuildHeight() - 1;
+        int x = Mth.floor(horizontalPos.x);
+        int z = Mth.floor(horizontalPos.z);
+        int startY = Mth.clamp(Mth.floor(horizontalPos.y) + 3, minY, maxY);
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, startY, z);
+
+        for (int y = startY; y >= minY; y--) {
+            pos.setY(y);
+            var floorShape = world.getBlockState(pos).getCollisionShape(world, pos);
+            if (floorShape.isEmpty()) {
+                continue;
+            }
+            double topSurface = floorShape.max(Direction.Axis.Y);
+            if (topSurface < 0.49 || topSurface > 1.01) {
+                continue;
+            }
+            double top = y + topSurface;
+            Vec3 stand = new Vec3(horizontalPos.x, top + 0.05, horizontalPos.z);
+            double deltaY = stand.y - horizontalPos.y;
+            if (deltaY > MAX_SURFACE_STEP_UP || deltaY < -MAX_SURFACE_STEP_DOWN) {
+                continue;
+            }
+
+            AABB check = vecnaSizedCheckBox(vecna, stand);
+            if (!world.noCollision(check)) {
+                continue;
+            }
+            return stand;
+        }
+        return null;
+    }
+
+    private AABB vecnaSizedCheckBox(VecnaTheSecond vecna, Vec3 feetPos) {
+        var dims = vecna.getDimensions(vecna.getPose());
+        double halfWidth = dims.width() * 0.5;
+        double height = dims.height();
+        return new AABB(
+                feetPos.x - halfWidth, feetPos.y, feetPos.z - halfWidth,
+                feetPos.x + halfWidth, feetPos.y + height, feetPos.z + halfWidth
+        );
     }
 
     private ServerPlayer selectLowestHpPlayer(ServerLevel world, VecnaTheSecond vecna) {

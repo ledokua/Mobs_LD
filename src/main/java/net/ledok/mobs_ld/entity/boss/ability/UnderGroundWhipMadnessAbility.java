@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UnderGroundWhipMadnessAbility extends AbilityDefinition {
-    private static final AttackZone DAMAGE_ZONE = new AttackZone.Circle(1.5F);
+    private static final AttackZone DAMAGE_ZONE = new AttackZone.Circle(1.6F);
     private final List<AttackZoneDisplay> displays = new ArrayList<>();
     private final List<Vec3> lockedOrigins = new ArrayList<>();
 
