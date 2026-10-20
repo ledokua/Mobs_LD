@@ -42,6 +42,8 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
         if (!hurt) {
             return; // blocked, invulnerable or in damage cooldown: no rider effects either
         }
+        mob.combat().trace(String.format("hit %s for %.1f (feet %+.1f vs mob)", victim.getName().getString(), amount,
+                victim.getY() - mob.getY()));
         for (EffectSpec effect : effects) {
             effect.instance().ifPresent(instance -> victim.addEffect(instance, mob));
         }

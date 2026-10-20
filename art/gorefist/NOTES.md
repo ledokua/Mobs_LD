@@ -75,3 +75,6 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
 - 2026-10-20 engine change (Mobs_LD): action clips no longer blend in, they start on their first frame. All standalone
   clips already start at the rest pose. The charge chain now hands over exactly: charge_start's last frame = charge_loop's
   first frame = charge_slash's and charge_exhaust's first frame (was up to 40 deg off on the left forearm).
+- Charge seam fix committed (Mobs_LD bc8ca9d). Open for LeDok: if the charge reaches mid-stride, the legs snap up to ~70 deg
+  into charge_slash. Mobs_LD keeps it (waiting for the loop boundary would give players up to 0.25 s of free dodge time;
+  blends desync effects). If it looks bad in play, Mobs_LD adds a per-mob "wait for loop boundary" option.

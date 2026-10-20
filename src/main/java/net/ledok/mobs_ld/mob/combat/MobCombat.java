@@ -23,6 +23,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 
@@ -84,7 +85,7 @@ public final class MobCombat {
     }
 
     /** Tells operators near the mob what it just decided (only while {@code /mobs_ld debug} is on). */
-    void trace(String message) {
+    public void trace(String message) {
         if (!debug || !(mob.level() instanceof ServerLevel level)) {
             return;
         }
@@ -410,8 +411,17 @@ public final class MobCombat {
         if (mob.getNavigation() instanceof FlyingPathNavigation) {
             return true; // flyers get up there
         }
+        // Judge the path by where it actually ends: vanilla createPath may hand back the mob's current path to some
+        // other spot (e.g. its walk home after a reset), whose canReach() says nothing about this target.
         Path path = mob.getNavigation().createPath(entity, 1);
-        return path != null && path.canReach();
+        Node end = path == null ? null : path.getEndNode();
+        if (end == null) {
+            return false;
+        }
+        double dx = end.x + 0.5 - entity.getX();
+        double dz = end.z + 0.5 - entity.getZ();
+        double rise = entity.getY() - end.y;
+        return dx * dx + dz * dz <= 4.0 && rise <= reachUp() && rise >= -reachDown();
     }
 
     // --- Damage ---
@@ -443,8 +453,8 @@ public final class MobCombat {
         phase = 0;
         mob.setTextureVariant("");
         readyAt.clear();
-        unreachable.clear();
-        unreachableSince.clear();
+        // Unreachable marks survive a reset: otherwise a cheeser on a tower is re-targeted at once and the boss
+        // loops intro -> unreachable -> reset. They clear themselves when the player is reachable again.
         clearEnrage();
         discardSummons();
         engaged = false;
