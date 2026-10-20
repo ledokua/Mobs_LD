@@ -24,8 +24,9 @@ wedge-shaped, the arm is crystal-grown rather than fleshy, the head is tusked an
 - **One shape:** a wedge. Huge right shoulder sloping down to a fist the size of the torso resting on the ground;
   tiny wiry left arm; short thick legs. Top-heavy and lopsided from any angle.
 - **One accent:** pale cyan crystal (fist, knuckle shards) against dark red-brown hide.
-- **One tell:** the fist leaves the ground. Resting = safe. Lifted = something is coming; how high it goes says what
-  (shoulder height = haymaker, over the head = slam, crouch with fist behind = leap, fist forward like a ram = charge).
+- **One tell:** the fist leaves the ground. Resting = safe. Lifted = something is coming; how it lifts says what
+  (leg up + fist overhead = vertical, chest twisted + fist out to the side = horizontal, red flare = combo,
+  crouch with fist dragging = charge).
 - Must not read as: Iron Golem (keep it hunched, asymmetric, dark), Ravager (no quadruped stance), Warden (no
   antlers/ribcage glow — our glow is in the arm only).
 
@@ -43,40 +44,39 @@ Phase 2 texture (`gorefist_phase2.png`): crystal creeps up over the right should
 in the hide glow. Phase 3 reuses phase 2 with a brighter glow layer if cheap, otherwise the same texture.
 
 ## Behaviour
-Idle in the arena, fist on the floor, slow breathing. On aggro: `intro` roar (2 s), then walks toward the tank to
-standoff range and cycles frontal attacks, mixing in one "move the group" ability every ~15 s.
-Leash: resets if pulled more than 32 blocks from the arena centre. Soft enrage at 6:00 (see phase 3).
+Kit from LeDok's reference (Remnant's Gorefist: vertical, horizontal, 3-hit combo, charge-and-slash, Rot Wart
+reinforcements, enrage with the Mantle of Thorns), translated to our fist rig and the MMO threat model.
+Idle in the arena, fist on the floor. On aggro: `intro` roar (2 s), then it chases the current target
+relentlessly and never kites. Melee swings have deceptively long reach (the arm is long): every frontal shape
+is drawn 0.5 block longer than the model suggests. Leash 32 blocks. Soft enrage at 7:00 (damage ×2).
 
-### Phase 1 — Breacher (100 → 60 % HP)
-| ability | type | shape / size | centre | target | clip | impact | cooldown |
-|---|---|---|---|---|---|---|---|
-| `haymaker` | melee | cone 90°, 5 blocks | boss | current (tank) | 1.4 s | 0.6 s | 4 s |
-| `slam` | ground slam | circle r 3.5 | 3 blocks in front | current | 2.2 s | 1.1 s | 10 s |
-| `leap_slam` | leap + slam | circle r 4 | landing point | **farthest** player | 2.4 s | 1.5 s (0.6 s crouch telegraph, airborne 0.6–1.4 s) | 18 s |
+### Phase 1 — Breacher (100 → 50 % HP)
+| ability | type | shape / size | centre | target | clip | impact | cooldown | counter |
+|---|---|---|---|---|---|---|---|---|
+| `vertical` | melee chop (overhead) | rectangle 2 × 5 | from boss, forward | current | 2.2 s | 1.1 s | 4 s | tell: **right leg lifts** + fist overhead; sidestep any direction |
+| `horizontal` | melee sweep | cone 150°, 4.5 | boss | current | 1.8 s | 1.0 s | 6 s | slower, **no leg lift**; applies **bleed** DoT (effect id TBD); step *into* it / behind |
+| `combo` | 3 hits in one clip | cone 60° × 4 → cone 60° × 4 (left hand) → rectangle 2 × 5 | boss | current | 2.4 s | 0.6 / 1.1 / 1.7 s | 10 s | tell: **red flare** on the fist at 0.15 s; back off, don't trade |
+| `charge_slash` | dash + uppercut | rectangle 3 × 12 along the dash, then cone 90° × 4 at the stop | from boss / at the stop point | **farthest** player (MMO twist: the original fires when you are far) | 2.4 s | 0.5–1.4 s (moving) + **1.7 s** | 14 s | dodge sideways or to its left; wall hit → `stagger` 1.8 s |
+| `summon_rot_warts` | summon | 2 adds at `fx_chest` | boss | — | 1.6 s | 0.8 s (spawn) | 25 s | kill or kite the Warts before they reach the healers |
 
-### Phase 2 — Cracked (60 → 25 % HP)
-`phase_2_transition` 2.5 s, invulnerable, swaps to `gorefist_phase2.png`. Keeps phase-1 kit and adds:
-| ability | type | shape / size | centre | target | clip | impact | cooldown |
-|---|---|---|---|---|---|---|---|
-| `charge` | dash along a line | rectangle 3 × 14 | from boss, forward | **random** player | 2.0 s | 0.7–1.5 s (moving) | 14 s |
-| `slam` (upgraded) | ground slam + rays | circle r 3.5, then rays ×6, length 10 | impact point | current | 2.2 s | 1.1 s circle, 1.5 s rays | 10 s |
-| `stagger` | — | — | — | — | 1.8 s, held | — | plays when `charge` hits a wall: boss open to punishment, melee burst window |
+### Phase 2 — Mantle of Thorns (50 → 0 % HP)
+`enrage` 1.8 s, invulnerable, swaps to `gorefist_phase2.png` (the glow cracks flare, the thorns on the back
+light up). Effects for the rest of the fight:
+- **Mantle of Thorns:** melee damage taken −66 % (the original says "reduced by 200 %"); ranged and spells unchanged.
+  Tanks and melee swap to survive-and-kite, casters carry the damage.
+- Immediately summons **2 Rot Warts**, and 2 more 5 s later; `summon_rot_warts` cooldown drops to 18 s.
+- Attack speed +15 %. Kit otherwise unchanged.
 
-Optional adds (needs a second model, later): 3 **Breach Shards** — knee-high crystal crawlers summoned at 50 % and
-35 %, 1 ability each (lunge, cone 60° × 2 blocks). Skip for the first version.
-
-### Phase 3 — Frenzy (25 → 0 % HP)
-`enrage` 1.5 s. Attack speed +30 %, movement speed +20 %, `leap_slam` cooldown 12 s. Adds:
-| ability | type | shape / size | centre | target | clip | impact | cooldown |
-|---|---|---|---|---|---|---|---|
-| `quake` | targeted ground AoE ×4 | circle r 3 each | where each target stood | **4 random** players | 2.6 s | 1.3 s | 12 s |
-
-Soft enrage at 6:00: damage ×2 and `quake` every 6 s.
+### Rot Wart (add, needs its own small model — `mobs_ld:rot_wart`)
+Knee-high bloated runner. Sprints at the **nearest** player, explodes on contact or after 6 s: circle r 2.5,
+heavy damage, leaves a lingering **rot cloud** (poison/wither-style area effect, 4 s, r 2) where it burst.
+Fodder HP; the point is that someone has to deal with them. Concept stub in `../rot_wart/concept.md`.
 
 ### Group roles
-Tank: faces it away from the group; every frontal attack has a 0.6–1.1 s windup to sidestep or block.
-Healers/ranged: `leap_slam` chases the farthest player, `charge` picks a random one, `quake` marks four — nobody
-stands still. Melee: the `stagger` after a wall-hit charge is the burst window; phase 3 is the DPS race.
+Tank: holds it facing away; `vertical` and `horizontal` both have readable tells, `combo` is the "walk away"
+moment. Ranged/healers: `charge_slash` comes for the farthest player, Rot Warts come for the nearest.
+Melee: after a wall-hit `stagger`, 1.8 s of free hits; in phase 2 melee damage is cut, so switch to
+interrupting Warts and let casters finish it.
 
 ## Animations
 | name | length | loop | notes |
@@ -84,15 +84,14 @@ stands still. Melee: the `stagger` after a wall-hit charge is the burst window; 
 | `idle` | 2.4 s | loop | breathing, fist resting, head sways |
 | `walk` | 1.4 s | loop | **2.0 blocks per cycle**; fist drags, lifts 1 unit on the right step |
 | `intro` | 2.0 s | once | lifts fist, roars, slams it back down (`shake 0.3 12`) |
-| `haymaker` | 1.4 s | once | arm swings across the front, impact 0.6 s |
-| `slam` | 2.2 s | once | fist overhead → floor 3 blocks ahead; impact 1.1 s; `shake 0.6 16`; particles at `hit_fist_right` |
-| `leap_slam` | 2.4 s | once | crouch, jump (position +Y), land fist-first at 1.5 s; `shake 0.8 20` |
-| `charge` | 2.0 s | once | fist forward like a ram, legs sprint, body low |
-| `quake` | 2.6 s | once | both fists pound the floor, 1.3 s |
-| `phase_2_transition` | 2.5 s | once | clutches the arm as crystal spreads, roar |
-| `enrage` | 1.5 s | once | roar, chest beat with the small arm |
-| `stagger` | 1.8 s | hold | reels back, fist drops; held until the engine releases it |
-| `hurt` | 0.4 s | once | flinch |
+| `vertical` | 2.2 s | once | right leg lifts, fist overhead → floor 3 blocks ahead; impact 1.1 s; `shake 0.6 16` |
+| `horizontal` | 1.8 s | once | chest winds to the right, fist sweeps across the front at 1.0 s |
+| `combo` | 2.4 s | once | fist flare at 0.15 s; jab 0.6 s, left backhand 1.1 s, overhead chop 1.7 s |
+| `charge_slash` | 2.4 s | once | crouch 0–0.5, sprint dragging the fist 0.5–1.4, uppercut at 1.7 s |
+| `summon_rot_warts` | 1.6 s | once | left hand raised, right foot stomp at 0.8 s (`shake 0.2 10`) |
+| `enrage` | 1.8 s | once | rears back, roar, chest beat at 1.2 s; flame burst at `fx_chest` |
+| `stagger` | 1.8 s | hold | reels back, fist drops, slumps; held until the engine releases it |
+| `hurt` | 0.4 s | once | flinch (keys chest + head only, so walk keeps playing underneath) |
 | `death` | 2.0 s | hold | falls forward onto the fist, then sideways |
 
 ## Model plan
@@ -116,8 +115,8 @@ Loot: a Mobs_LD boss table (to design with Loot). Natural hook: the first barrie
 story (the fist's crystal), and a trophy head for the hub.
 
 ## Engine answers (Mobs_LD, 2026-10-20)
-- An ability is a **timeline of hit events**, each with its own shape, time, damage and target. The phase-2
-  slam is one ability with two events: circle at 1.1 s, rays at 1.5 s.
+- An ability is a **timeline of hit events**, each with its own shape, time, damage and target. `charge_slash` is one
+  ability with two events: the dash rectangle (0.5–1.4 s) and the uppercut cone (1.7 s); `combo` has three.
 - `charge` ends on a wall hit and switches to a `stagger` clip (1.5–2 s, looping or held) — in scope for v1.
 - Blockbench's trailing `;` on timeline instructions is tolerated; AzureLib may stay enabled.
 - Blockout v1 loads in the GeckoLib renderer as-is. **No further clips until LeDok confirms the kit.**
