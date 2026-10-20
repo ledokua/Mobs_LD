@@ -11,39 +11,41 @@
 
 ## Fantasy
 A brute from one of the dying worlds that did not slip through the barrier — it cut through. Where it broke
-the barrier, barrier-stuff crystallised over the arm it used: the right forearm is now fused into a black
-crystal cleaver, cracked and ember-lit from within, far too heavy for the body, its tip dragged across the
-floor. It cannot stop swinging because the arm is the only thing it still trusts. For Eden's people it is the first proof that the barrier is
+the barrier, barrier-stuff crystallised over the arm it used: the right forearm is now fused into a thin
+amethyst cleaver, far too heavy for the body, its tip dragged across the floor. Its hide is deepslate-grey
+stone-flesh; when it is hurt enough, amethyst erupts through it as a thin shell (the Mantle of Thorns).
+It cannot stop swinging because the arm is the only thing it still trusts. For Eden's people it is the first proof that the barrier is
 failing, which is why it opens the boss ladder.
 
 Inspiration is *Gorefist* (Remnant: From the Ashes) only at the fantasy level — a savage hulk that fights with
 one monstrous arm. Nothing of Gunfire's model, texture or silhouette details is reused: our brute is squat and
 wedge-shaped, the blade is grown out of the arm rather than held, the head is tusked and set low between the shoulders.
-**Look B** (charcoal hide, dried-blood plates, obsidian crystal with ember cracks) chosen by LeDok on 2026-10-20.
+**Look C** (Minecraft deepslate + amethyst) chosen by LeDok on 2026-10-20, replacing look B (charcoal + ember).
 
 ## Silhouette & read
 - **One shape:** a wedge. Huge right shoulder sloping down into a cleaver-arm whose tip rests on the ground;
   tiny wiry left arm; short thick legs. Top-heavy and lopsided from any angle.
-- **One accent:** ember-orange crystal edges and cracks against charcoal hide.
+- **One accent:** amethyst purple (blade, eyes, phase-2 shell) against deepslate grey.
 - **One tell:** the blade leaves the ground. Resting = safe. Lifted = something is coming; how it lifts says what
   (leg up + blade overhead = vertical, chest twisted + blade out to the side = horizontal, red flare = combo,
   crouch with the blade dragging = charge).
 - Must not read as: Iron Golem (keep it hunched, asymmetric, dark), Ravager (no quadruped stance), Warden (no
-  antlers/ribcage glow — our glow is in the blade and eyes only).
+  antlers/ribcage glow — our glow is the blade, eyes and, in phase 2, the shell edges).
 
-## Palette (look B, base texture 256×256)
+## Palette (look C, base texture 256×256)
 | use | colour |
 |---|---|
-| hide (main) | `#2a2426` / highlights `#3b3236` |
-| scar plates, belly, feet | `#5c2222` / `#702c2c` |
-| crystal (blade body, shoulder growth) | `#3a2b2b`, deep `#241a1a` |
-| crystal edges, teeth (ember) | `#ff4a1a` |
-| glow (`_glowmask.png`): eyes, blade cracks | `#ff5a1e` |
-| tusks, claws | `#c8baa0` |
-| iron shackle remains | `#4a4a52` |
+| hide (deepslate) | `#4a4a50` / highlights `#606068` |
+| stone plates: belly, feet, jaw, hand | `#686870` / `#7c7c84` |
+| amethyst (blade, shell) | `#995cdb`, light `#cba0ff`, deep `#6437aa` |
+| glow (`_glowmask.png`): eyes, blade cracks, shell spikes in phase 2 | `#debeff` |
+| tusks, toes (calcite) | `#dfe0dc` |
+| iron shackle remains | `#2c2c32` |
 
-Phase 2 texture (`gorefist_phase2.png`): crystal creeps over the right shoulder and chest, cracks in the hide glow
-(the Mantle of Thorns). Look A (brown hide, cyan crystal) is kept in `variants/` for reference only.
+Phase 2 texture (`gorefist_phase2.png` + `_glowmask`): identical, plus the **amethyst shell** region painted. The
+shell is real geometry (bones `shell_chest`, `shell_head`, `shell_arm_right`, 13 cubes) that is fully transparent
+in the base texture, so it is invisible until the texture swap; the `enrage` clip scales those bones from 0 to 1
+so the shell visibly grows out of the hide. Looks A and B are kept in `variants/` for reference only.
 
 ## Behaviour
 Kit from LeDok's reference (Remnant's Gorefist: vertical, horizontal, 3-hit combo, charge-and-slash, Rot Wart
@@ -94,7 +96,7 @@ interrupting Warts and let casters finish it.
 | `charge_slash` | 1.0 s | once | reached the target: upward slash from the run pose, impact 0.3 s |
 | `charge_exhaust` | 2.5 s | once | could not reach anyone in 10 s: skids, bends over panting (vulnerable) |
 | `summon_rot_warts` | 1.6 s | once | left hand raised, right foot stomp at 0.8 s (`shake 0.2 10`) |
-| `enrage` | 1.8 s | once | rears back, roar, chest beat at 1.2 s; flame burst at `fx_chest` |
+| `enrage` | 1.8 s | once | rears back, roar, chest beat at 1.2 s; amethyst shell grows 0.4–1.0 s (scale), crit sparkle at `fx_chest` |
 | `stagger` | 1.8 s | hold | reels back, blade drops, slumps; held until the engine releases it |
 | `hurt` | 0.4 s | once | flinch (keys chest + head only, so walk keeps playing underneath) |
 | `death` | 2.0 s | hold | falls forward over the blade, then sideways |
@@ -113,7 +115,7 @@ root
   ├ leg_right            short thick leg + foot (toes)
   └ leg_left
 ```
-40 cubes, box UV on 256×256, 1 texel per unit. Markers also at `fx_mouth` (roar), `fx_chest` (phase glow), `hit_hand_left`.
+53 cubes (13 of them shell), box UV on 256×256, 1 texel per unit. Markers also at `fx_mouth` (roar), `fx_chest` (phase glow), `hit_hand_left`.
 
 ## Drops / hooks
 Loot: a Mobs_LD boss table (to design with Loot). Natural hook: the first barrier-crystal material for the Eden

@@ -5,7 +5,7 @@ phase-2 transition). Concept: `concept.md` here.
 
 ## Model
 - Hitbox: **0.8 × 0.9** blocks (width × height). Eye height ≈ 0.75 blocks. Model is 14 units tall, 14 wide with warts.
-- Texture 64 × 64, box UV, 1 texel per unit. Glowmask: crystal core on the front + eyes. Ember variant in `variants/`.
+- Texture 64 × 64, box UV, 1 texel per unit, look C (deepslate pebble, amethyst core). Glowmask: core + eyes. Look B in `variants/`.
 - Bones: `root` › `body` (sac, pivot at its base so scale-pulses grow upward); `root` › `leg_right`, `leg_left`.
   No `head` bone on purpose: it does not look at anything, it just runs.
 - Marker bones: `hit_body` (centre of the sac, burst origin), `fx_core` (front of the sac, glow core).
