@@ -1,10 +1,6 @@
-package net.ledok.mobs_ld.entity.ai;
+package net.ledok.mobs_ld.entity.threat;
 
 import net.ledok.mobs_ld.config.ThreatConfig;
-import net.ledok.mobs_ld.entity.threat.ThreatEffects;
-import net.ledok.mobs_ld.entity.threat.StealthCompat;
-import net.ledok.mobs_ld.entity.threat.ThreatHolder;
-import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;

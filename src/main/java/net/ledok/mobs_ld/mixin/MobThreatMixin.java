@@ -1,6 +1,6 @@
 package net.ledok.mobs_ld.mixin;
 
-import net.ledok.mobs_ld.entity.ai.ThreatTargetGoal;
+import net.ledok.mobs_ld.entity.threat.ThreatTargetGoal;
 import net.ledok.mobs_ld.entity.threat.ThreatEvents;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.entity.threat.ThreatTable;

@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 
 /**
  * Per-mob aggro ledger: how much threat each player has built up against this mob. The mob targets the
- * highest-threat valid holder (see {@link net.ledok.mobs_ld.entity.ai.ThreatTargetGoal}). Damage adds
+ * highest-threat valid holder (see {@link net.ledok.mobs_ld.entity.threat.ThreatTargetGoal}). Damage adds
  * threat; the provoke/taunt effects rewrite it and stamp per-mob targeting controls.
  */
 public class ThreatTable {

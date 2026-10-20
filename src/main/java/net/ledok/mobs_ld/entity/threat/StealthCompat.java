@@ -13,7 +13,7 @@ import java.util.Set;
  *
  * <p>Rogues hides a player from mobs by shrinking the vanilla {@code TargetGoal.getFollowRange()} (see its
  * {@code TrackTargetGoalStealth} mixin), which makes the current target read as "out of range" and lets the goal
- * drop it. Our {@link net.ledok.mobs_ld.entity.ai.ThreatTargetGoal} extends {@code Goal} directly, so it never
+ * drop it. Our {@link net.ledok.mobs_ld.entity.threat.ThreatTargetGoal} extends {@code Goal} directly, so it never
  * inherits that hook and keeps targeting stealthed players. We replicate the check here: a player carrying
  * {@code rogues:stealth} or {@code rogues:shadow_step} is untargetable.
  *
