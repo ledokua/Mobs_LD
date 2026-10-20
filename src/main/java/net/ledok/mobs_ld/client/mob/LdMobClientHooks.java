@@ -95,7 +95,7 @@ public final class LdMobClientHooks implements MobClientHooks {
         ParticleScript script = ParticleScript.parse(event.getKeyframeData().script());
         for (int i = 0; i < script.count(); i++) {
             double ox = (mob.getRandom().nextDouble() * 2.0 - 1.0) * script.spread();
-            double oy = (mob.getRandom().nextDouble() * 2.0 - 1.0) * script.spread();
+            double oy = mob.getRandom().nextDouble() * script.spreadY(); // upward only: impacts stay on the floor
             double oz = (mob.getRandom().nextDouble() * 2.0 - 1.0) * script.spread();
             double vx = mob.getRandom().nextGaussian() * script.speed();
             double vy = mob.getRandom().nextGaussian() * script.speed();
@@ -144,11 +144,12 @@ public final class LdMobClientHooks implements MobClientHooks {
     }
 
     /**
-     * Optional particle keyframe script ({@code count=12; spread=0.6; speed=0.05}): how many particles to burst,
-     * how far around the anchor (blocks) and how fast. Defaults: one still particle at the anchor.
+     * Optional particle keyframe script ({@code count=12; spread=0.6; spread_y=0.4; speed=0.05}): how many particles
+     * to burst, how far around the anchor horizontally and upward (blocks), and how fast. Defaults: one still
+     * particle at the anchor.
      */
-    record ParticleScript(int count, double spread, double speed) {
-        static final ParticleScript DEFAULT = new ParticleScript(1, 0.0, 0.0);
+    record ParticleScript(int count, double spread, double spreadY, double speed) {
+        static final ParticleScript DEFAULT = new ParticleScript(1, 0.0, 0.0, 0.0);
 
         static ParticleScript parse(String script) {
             if (script == null || script.isBlank()) {
@@ -156,6 +157,7 @@ public final class LdMobClientHooks implements MobClientHooks {
             }
             int count = DEFAULT.count;
             double spread = DEFAULT.spread;
+            double spreadY = DEFAULT.spreadY;
             double speed = DEFAULT.speed;
             for (String part : script.split("[;\\n]")) {
                 String[] kv = part.split("=", 2);
@@ -166,6 +168,7 @@ public final class LdMobClientHooks implements MobClientHooks {
                     switch (kv[0].trim()) {
                         case "count" -> count = Mth.clamp(Integer.parseInt(kv[1].trim()), 1, 200);
                         case "spread" -> spread = Math.max(0.0, Double.parseDouble(kv[1].trim()));
+                        case "spread_y" -> spreadY = Math.max(0.0, Double.parseDouble(kv[1].trim()));
                         case "speed" -> speed = Math.max(0.0, Double.parseDouble(kv[1].trim()));
                         default -> {
                         }
@@ -174,7 +177,7 @@ public final class LdMobClientHooks implements MobClientHooks {
                     // keep the default for a malformed value
                 }
             }
-            return new ParticleScript(count, spread, speed);
+            return new ParticleScript(count, spread, spreadY, speed);
         }
     }
 }

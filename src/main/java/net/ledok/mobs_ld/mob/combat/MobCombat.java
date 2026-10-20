@@ -22,13 +22,17 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -50,6 +54,11 @@ public final class MobCombat {
     private final Map<String, Long> readyAt = new HashMap<>();
     private final List<UUID> summons = new ArrayList<>();
     private final List<Fading> fading = new ArrayList<>();
+    /** When each currently-unreachable candidate was first found unreachable (game time). */
+    private final Map<UUID, Long> unreachableSince = new HashMap<>();
+    /** Targets it has given up on until they are reachable again. */
+    private final Set<UUID> unreachable = new HashSet<>();
+    private int reachCheckIn;
 
     private AbilityRun current;
     private AbilityRun deathRun;
@@ -116,6 +125,7 @@ public final class MobCombat {
             tickReturn();
             return;
         }
+        tickReachability(behaviour, now);
         tickEngagement(behaviour, now);
         if (engaged) {
             int desired = behaviour.phaseFor(mob.getHealth() / mob.getMaxHealth());
@@ -257,7 +267,7 @@ public final class MobCombat {
                 start(name, ability, aim);
                 return true;
             }
-            if (ability.range().contains(CombatTargets.distance(mob, aim)) && ability.weight() > 0) {
+            if (ability.range().contains(CombatTargets.distance(mob, aim), aim.getY() - mob.getY()) && ability.weight() > 0) {
                 options.add(new Candidate(name, ability, aim));
                 totalWeight += ability.weight();
             }
@@ -330,6 +340,68 @@ public final class MobCombat {
         return behaviour.phases().isEmpty() ? null : behaviour.phases().get(Math.min(phase, behaviour.phases().size() - 1));
     }
 
+    // --- Reachability ---
+
+    /** Ticks a target must stay unreachable before the mob gives up on it. */
+    private static final int UNREACHABLE_AFTER = 40;
+    private static final int REACH_CHECK_INTERVAL = 10;
+
+    /** Whether the mob has given up on {@code entity} because it cannot get to it (high ground, no path). */
+    public boolean isUnreachable(LivingEntity entity) {
+        return unreachable.contains(entity.getUUID());
+    }
+
+    private void tickReachability(MobBehaviour behaviour, long now) {
+        if (--reachCheckIn > 0) {
+            return;
+        }
+        reachCheckIn = REACH_CHECK_INTERVAL;
+        ServerLevel level = (ServerLevel) mob.level();
+        LivingEntity target = mob.getTarget();
+        if (target != null) {
+            evaluateReach(target, behaviour, now);
+        }
+        // Players given up on are re-checked, so they get aggro back as soon as they come down.
+        for (UUID id : List.copyOf(unreachable)) {
+            if (!(level.getEntity(id) instanceof LivingEntity entity) || !entity.isAlive()) {
+                unreachable.remove(id);
+                unreachableSince.remove(id);
+            } else if (entity != target) {
+                evaluateReach(entity, behaviour, now);
+            }
+        }
+    }
+
+    private void evaluateReach(LivingEntity entity, MobBehaviour behaviour, long now) {
+        UUID id = entity.getUUID();
+        if (canReach(entity, movement())) {
+            unreachableSince.remove(id);
+            if (unreachable.remove(id)) {
+                trace(entity.getName().getString() + " is reachable again");
+            }
+            return;
+        }
+        long since = unreachableSince.computeIfAbsent(id, key -> now);
+        if (now - since >= UNREACHABLE_AFTER && unreachable.add(id)) {
+            trace(entity.getName().getString() + " is unreachable; switching targets");
+            if (mob.getTarget() == entity) {
+                mob.setTarget(null); // threat targeting picks the next reachable holder, if any
+            }
+        }
+    }
+
+    /** Close enough in height to hit, or the mob has a full path up to it. */
+    private boolean canReach(LivingEntity entity, MobBehaviour.Movement movement) {
+        if (entity.getY() - mob.getY() <= movement.reachHeight()) {
+            return true;
+        }
+        if (mob.getNavigation() instanceof FlyingPathNavigation) {
+            return true; // flyers get up there
+        }
+        Path path = mob.getNavigation().createPath(entity, 1);
+        return path != null && path.canReach();
+    }
+
     // --- Damage ---
 
     public boolean invulnerable() {
@@ -359,6 +431,8 @@ public final class MobCombat {
         phase = 0;
         mob.setTextureVariant("");
         readyAt.clear();
+        unreachable.clear();
+        unreachableSince.clear();
         clearEnrage();
         discardSummons();
         engaged = false;

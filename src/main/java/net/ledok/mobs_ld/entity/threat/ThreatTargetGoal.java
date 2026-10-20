@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.entity.threat;
 
 import net.ledok.mobs_ld.config.ThreatConfig;
+import net.ledok.mobs_ld.mob.LdMob;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -92,6 +93,9 @@ public class ThreatTargetGoal extends Goal {
         // mob.canAttack covers spectator/creative players, peaceful difficulty and invulnerable summons.
         if (holder == null || !holder.isAlive() || !mob.canAttack(holder) || StealthCompat.isHidden(holder)) {
             return false;
+        }
+        if (mob instanceof LdMob ldMob && ldMob.combat().isUnreachable(holder)) {
+            return false; // e.g. on high ground: aggro passes to someone it can actually fight
         }
         double range = mob.getAttributeValue(Attributes.FOLLOW_RANGE);
         return mob.distanceToSqr(holder) <= range * range;

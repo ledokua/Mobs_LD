@@ -88,7 +88,9 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
   `mobs_ld:` sound we add).
 - Blockbench **Particle** keyframes: effect = particle id, locator = the name of an `fx_`/`hit_` marker bone.
   Simple particle types only (`minecraft:explosion`, `minecraft:flame`, ...). Optional *Script* field for a burst:
-  `count=12; spread=0.6; speed=0.05` (particles, blocks around the marker, random velocity). Default: one particle.
+  `count=12; spread=0.6; spread_y=0.4; speed=0.05` - particles, horizontal scatter around the marker, upward
+  scatter (default 0, so ground impacts stay on the ground), random velocity. Default: one particle.
+  Big sprites (`explosion` is ~2 blocks) at a hit marker burst right where the victim stands: keep counts low.
 - Blockbench **Instructions** (timeline) keyframes, one command per line:
   - `shake <strength> <radius>` - camera shake for nearby players (strength 0.1-1.0, radius blocks).
 

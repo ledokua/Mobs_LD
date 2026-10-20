@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -121,8 +122,15 @@ public class LdMob extends Monster implements GeoEntity {
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0F));
         goalSelector.addGoal(7, new RandomLookAroundGoal(this));
         // Initial aggro; once anyone builds threat, the ThreatTargetGoal added by MobThreatMixin takes over.
-        targetSelector.addGoal(1, new HurtByTargetGoal(this));
-        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+        targetSelector.addGoal(1, new HurtByTargetGoal(this) {
+            @Override
+            public boolean canUse() {
+                LivingEntity attacker = getLastHurtByMob();
+                return super.canUse() && (attacker == null || !combat.isUnreachable(attacker));
+            }
+        });
+        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
+                player -> !combat.isUnreachable(player)));
     }
 
     @Override

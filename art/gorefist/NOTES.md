@@ -67,3 +67,6 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
 - 2026-10-20 texture pass: Minecraft-style materials (deepslate, cobbled/polished deepslate, amethyst, calcite, iron)
   from `tools/mc_texture.py`, per LeDok's "blend with Minecraft" direction; rules in `_references/STYLE.md`.
   Same UV, geometry and clips. Rot Wart burst/death: one particle per timestamp (0.5 / 0.52 / 0.54) for GeckoLib.
+- 2026-10-20 first in-game fight test (Mobs_LD 8911d85, includes the Minecraft-style textures): confirmed intro, vertical,
+  horizontal, charge_start → charge_loop → charge_slash, wall → stagger (code path), Rot Wart summon + burst, phase-2
+  shell growth with the texture swap, death hold + cleanup. Not yet seen on screen: `charge_exhaust`, the `stagger` pose.

@@ -32,3 +32,4 @@ explosion + large_smoke + item_slime at `hit_body` on the pop; `shake 0.2 8`.
 - 2026-10-20 texture pass: Minecraft-style materials (deepslate, cobbled/polished deepslate, amethyst, calcite, iron)
   from `tools/mc_texture.py`, per LeDok's "blend with Minecraft" direction; rules in `_references/STYLE.md`.
   Same UV, geometry and clips. Rot Wart burst/death: one particle per timestamp (0.5 / 0.52 / 0.54) for GeckoLib.
+- 2026-10-20 in-game test (8911d85): summon, run and burst (explosion / smoke / slime) confirmed.

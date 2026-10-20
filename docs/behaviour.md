@@ -29,6 +29,11 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
 | `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random` |
+| `reach_height` | 2.5 | a target standing higher than this above its feet counts as unreachable unless it has a path up |
+
+**Unreachable targets** (high ground, no path for ~2 s) lose aggro: threat targeting, initial aggro and
+retaliation skip them and the mob turns on someone it can reach. If nobody is reachable it has no target, and a
+boss resets after `boss.reset_after`. They get aggro back as soon as they are reachable again.
 
 ## Abilities
 
@@ -51,7 +56,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `cooldown` | 0 | before it can be used again |
 | `initial_cooldown` | 0 | after engaging, before first use |
 | `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
-| `range` | any | `{ "min", "max" }` distance to the aim target that allows starting it |
+| `range` | any | `{ "min", "max", "above": 2.5, "below": 4 }` horizontal distance, and how far above/below the mob's feet the aim's feet may be |
 | `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |

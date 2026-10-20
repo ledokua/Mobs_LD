@@ -36,7 +36,8 @@ public final class CombatTargets {
         double range = mob.getAttributeValue(Attributes.FOLLOW_RANGE);
         List<LivingEntity> result = new ArrayList<>();
         for (Player player : mob.level().players()) {
-            if (isEnemy(mob, player) && !StealthCompat.isHidden(player) && mob.distanceToSqr(player) <= range * range) {
+            if (isEnemy(mob, player) && !StealthCompat.isHidden(player) && mob.distanceToSqr(player) <= range * range
+                    && !mob.combat().isUnreachable(player)) {
                 result.add(player);
             }
         }

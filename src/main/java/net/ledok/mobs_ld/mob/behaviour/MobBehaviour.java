@@ -98,15 +98,18 @@ public record MobBehaviour(
     /**
      * How the mob positions itself between abilities.
      *
-     * @param follow whom it moves toward: its threat target, or e.g. always the nearest player
+     * @param follow      whom it moves toward: its threat target, or e.g. always the nearest player
+     * @param reachHeight how far above its feet a target may stand before the mob needs a path up to it; a target
+     *                    it cannot path to beyond this is unreachable and loses its aggro
      */
-    public record Movement(Style style, double distance, double speed, TargetRule follow) {
-        public static final Movement DEFAULT = new Movement(Style.STANDOFF, 2.0, 1.0, TargetRule.CURRENT);
+    public record Movement(Style style, double distance, double speed, TargetRule follow, double reachHeight) {
+        public static final Movement DEFAULT = new Movement(Style.STANDOFF, 2.0, 1.0, TargetRule.CURRENT, 2.5);
         public static final Codec<Movement> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Style.CODEC.optionalFieldOf("style", Style.STANDOFF).forGetter(Movement::style),
                 Codec.DOUBLE.optionalFieldOf("distance", 2.0).forGetter(Movement::distance),
                 Codec.DOUBLE.optionalFieldOf("speed", 1.0).forGetter(Movement::speed),
-                TargetRule.CODEC.optionalFieldOf("follow", TargetRule.CURRENT).forGetter(Movement::follow)
+                TargetRule.CODEC.optionalFieldOf("follow", TargetRule.CURRENT).forGetter(Movement::follow),
+                Codec.DOUBLE.optionalFieldOf("reach_height", 2.5).forGetter(Movement::reachHeight)
         ).apply(i, Movement::new));
 
         public enum Style implements StringRepresentable {
@@ -177,15 +180,22 @@ public record MobBehaviour(
         }
     }
 
-    public record Range(double min, double max) {
-        public static final Range ANY = new Range(0.0, Double.MAX_VALUE);
+    /**
+     * Where the aim must be to start an ability: horizontal distance {@code min..max}, and its feet between
+     * {@code below} blocks under and {@code above} blocks over the mob's feet (so a melee swing is not started at
+     * someone standing on a roof).
+     */
+    public record Range(double min, double max, double above, double below) {
+        public static final Range ANY = new Range(0.0, Double.MAX_VALUE, 2.5, 4.0);
         public static final Codec<Range> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.optionalFieldOf("min", 0.0).forGetter(Range::min),
-                Codec.DOUBLE.optionalFieldOf("max", Double.MAX_VALUE).forGetter(Range::max)
+                Codec.DOUBLE.optionalFieldOf("max", Double.MAX_VALUE).forGetter(Range::max),
+                Codec.DOUBLE.optionalFieldOf("above", 2.5).forGetter(Range::above),
+                Codec.DOUBLE.optionalFieldOf("below", 4.0).forGetter(Range::below)
         ).apply(i, Range::new));
 
-        public boolean contains(double distance) {
-            return distance >= min && distance <= max;
+        public boolean contains(double distance, double heightDifference) {
+            return distance >= min && distance <= max && heightDifference <= above && heightDifference >= -below;
         }
     }
 
