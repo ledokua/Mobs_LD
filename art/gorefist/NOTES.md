@@ -72,3 +72,6 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
   shell growth with the texture swap, death hold + cleanup. Not yet seen on screen: `charge_exhaust`, the `stagger` pose.
 - 2026-10-20 particles reworked for Mobs_LD 2c33e44 (`spread` horizontal only, new `spread_y`): slam explosions cut to 1–2 sprites
   at the impact + a flat `minecraft:poof` dust ring; chest/head effects got upward scatter.
+- 2026-10-20 engine change (Mobs_LD): action clips no longer blend in, they start on their first frame. All standalone
+  clips already start at the rest pose. The charge chain now hands over exactly: charge_start's last frame = charge_loop's
+  first frame = charge_slash's and charge_exhaust's first frame (was up to 40 deg off on the left forearm).
