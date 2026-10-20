@@ -21,7 +21,8 @@ public interface AbilityEvent {
             "cloud", CloudEvent.CODEC,
             "effect", EffectEvent.CODEC,
             "despawn", DespawnEvent.CODEC,
-            "chase", ChaseEvent.CODEC
+            "chase", ChaseEvent.CODEC,
+            "trace", TraceEvent.CODEC
     ));
 
     Codec<AbilityEvent> CODEC = Codec.STRING.dispatch("type", AbilityEvent::type, type -> {

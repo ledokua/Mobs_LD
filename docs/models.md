@@ -105,4 +105,8 @@ Per mob, deliver:
 - `art/<mob>/NOTES.md`: intended hitbox, walk blocks-per-cycle, and per ability clip: length, impact time(s),
   what the telegraph shape should be (circle/cone/rectangle/rays, size in blocks, where it is centered).
 
-Do not commit; the Mobs_LD session wires the files in and commits.
+Do not commit; the Mobs_LD session wires the files in, re-bakes the hit tracks (`/mobs_ldc bake <mob>`) and commits.
+
+**Swings that hit physically** (`trace` events in behaviour.md) follow the baked bone paths, so the weapon must
+actually pass through body height (roughly 0.5-1.8 blocks above the ground, where players are) during the strike.
+A swing at head height only grazes; one above 2.5 misses.

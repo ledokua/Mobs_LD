@@ -79,6 +79,10 @@ public final class MobCombat {
         this.mob = mob;
     }
 
+    public static boolean isDebug() {
+        return debug;
+    }
+
     public static boolean toggleDebug() {
         debug = !debug;
         return debug;

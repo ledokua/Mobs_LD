@@ -90,6 +90,19 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 `effects`: `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id; unknown ids are
 skipped with a log warning.
 
+### `trace` - weapon hitbox that follows the animation
+`from`, `to` (active window, seconds), `path` (bones, e.g. `["blade_right", "hit_blade_right"]` = wrist to blade
+tip), `radius` (0.6, capsule thickness), optional `clip` (default: the ability's clip), `hit`.
+From `from` to `to` a capsule is swept along the bones' baked positions; anyone it passes through takes `hit`
+once. No ground telegraph: players read the swing. Use it for blade swings and punches; keep `hit` + telegraph
+for ground slams and area mechanics.
+
+Needs the mob's **hit tracks**: `data/<ns>/hit_tracks/<mob>.json`, baked in a client with
+`/mobs_ldc bake <mob>` (writes `<game dir>/mobs_ld_bake/<ns>/<mob>.json`; copy it in). The server cannot run
+GeckoLib animations, so it replays these. **Re-bake after any model or animation change.** With
+`/mobs_ld debug` on, swept blades show as electric sparks. Pick windows from the baked track (when the
+blade moves fast through body height, 0-1.8 blocks).
+
 ### `dash` - charge
 `at`, `until`, `max_distance`, `overshoot` (1.0, blocks past the aim), `width` (2.0), optional `hit` (applied once
 to everyone the body sweeps through), `on_wall` (`stagger` | `stop`), `telegraph` (draws the path).

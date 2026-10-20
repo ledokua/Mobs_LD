@@ -1,93 +1,258 @@
 {
-  "movement": { "style": "standoff", "distance": 3.0, "speed": 1.0 },
+  "movement": {
+    "style": "standoff",
+    "distance": 3.0,
+    "speed": 1.0
+  },
   "global_cooldown": 0.6,
-  "intro": { "clip": "intro", "duration": 2.0, "invulnerable": true },
-  "stagger": { "clip": "stagger", "duration": 1.8 },
+  "intro": {
+    "clip": "intro",
+    "duration": 2.0,
+    "invulnerable": true
+  },
+  "stagger": {
+    "clip": "stagger",
+    "duration": 1.8
+  },
   "abilities": {
     "vertical": {
-      "duration": 2.2, "cooldown": 4, "weight": 3,
-      "range": { "max": 4.5 },
+      "duration": 2.2,
+      "cooldown": 4,
+      "weight": 3,
+      "range": {
+        "max": 4.5
+      },
       "events": [
-        { "type": "hit", "at": 1.1, "telegraph": { "from": 0.4 },
-          "shape": { "type": "rectangle", "width": 2, "length": 5 },
-          "hit": { "damage": 1.4, "knockback": 0.6 } }
+        {
+          "type": "hit",
+          "at": 1.1,
+          "telegraph": {
+            "from": 0.4
+          },
+          "shape": {
+            "type": "rectangle",
+            "width": 2,
+            "length": 5
+          },
+          "hit": {
+            "damage": 1.4,
+            "knockback": 0.6
+          }
+        }
       ]
     },
     "horizontal": {
-      "duration": 1.8, "cooldown": 6, "weight": 2,
-      "range": { "max": 4.0 },
+      "duration": 1.8,
+      "cooldown": 6,
+      "weight": 2,
+      "range": {
+        "max": 4.0
+      },
       "events": [
-        { "type": "hit", "at": 1.0, "telegraph": { "from": 0.35 },
-          "shape": { "type": "cone", "radius": 4.5, "angle": 150 },
-          "hit": { "damage": 1.0, "knockback": 0.9,
-                   "effects": [ { "id": "spell_engine:bleed", "duration": 6 } ] } }
+        {
+          "type": "trace",
+          "from": 0.85,
+          "to": 1.1,
+          "path": [
+            "blade_right",
+            "hit_blade_right"
+          ],
+          "radius": 0.8,
+          "hit": {
+            "damage": 1.0,
+            "knockback": 0.9,
+            "effects": [
+              {
+                "id": "spell_engine:bleed",
+                "duration": 6
+              }
+            ]
+          }
+        }
       ]
     },
     "combo": {
-      "duration": 2.4, "cooldown": 10, "weight": 2,
-      "range": { "max": 3.5 },
+      "duration": 2.4,
+      "cooldown": 10,
+      "weight": 2,
+      "range": {
+        "max": 3.5
+      },
       "events": [
-        { "type": "hit", "at": 0.6, "telegraph": { "from": 0.15 },
-          "shape": { "type": "cone", "radius": 4, "angle": 60 }, "hit": { "damage": 0.6, "knockback": 0.3 } },
-        { "type": "hit", "at": 1.1, "telegraph": { "from": 0.65 },
-          "shape": { "type": "cone", "radius": 4, "angle": 60 }, "hit": { "damage": 0.6, "knockback": 0.3 } },
-        { "type": "hit", "at": 1.7, "telegraph": { "from": 1.15 },
-          "shape": { "type": "rectangle", "width": 2, "length": 5 }, "hit": { "damage": 1.0, "knockback": 0.7 } }
+        {
+          "type": "trace",
+          "from": 0.4,
+          "to": 0.7,
+          "path": [
+            "blade_right",
+            "hit_blade_right"
+          ],
+          "radius": 0.7,
+          "hit": {
+            "damage": 0.6,
+            "knockback": 0.3
+          }
+        },
+        {
+          "type": "trace",
+          "from": 0.95,
+          "to": 1.2,
+          "path": [
+            "forearm_left",
+            "hit_hand_left"
+          ],
+          "radius": 0.7,
+          "hit": {
+            "damage": 0.6,
+            "knockback": 0.3
+          }
+        },
+        {
+          "type": "hit",
+          "at": 1.7,
+          "telegraph": {
+            "from": 1.15
+          },
+          "shape": {
+            "type": "rectangle",
+            "width": 2,
+            "length": 5
+          },
+          "hit": {
+            "damage": 1.0,
+            "knockback": 0.7
+          }
+        }
       ]
     },
     "charge": {
-      "clip": "charge_start", "duration": 0.5, "cooldown": 16, "weight": 2,
+      "clip": "charge_start",
+      "duration": 0.5,
+      "cooldown": 16,
+      "weight": 2,
       "target": "farthest",
-      "range": { "min": 7, "max": 32 },
+      "range": {
+        "min": 7,
+        "max": 32
+      },
       "events": [
-        { "type": "chase", "at": 0.5, "clip": "charge_loop", "max_time": 10,
-          "speed": 0.32, "turn_rate": 5, "reach": 3.0,
-          "on_reach": "charge_attack", "on_timeout": "charge_exhaust", "on_wall": "stagger",
-          "width": 3, "hit": { "damage": 0.4, "knockback": 1.2 } }
+        {
+          "type": "chase",
+          "at": 0.5,
+          "clip": "charge_loop",
+          "max_time": 10,
+          "speed": 0.32,
+          "turn_rate": 5,
+          "reach": 3.0,
+          "on_reach": "charge_attack",
+          "on_timeout": "charge_exhaust",
+          "on_wall": "stagger",
+          "width": 3,
+          "hit": {
+            "damage": 0.4,
+            "knockback": 0.3
+          }
+        }
       ]
     },
     "charge_attack": {
-      "clip": "charge_slash", "duration": 1.0, "weight": 0,
+      "clip": "charge_slash",
+      "duration": 1.0,
+      "weight": 0,
       "events": [
-        { "type": "hit", "at": 0.3, "telegraph": { "from": 0.0 },
-          "shape": { "type": "cone", "radius": 4, "angle": 90 },
-          "hit": { "damage": 1.2, "knockback": 0.4, "knock_up": 0.7 } }
+        {
+          "type": "trace",
+          "from": 0.1,
+          "to": 0.45,
+          "path": [
+            "blade_right",
+            "hit_blade_right"
+          ],
+          "radius": 0.8,
+          "hit": {
+            "damage": 1.2,
+            "knockback": 0.4,
+            "knock_up": 0.7
+          }
+        }
       ]
     },
     "charge_exhaust": {
-      "clip": "charge_exhaust", "duration": 2.5, "weight": 0
+      "clip": "charge_exhaust",
+      "duration": 2.5,
+      "weight": 0
     },
     "summon_rot_warts": {
-      "duration": 1.6, "cooldown": 25, "initial_cooldown": 12, "weight": 1,
-      "range": { "max": 32 },
+      "duration": 1.6,
+      "cooldown": 25,
+      "initial_cooldown": 12,
+      "weight": 1,
+      "range": {
+        "max": 32
+      },
       "events": [
-        { "type": "summon", "at": 0.8, "entity": "mobs_ld:rot_wart", "count": 2,
-          "forward": 0.75, "up": 2.6, "spread": 1.5, "max_alive": 6 }
+        {
+          "type": "summon",
+          "at": 0.8,
+          "entity": "mobs_ld:rot_wart",
+          "count": 2,
+          "forward": 0.75,
+          "up": 2.6,
+          "spread": 1.5,
+          "max_alive": 6
+        }
       ]
     }
   },
   "phases": [
-    { "below_health": 1.0 },
+    {
+      "below_health": 1.0
+    },
     {
       "below_health": 0.5,
       "transition": {
-        "clip": "enrage", "duration": 1.8, "invulnerable": true,
+        "clip": "enrage",
+        "duration": 1.8,
+        "invulnerable": true,
         "events": [
-          { "type": "summon", "at": 1.2, "entity": "mobs_ld:rot_wart", "count": 2,
-            "forward": 0.75, "up": 2.6, "spread": 1.5, "max_alive": 6 }
+          {
+            "type": "summon",
+            "at": 1.2,
+            "entity": "mobs_ld:rot_wart",
+            "count": 2,
+            "forward": 0.75,
+            "up": 2.6,
+            "spread": 1.5,
+            "max_alive": 6
+          }
         ]
       },
-      "ready_in": { "summon_rot_warts": 5 },
-      "cooldowns": { "summon_rot_warts": 18 },
+      "ready_in": {
+        "summon_rot_warts": 5
+      },
+      "cooldowns": {
+        "summon_rot_warts": 18
+      },
       "attack_speed": 1.15,
-      "damage_taken": [ { "kind": "melee", "multiplier": 0.34 } ],
+      "damage_taken": [
+        {
+          "kind": "melee",
+          "multiplier": 0.34
+        }
+      ],
       "texture": "phase2"
     }
   ],
   "boss": {
-    "bar": { "color": "red" },
+    "bar": {
+      "color": "red"
+    },
     "leash": 32,
     "reset_after": 15,
-    "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" }
+    "soft_enrage": {
+      "after": 420,
+      "damage_multiplier": 2.0,
+      "clip": "enrage"
+    }
   }
 }
