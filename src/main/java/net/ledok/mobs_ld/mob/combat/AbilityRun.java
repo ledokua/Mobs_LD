@@ -89,7 +89,9 @@ public final class AbilityRun {
             marker.update(this);
         }
         ticks += speed;
-        return seconds() < ability.duration() || slots.stream().anyMatch(slot -> slot.state == State.ACTIVE);
+        // Over only once the clip time has passed AND every event has run: an event may start at (or after) the
+        // ability's duration, e.g. a chase that begins right as the wind-up clip ends.
+        return seconds() < ability.duration() || slots.stream().anyMatch(slot -> slot.state != State.DONE);
     }
 
     /** Interrupts the ability: active events clean up (telegraphs vanish, dashes stop). */
@@ -152,6 +154,7 @@ public final class AbilityRun {
 
     /** Ends the ability and puts the mob into its stagger window (if the behaviour defines one). */
     public void stagger() {
+        combat.trace(name + ": hit a wall at " + String.format("%.1f %.1f %.1f", mob.getX(), mob.getY(), mob.getZ()));
         staggered = true;
         cancel();
     }
@@ -162,6 +165,8 @@ public final class AbilityRun {
 
     /** Ends this ability and starts the named one right away, with the same aim (e.g. a charge into its finisher). */
     public void chain(String abilityName) {
+        combat.trace(name + ": chaining into " + abilityName + (aim != null
+                ? String.format(" at %.1f blocks", CombatTargets.distance(mob, aim)) : " (no aim)"));
         chainTo = abilityName;
         cancel();
     }

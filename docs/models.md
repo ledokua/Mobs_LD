@@ -81,7 +81,8 @@ Ability animations - one clip per ability, named after it (e.g. `slam`, `leap_sl
 - Looping abilities (channels, spins): make a separate `<ability>_loop` clip plus optional `<ability>_start` /
   `<ability>_end`.
 
-Client-only effects go in the clip itself:
+Client-only effects go in the clip itself. **One effect per keyframe time**: GeckoLib rejects the whole clip if a
+sound/particle/instruction timestamp holds an array of effects; offset extra ones by a tick (0.5 / 0.52 / 0.54).
 
 - Blockbench **Sound** keyframes: effect = a sound event id (`minecraft:entity.iron_golem.attack` or a
   `mobs_ld:` sound we add).

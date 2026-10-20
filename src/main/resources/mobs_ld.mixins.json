@@ -3,6 +3,7 @@
   "package": "net.ledok.mobs_ld.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AreaEffectCloudMixin",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
     "compat.SpellEngineAggroMixin"

@@ -9,9 +9,15 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** Leaves a lingering area-effect cloud (like a lingering potion) on the mob or where its aim target stood. */
+/**
+ * Leaves a lingering area-effect cloud (like a lingering potion) on the mob or where its aim target stood. It only
+ * affects players and their summons (see {@code AreaEffectCloudMixin}), never the mob's own side.
+ */
 public record CloudEvent(double at, Origin origin, double radius, double duration, List<HitSpec.EffectSpec> effects)
         implements AbilityEvent.Instant {
+    /** Entity tag marking a cloud that must only touch players' side. */
+    public static final String HOSTILE_TAG = "mobs_ld_hostile";
+
     public static final MapCodec<CloudEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("at").forGetter(CloudEvent::at),
             Origin.CODEC.optionalFieldOf("origin", Origin.SELF).forGetter(CloudEvent::origin),
@@ -33,6 +39,7 @@ public record CloudEvent(double at, Origin origin, double radius, double duratio
         cloud.setRadius((float) radius);
         cloud.setDuration((int) Math.round(duration * 20.0));
         cloud.setWaitTime(0);
+        cloud.addTag(HOSTILE_TAG);
         for (HitSpec.EffectSpec effect : effects) {
             effect.instance().ifPresent(cloud::addEffect);
         }

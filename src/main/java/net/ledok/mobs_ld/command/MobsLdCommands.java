@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
+import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -47,6 +48,12 @@ public final class MobsLdCommands {
                                             return apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
                                                     mob -> forceAbility(ctx.getSource(), mob, name), "Forced '" + name + "' on");
                                         }))))
+                .then(Commands.literal("debug")
+                        .executes(ctx -> {
+                            boolean on = MobCombat.toggleDebug();
+                            ctx.getSource().sendSuccess(() -> Component.literal("Mobs_LD ability trace " + (on ? "on" : "off")), true);
+                            return 1;
+                        }))
                 .then(Commands.literal("reset")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),

@@ -6,7 +6,9 @@ import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -41,6 +43,9 @@ public final class MobCombat {
     /** A boss walking home gives up and teleports after this long. */
     private static final int RETURN_TIMEOUT = 200;
 
+    /** {@code /mobs_ld debug}: narrate ability decisions to operators in chat. */
+    private static boolean debug;
+
     private final LdMob mob;
     private final Map<String, Long> readyAt = new HashMap<>();
     private final List<UUID> summons = new ArrayList<>();
@@ -62,6 +67,25 @@ public final class MobCombat {
 
     public MobCombat(LdMob mob) {
         this.mob = mob;
+    }
+
+    public static boolean toggleDebug() {
+        debug = !debug;
+        return debug;
+    }
+
+    /** Tells operators near the mob what it just decided (only while {@code /mobs_ld debug} is on). */
+    void trace(String message) {
+        if (!debug || !(mob.level() instanceof ServerLevel level)) {
+            return;
+        }
+        Component line = Component.literal("[" + mob.getType().getDescription().getString() + " " + mob.getId() + "] "
+                + message).withStyle(ChatFormatting.GRAY);
+        for (ServerPlayer player : level.players()) {
+            if (player.hasPermissions(2) && player.distanceToSqr(mob) < 64.0 * 64.0) {
+                player.sendSystemMessage(line);
+            }
+        }
     }
 
     /** Current behaviour for this mob type; null until a datapack provides one (the mob then just wanders). */
@@ -100,7 +124,9 @@ public final class MobCombat {
             }
         }
         // Not tied to engagement: a debug-forced ability on an idle mob still plays out.
-        if (current != null && !current.tick()) {
+        AbilityRun run = current;
+        if (run != null && !run.tick() && current == run && !mob.isRemoved()) {
+            // An event may already have replaced the run or removed the mob (a despawning bomb): then it is over.
             finishCurrent(behaviour, now);
         }
         if (staggerUntil >= 0 && now >= staggerUntil) {
@@ -149,6 +175,7 @@ public final class MobCombat {
     }
 
     private void enterPhase(MobBehaviour behaviour, int index) {
+        trace("phase " + (index + 1));
         if (current != null) {
             current.cancel();
             current = null;
@@ -257,6 +284,8 @@ public final class MobCombat {
         staggerUntil = -1;
         double speed = attackSpeed();
         current = new AbilityRun(mob, this, name, ability, aim, speed);
+        trace("start " + name + (aim != null ? " -> " + aim.getName().getString() + String.format(" (%.1f blocks)",
+                CombatTargets.distance(mob, aim)) : "") + (speed != 1.0 ? " x" + speed : ""));
         mob.playAction(ability.clipOr(name), speed);
         long now = mob.level().getGameTime();
         readyAt.put(name, now + Math.round(cooldownOf(name, ability) * 20.0));
@@ -265,6 +294,7 @@ public final class MobCombat {
     private void finishCurrent(MobBehaviour behaviour, long now) {
         boolean staggered = current.wasStaggered();
         String chained = current.chainTo();
+        trace("end " + current.name() + (staggered ? " (staggered)" : chained != null ? " -> chain " + chained : ""));
         LivingEntity aim = current.aim();
         current = null;
         if (chained != null && behaviour.abilities().containsKey(chained)) {
@@ -316,6 +346,7 @@ public final class MobCombat {
 
     /** Gives up the fight: full heal, phases and cooldowns reset, adds removed, walks home if it was pulled away. */
     public void reset() {
+        trace("reset");
         if (current != null) {
             current.cancel();
             current = null;
