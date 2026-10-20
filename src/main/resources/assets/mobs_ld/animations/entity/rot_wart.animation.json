@@ -357,23 +357,21 @@
 					"locator": "fx_core",
 					"pre_effect_script": "count=4; spread=0.3; speed=0.02;"
 				},
-				"0.5": [
-					{
-						"effect": "minecraft:explosion",
-						"locator": "hit_body",
-						"pre_effect_script": "count=5; spread=0.9;"
-					},
-					{
-						"effect": "minecraft:large_smoke",
-						"locator": "hit_body",
-						"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
-					},
-					{
-						"effect": "minecraft:item_slime",
-						"locator": "hit_body",
-						"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
-					}
-				]
+				"0.5": {
+					"effect": "minecraft:explosion",
+					"locator": "hit_body",
+					"pre_effect_script": "count=5; spread=0.9;"
+				},
+				"0.52": {
+					"effect": "minecraft:large_smoke",
+					"locator": "hit_body",
+					"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
+				},
+				"0.54": {
+					"effect": "minecraft:item_slime",
+					"locator": "hit_body",
+					"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
+				}
 			},
 			"timeline": {
 				"0.5": "shake 0.2 8;"
@@ -574,23 +572,21 @@
 					"locator": "fx_core",
 					"pre_effect_script": "count=4; spread=0.3; speed=0.02;"
 				},
-				"0.5": [
-					{
-						"effect": "minecraft:explosion",
-						"locator": "hit_body",
-						"pre_effect_script": "count=5; spread=0.9;"
-					},
-					{
-						"effect": "minecraft:large_smoke",
-						"locator": "hit_body",
-						"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
-					},
-					{
-						"effect": "minecraft:item_slime",
-						"locator": "hit_body",
-						"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
-					}
-				]
+				"0.5": {
+					"effect": "minecraft:explosion",
+					"locator": "hit_body",
+					"pre_effect_script": "count=5; spread=0.9;"
+				},
+				"0.52": {
+					"effect": "minecraft:large_smoke",
+					"locator": "hit_body",
+					"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
+				},
+				"0.54": {
+					"effect": "minecraft:item_slime",
+					"locator": "hit_body",
+					"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
+				}
 			},
 			"timeline": {
 				"0.5": "shake 0.2 8;"

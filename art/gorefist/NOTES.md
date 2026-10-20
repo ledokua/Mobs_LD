@@ -1,7 +1,7 @@
 # Gorefist — hand-off notes (`mobs_ld:gorefist`)
 
 Status: **blockout v4** (2026-10-20): look C (deepslate + amethyst), blade thinned to 4 units, phase-2 amethyst
-shell as real geometry grown by `enrage`. 15 clips. Texture is still a flat-colour blockout. Full concept: `concept.md`.
+shell as real geometry grown by `enrage`. 15 clips. Textures: Minecraft-style pass (see below). Full concept: `concept.md`.
 
 ## Model
 - Hitbox: **2.5 × 4.0** blocks (width × height). Eye height ≈ 3.4 blocks (head pivot at y = 50/16).
@@ -58,5 +58,12 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
 - Animation file loads as exported (carries `geckolib_format_version: 2`); trailing `;` on timeline instructions is fine.
 - LeDok supplied the kit (Remnant reference) on 2026-10-20; clips built from it.
 - v3 (look B, blade-arm, 4-clip charge) committed by Mobs_LD as 9384ec5; action clips honour the file's loop modes.
-- v4 (look C, thin blade, phase-2 shell geometry) handed off 2026-10-20. LeDok: more changes will follow later.
+- v4 (look C, thin blade, phase-2 shell geometry) committed by Mobs_LD as d31371f. LeDok: more changes will follow later.
+- Shell hiding confirmed against GeckoLib 4.9.3 source: default render type is entityCutoutNoCull, which discards alpha-0 texels.
+  The phase-2 texture swaps at the start of the transition, so the shell grows in with the `enrage` scale keys.
+- Soft enrage (7:00) also plays `enrage`: in phase 2 the shell briefly shrinks and regrows; in phase 1 it stays invisible.
+  If that pulse looks wrong in game, add an `enrage_soft` clip that does not key the shell bones.
 - `slam` was renamed `vertical` (same clip, plus the leg-lift tell and a 6-particle burst).
+- 2026-10-20 texture pass: Minecraft-style materials (deepslate, cobbled/polished deepslate, amethyst, calcite, iron)
+  from `tools/mc_texture.py`, per LeDok's "blend with Minecraft" direction; rules in `_references/STYLE.md`.
+  Same UV, geometry and clips. Rot Wart burst/death: one particle per timestamp (0.5 / 0.52 / 0.54) for GeckoLib.

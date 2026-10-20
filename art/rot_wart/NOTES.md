@@ -27,3 +27,8 @@ phase-2 transition). Concept: `concept.md` here.
 Behaviour: sprints at the **nearest** player (ignores threat), faster than a sprinting player. Fodder HP.
 Sounds: creeper primed hiss while swelling, explode at the pop. Particles: flame at `fx_core` during the swell;
 explosion + large_smoke + item_slime at `hit_body` on the pop; `shake 0.2 8`.
+
+## History
+- 2026-10-20 texture pass: Minecraft-style materials (deepslate, cobbled/polished deepslate, amethyst, calcite, iron)
+  from `tools/mc_texture.py`, per LeDok's "blend with Minecraft" direction; rules in `_references/STYLE.md`.
+  Same UV, geometry and clips. Rot Wart burst/death: one particle per timestamp (0.5 / 0.52 / 0.54) for GeckoLib.
