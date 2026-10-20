@@ -7,5 +7,7 @@
   "item.minecraft.lingering_potion.effect.taunt": "Lingering Potion of Taunt",
   "item.minecraft.potion.effect.provoke": "Potion of Provoke",
   "item.minecraft.splash_potion.effect.provoke": "Splash Potion of Provoke",
-  "item.minecraft.lingering_potion.effect.provoke": "Lingering Potion of Provoke"
+  "item.minecraft.lingering_potion.effect.provoke": "Lingering Potion of Provoke",
+  "entity.mobs_ld.gorefist": "Gorefist",
+  "item.mobs_ld.gorefist_spawn_egg": "Gorefist Spawn Egg"
 }

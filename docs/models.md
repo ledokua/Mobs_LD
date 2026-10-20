@@ -86,6 +86,8 @@ Client-only effects go in the clip itself:
 - Blockbench **Sound** keyframes: effect = a sound event id (`minecraft:entity.iron_golem.attack` or a
   `mobs_ld:` sound we add).
 - Blockbench **Particle** keyframes: effect = particle id, locator = the name of an `fx_`/`hit_` marker bone.
+  Simple particle types only (`minecraft:explosion`, `minecraft:flame`, ...). Optional *Script* field for a burst:
+  `count=12; spread=0.6; speed=0.05` (particles, blocks around the marker, random velocity). Default: one particle.
 - Blockbench **Instructions** (timeline) keyframes, one command per line:
   - `shake <strength> <radius>` - camera shake for nearby players (strength 0.1-1.0, radius blocks).
 

@@ -9,12 +9,8 @@ import net.minecraft.util.Mth;
  * camera. Purely cosmetic and entirely client-local.
  */
 public final class ScreenShake {
-    /** A slam felt from this far away (blocks) or closer; intensity falls off to zero at the edge. */
-    private static final double SLAM_RANGE = 22.0;
-    /** Peak camera offset of a point-blank slam, in blocks. */
-    private static final float SLAM_PEAK = 0.32F;
-    /** How many ticks a slam shake decays over. */
-    private static final int SLAM_DURATION = 6;
+    /** Peak camera offset, in blocks, of a strength-1.0 shake felt point-blank. */
+    private static final float MAX_PEAK = 0.32F;
 
     private static float magnitude = 0.0F;
     private static int ticksRemaining = 0;
@@ -23,18 +19,23 @@ public final class ScreenShake {
     private ScreenShake() {
     }
 
-    /** Shakes the local player's camera for a ground slam at the given world position, with distance falloff. */
-    public static void shakeFromSlam(double x, double y, double z) {
+    /**
+     * Shakes the local player's camera for an impact at a world position (the {@code shake <strength> <radius>}
+     * animation instruction). Strength 1.0 is the hardest hit; intensity falls off quadratically to zero at
+     * {@code radius} blocks, and stronger shakes also last longer.
+     */
+    public static void shakeAt(double x, double y, double z, float strength, double radius) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
+        if (mc.player == null || strength <= 0.0F || radius <= 0.0) {
             return;
         }
         double distSqr = mc.player.distanceToSqr(x, y, z);
-        if (distSqr >= SLAM_RANGE * SLAM_RANGE) {
+        if (distSqr >= radius * radius) {
             return;
         }
-        float falloff = 1.0F - (float) (Math.sqrt(distSqr) / SLAM_RANGE);
-        trigger(SLAM_PEAK * falloff * falloff, SLAM_DURATION);
+        float falloff = 1.0F - (float) (Math.sqrt(distSqr) / radius);
+        float clamped = Math.min(strength, 1.0F);
+        trigger(MAX_PEAK * clamped * falloff * falloff, 4 + Math.round(8 * clamped));
     }
 
     /**
