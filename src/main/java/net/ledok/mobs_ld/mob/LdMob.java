@@ -35,7 +35,9 @@ import software.bernie.geckolib.animation.PlayState;
 import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -83,6 +85,8 @@ public class LdMob extends Monster implements GeoEntity {
     private boolean clientHurtPlaying;
     /** Client: world positions of marker bones ({@code hit_/fx_/proj_}) from the last rendered frame. */
     private final Map<String, Vec3> clientMarkerPositions = new HashMap<>();
+    /** Client: keyframe effects waiting for the current frame's marker positions (see LdMobRenderer). */
+    private final List<Runnable> clientEffects = new ArrayList<>();
 
     public LdMob(EntityType<? extends LdMob> type, Level level) {
         super(type, level);
@@ -269,7 +273,10 @@ public class LdMob extends Monster implements GeoEntity {
         controllers.add(withEffects(new AnimationController<>(this, "base", 5, this::baseState)
                 .setAnimationSpeedHandler(mob -> mob.walking ? MobClientHooks.get().walkSpeed(mob) : 1.0)));
         controllers.add(new AnimationController<>(this, "hurt", 1, this::hurtState));
-        controllers.add(withEffects(new AnimationController<>(this, "action", 3, this::actionState)
+        // No blend-in on the action layer: GeckoLib eases bones into a new clip over the transition but fires its
+        // keyframe events on the clip's own clock, so with a blend every effect lands ahead of the pose (and the
+        // visible swing trails the server's damage). Ability clips start from their authored first frame.
+        controllers.add(withEffects(new AnimationController<>(this, "action", 0, this::actionState)
                 .setAnimationSpeedHandler(mob -> mob.isDeadOrDying() ? 1.0 : (double) mob.entityData.get(DATA_ACTION_SPEED))));
     }
 
@@ -348,5 +355,18 @@ public class LdMob extends Monster implements GeoEntity {
 
     public void setMarkerPosition(String bone, Vec3 position) {
         clientMarkerPositions.put(bone, position);
+    }
+
+    /** Client: run {@code effect} once this frame has been drawn and marker positions are current. */
+    public void queueClientEffect(Runnable effect) {
+        clientEffects.add(effect);
+    }
+
+    public void runClientEffects() {
+        if (!clientEffects.isEmpty()) {
+            List<Runnable> due = List.copyOf(clientEffects);
+            clientEffects.clear();
+            due.forEach(Runnable::run);
+        }
     }
 }

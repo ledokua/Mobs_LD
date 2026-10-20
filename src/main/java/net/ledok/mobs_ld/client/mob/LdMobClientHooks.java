@@ -77,6 +77,12 @@ public final class LdMobClientHooks implements MobClientHooks {
 
     @Override
     public void onParticle(ParticleKeyframeEvent<LdMob> event) {
+        // GeckoLib fires keyframes while animating a frame, before drawing it; the marker bones only get this frame's
+        // pose once drawn. Spawning now would use last frame's positions - far off on a fast swing - so defer.
+        event.getAnimatable().queueClientEffect(() -> spawnParticles(event));
+    }
+
+    private void spawnParticles(ParticleKeyframeEvent<LdMob> event) {
         LdMob mob = event.getAnimatable();
         ResourceLocation id = parseId(event.getKeyframeData().getEffect(), "particle");
         if (id == null) {

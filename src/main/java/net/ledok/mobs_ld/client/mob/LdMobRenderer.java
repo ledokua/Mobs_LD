@@ -57,6 +57,8 @@ public class LdMobRenderer extends GeoEntityRenderer<LdMob> {
             Vector3d world = marker.getWorldPosition();
             mob.setMarkerPosition(marker.getName(), new Vec3(world.x, world.y, world.z));
         }
+        // Particle keyframes fired while this frame was animated; spawn them now, at this frame's bone positions.
+        mob.runClientEffects();
     }
 
     @Override
