@@ -78,3 +78,11 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
 - Charge seam fix committed (Mobs_LD bc8ca9d). Open for LeDok: if the charge reaches mid-stride, the legs snap up to ~70 deg
   into charge_slash. Mobs_LD keeps it (waiting for the loop boundary would give players up to 0.25 s of free dodge time;
   blends desync effects). If it looks bad in play, Mobs_LD adds a per-mob "wait for loop boundary" option.
+- 2026-10-20 hybrid combat (Mobs_LD 861ec6c): `horizontal`, combo hits 1–2 and `charge_slash` are physical traces along
+  baked bone paths (blade_right wrist → hit_blade_right; forearm_left → hit_hand_left). Rule: a traced swing passes
+  ~0.5–1.8 blocks above the ground during the strike. Re-shaped to fit (measured in Blockbench):
+  | strike | window | wrist / elbow | tip / hand |
+  |---|---|---|---|
+  | horizontal sweep (level arc by chest yaw, arm pose held) | 0.90–1.20 s | 1.05–1.43 | 1.01–1.38 |
+  | combo backhand (deeper crouch, low left hand) | 0.95–1.15 s | 1.62–1.88 | 1.10–1.40 |
+  Impact times unchanged (1.0 s, 1.1 s). Combo thrust and charge_slash were already in range. Re-bake after every clip change.

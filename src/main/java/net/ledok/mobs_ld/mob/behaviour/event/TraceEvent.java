@@ -29,10 +29,11 @@ import java.util.UUID;
  * it passes through takes {@code hit} once. No ground telegraph - players read the swing itself. Fast swings are
  * sub-stepped, so a blade cannot skip past someone between two ticks.
  *
- * @param clip which clip's track to read; empty = the ability's own clip
+ * @param clip    which clip's track to read; empty = the ability's own clip
+ * @param aimSide re-aim when the window opens so a strike line this far to the mob's right meets the target
  */
 public record TraceEvent(double from, double to, List<String> path, double radius, Optional<String> clip,
-                         HitSpec hit) implements AbilityEvent {
+                         Optional<Double> aimSide, HitSpec hit) implements AbilityEvent {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<String> WARNED = new HashSet<>();
     /** Sub-steps per tick when sweeping (enough for a 4-block blade turning ~90 degrees a tick). */
@@ -44,6 +45,7 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
             Codec.STRING.listOf().fieldOf("path").forGetter(TraceEvent::path),
             Codec.DOUBLE.optionalFieldOf("radius", 0.6).forGetter(TraceEvent::radius),
             Codec.STRING.optionalFieldOf("clip").forGetter(TraceEvent::clip),
+            Codec.DOUBLE.optionalFieldOf("aim_side").forGetter(TraceEvent::aimSide),
             HitSpec.CODEC.optionalFieldOf("hit", HitSpec.DEFAULT).forGetter(TraceEvent::hit)
     ).apply(i, TraceEvent::new));
 
@@ -134,10 +136,8 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
 
     /** Mob-local (forward, up, right) to world, using the ability's locked facing. */
     private static Vec3 toWorld(LdMob mob, float yawDegrees, Vec3 local) {
-        Vec3 ahead = AbilityRun.forward(yawDegrees);
-        double rad = Math.toRadians(yawDegrees);
-        Vec3 right = new Vec3(-Math.cos(rad), 0.0, -Math.sin(rad));
-        return mob.position().add(ahead.scale(local.x)).add(0.0, local.y, 0.0).add(right.scale(local.z));
+        return mob.position().add(AbilityRun.forward(yawDegrees).scale(local.x)).add(0.0, local.y, 0.0)
+                .add(AbilityRun.right(yawDegrees).scale(local.z));
     }
 
     private static void showSegment(AbilityRun run, Vec3 a, Vec3 b) {

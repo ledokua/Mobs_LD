@@ -38,6 +38,9 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
     /** Damages, debuffs and pushes {@code victim}; {@code from} is where the blow came from. */
     public void apply(LdMob mob, LivingEntity victim, Vec3 from) {
         float amount = (float) (mob.getAttributeValue(Attributes.ATTACK_DAMAGE) * damage);
+        // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
+        // would silently swallow a combo's second blow or a slash right after a trample.
+        victim.invulnerableTime = 0;
         boolean hurt = amount <= 0.0F || victim.hurt(mob.damageSources().mobAttack(mob), amount);
         if (!hurt) {
             return; // blocked, invulnerable or in damage cooldown: no rider effects either

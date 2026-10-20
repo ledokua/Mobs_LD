@@ -27,6 +27,8 @@ import java.util.List;
 public final class AbilityRun {
     /** Degrees per tick a mob may turn while tracking its aim; big bodies should not snap around. */
     private static final float TRACK_TURN_RATE = 12.0F;
+    /** Seconds before a beat with its own {@code aim_side} the body starts turning for it. */
+    private static final double AIM_LEAD = 0.3;
 
     private final LdMob mob;
     private final MobCombat combat;
@@ -44,6 +46,8 @@ public final class AbilityRun {
     private boolean cancelled;
     private boolean staggered;
     private String chainTo;
+    /** Facing an event asked to turn to (re-aim between beats); approached at the tracking turn rate. */
+    private Float steerYaw;
 
     AbilityRun(LdMob mob, MobCombat combat, String name, MobBehaviour.Ability ability, LivingEntity aim, double speed) {
         this.mob = mob;
@@ -61,7 +65,7 @@ public final class AbilityRun {
         }
         this.trackUntil = ability.trackUntil().orElse(ability.events().isEmpty() ? 0.0 : firstBegin);
         if (aim != null) {
-            yaw = yawTo(aim.position());
+            yaw = aimedYaw(aim.position(), ability.aimSide());
         }
     }
 
@@ -73,7 +77,9 @@ public final class AbilityRun {
         double seconds = seconds();
         if (seconds < trackUntil && aim != null && aim.isAlive()) {
             aimPosition = aim.position();
-            yaw = Mth.approachDegrees(yaw, yawTo(aimPosition), TRACK_TURN_RATE);
+            yaw = Mth.approachDegrees(yaw, aimedYaw(aimPosition, ability.aimSide()), TRACK_TURN_RATE);
+        } else if (steerYaw != null) {
+            yaw = Mth.approachDegrees(yaw, steerYaw, TRACK_TURN_RATE);
         }
         face(yaw);
         if (!mob.isDeadOrDying()) {
@@ -179,6 +185,19 @@ public final class AbilityRun {
         return chainTo;
     }
 
+    /**
+     * Turns (at the tracking rate, not a snap) so a strike line {@code side} blocks to the mob's right meets the aim
+     * where it stands now; returns the facing it is turning to, for telegraphs that must be drawn where it will hit.
+     */
+    public float reaim(double side) {
+        if (aim != null && aim.isAlive()) {
+            aimPosition = aim.position();
+            steerYaw = aimedYaw(aimPosition, side);
+            return steerYaw;
+        }
+        return yaw;
+    }
+
     /** Lets an event steer the mob (e.g. a homing chase); the run keeps facing this way. */
     public void setYaw(float degrees) {
         yaw = degrees;
@@ -261,6 +280,26 @@ public final class AbilityRun {
         return new Vec3(-Math.sin(rad), 0.0, Math.cos(rad));
     }
 
+    /** Facing that puts a line {@code side} blocks to the mob's right through {@code target}. */
+    private float aimedYaw(Vec3 target, double side) {
+        float toTarget = yawTo(target);
+        if (side == 0.0) {
+            return toTarget;
+        }
+        double distance = Math.hypot(target.x - mob.getX(), target.z - mob.getZ());
+        if (distance < 1.0e-3) {
+            return toTarget;
+        }
+        // Turning toward the mob's left swings a right-hand strike line onto the target.
+        return toTarget - (float) Math.toDegrees(Math.asin(Mth.clamp(side / distance, -1.0, 1.0)));
+    }
+
+    /** Unit vector to the mob's right for a facing. */
+    public static Vec3 right(float yawDegrees) {
+        double rad = Math.toRadians(yawDegrees);
+        return new Vec3(-Math.cos(rad), 0.0, -Math.sin(rad));
+    }
+
     private float yawTo(Vec3 target) {
         double dx = target.x - mob.getX();
         double dz = target.z - mob.getZ();
@@ -300,12 +339,17 @@ public final class AbilityRun {
         private final AbilityEvent event;
         private AbilityEvent.Instance instance;
         private State state = State.PENDING;
+        private boolean aimed;
 
         private Slot(AbilityEvent event) {
             this.event = event;
         }
 
         private void tick(AbilityRun run, double seconds) {
+            if (!aimed && event.aimSide().isPresent() && seconds >= event.begin() - AIM_LEAD) {
+                aimed = true;
+                run.reaim(event.aimSide().get());
+            }
             if (state == State.PENDING && seconds >= event.begin()) {
                 instance = event.start(run);
                 state = State.ACTIVE;

@@ -15,11 +15,14 @@ import java.util.Optional;
  * Origin and facing are fixed when the telegraph appears, so what is drawn is exactly what hits.
  *
  * @param offset blocks to push the origin along the facing (e.g. a fist landing in front of the body)
+ * @param side   blocks to push the origin to the mob's right (under a one-handed weapon)
+ * @param aimSide re-aim before this beat so a strike line this far to the right meets the target
  * @param height how far above the origin a victim's feet may be and still be hit; empty = the mob's reach
  * @param depth  how far below the origin; empty = the mob's reach depth
  */
-public record HitEvent(double at, Shape shape, Origin origin, double offset, Optional<Double> height,
-                       Optional<Double> depth, Telegraph telegraph, HitSpec hit) implements AbilityEvent {
+public record HitEvent(double at, Shape shape, Origin origin, double offset, double side, Optional<Double> aimSide,
+                       Optional<Double> height, Optional<Double> depth, Telegraph telegraph, HitSpec hit)
+        implements AbilityEvent {
     /** Default warning lead when the data does not say. */
     private static final double DEFAULT_LEAD = 0.8;
 
@@ -28,6 +31,8 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, Opt
             Shape.CODEC.fieldOf("shape").forGetter(HitEvent::shape),
             Origin.CODEC.optionalFieldOf("origin", Origin.SELF).forGetter(HitEvent::origin),
             Codec.DOUBLE.optionalFieldOf("offset", 0.0).forGetter(HitEvent::offset),
+            Codec.DOUBLE.optionalFieldOf("side", 0.0).forGetter(HitEvent::side),
+            Codec.DOUBLE.optionalFieldOf("aim_side").forGetter(HitEvent::aimSide),
             Codec.DOUBLE.optionalFieldOf("height").forGetter(HitEvent::height),
             Codec.DOUBLE.optionalFieldOf("depth").forGetter(HitEvent::depth),
             Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(HitEvent::telegraph),
@@ -51,9 +56,10 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, Opt
 
     @Override
     public Instance start(AbilityRun run) {
-        float yaw = run.yaw();
+        // Re-aiming turns the body over the next ticks; draw (and hit) where it will be facing at the impact.
+        float yaw = aimSide.isPresent() ? run.reaim(aimSide.get()) : run.yaw();
         Vec3 base = origin == Origin.TARGET ? run.aimPosition() : run.mob().position();
-        Vec3 point = run.groundAt(base.add(AbilityRun.forward(yaw).scale(offset)));
+        Vec3 point = run.groundAt(base.add(AbilityRun.forward(yaw).scale(offset)).add(AbilityRun.right(yaw).scale(side)));
         AbilityRun.Marker marker = telegraph.show() && begin() < at
                 ? run.telegraph(point, yaw, shape, telegraph, at)
                 : null;

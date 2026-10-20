@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * One beat on an ability's timeline. An event becomes active at {@link #begin()} (e.g. when its telegraph appears)
@@ -40,6 +41,14 @@ public interface AbilityEvent {
 
     /** Seconds into the ability when the event completes (impact). Never before {@link #begin()}. */
     double end();
+
+    /**
+     * Strike line (blocks to the mob's right) to aim before this beat; the run starts turning a little ahead of
+     * {@link #begin()} so the body is facing right when the beat lands. Empty = keep the current facing.
+     */
+    default Optional<Double> aimSide() {
+        return Optional.empty();
+    }
 
     /** Abilities this event can hand over to (validated against the behaviour's ability names). */
     default List<String> chains() {

@@ -150,6 +150,8 @@ public record MobBehaviour(
      * @param trackUntil the mob keeps turning toward its aim until this time; empty = until the first telegraph
      * @param forceAfter once the mob has been fighting this long, it uses the ability as soon as it is off cooldown,
      *                   ignoring range (a fuse)
+     * @param aimSide    blocks to the mob's right where its weapon strikes (a right-handed blade); the mob turns so
+     *                   that line, not its body centre, meets the target. Events may re-aim per beat.
      */
     public record Ability(
             String clip,
@@ -161,6 +163,7 @@ public record MobBehaviour(
             TargetRule target,
             Optional<Double> trackUntil,
             Optional<Double> forceAfter,
+            double aimSide,
             boolean invulnerable,
             List<AbilityEvent> events
     ) {
@@ -174,6 +177,7 @@ public record MobBehaviour(
                 TargetRule.CODEC.optionalFieldOf("target", TargetRule.CURRENT).forGetter(Ability::target),
                 Codec.DOUBLE.optionalFieldOf("track_until").forGetter(Ability::trackUntil),
                 Codec.DOUBLE.optionalFieldOf("force_after").forGetter(Ability::forceAfter),
+                Codec.DOUBLE.optionalFieldOf("aim_side", 0.0).forGetter(Ability::aimSide),
                 Codec.BOOL.optionalFieldOf("invulnerable", false).forGetter(Ability::invulnerable),
                 AbilityEvent.CODEC.listOf().optionalFieldOf("events", List.of()).forGetter(Ability::events)
         ).apply(i, Ability::new));

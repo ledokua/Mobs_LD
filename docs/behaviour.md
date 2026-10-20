@@ -65,6 +65,7 @@ boss resets after `boss.reset_after`. They get aggro back as soon as they are re
 | `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |
+| `aim_side` | 0 | blocks to the mob's right where its weapon strikes (one-handed weapon); it turns so that line meets the target |
 | `invulnerable` | false | takes no damage while it runs (transitions, intros) |
 | `events` | `[]` | timeline (below) |
 
@@ -83,6 +84,8 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `shape` | required | see Shapes |
 | `origin` | `self` | `self` (on the mob) or `target` (where the aim stood when the telegraph appeared) |
 | `offset` | 0 | push the origin forward along the facing |
+| `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
+| `aim_side` | - | re-aim for this beat (turns from 0.3 s before it, at the normal turn rate) |
 | `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
 | `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818" }` |
 | `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` |
@@ -90,9 +93,14 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 `effects`: `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id; unknown ids are
 skipped with a log warning.
 
+Hits ignore vanilla's 10-tick hurt immunity (each event lands at most once per victim), so combo beats and a
+slash right after a trample all count. Mod dodges that cancel damage (Combat Roll's roll i-frames) still work.
+Keep knockback low on a combo's opening beats, or the first hit pushes the target out of the next one's reach.
+
 ### `trace` - weapon hitbox that follows the animation
 `from`, `to` (active window, seconds), `path` (bones, e.g. `["blade_right", "hit_blade_right"]` = wrist to blade
-tip), `radius` (0.6, capsule thickness), optional `clip` (default: the ability's clip), `hit`.
+tip), `radius` (0.6, capsule thickness), optional `clip` (default: the ability's clip), optional `aim_side`
+(re-aim for this beat, e.g. a left-hand backhand in a right-hand combo), `hit`.
 From `from` to `to` a capsule is swept along the bones' baked positions; anyone it passes through takes `hit`
 once. No ground telegraph: players read the swing. Use it for blade swings and punches; keep `hit` + telegraph
 for ground slams and area mechanics.
