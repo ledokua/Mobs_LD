@@ -43,6 +43,7 @@ public final class AbilityRun {
     private Vec3 aimPosition;
     private boolean cancelled;
     private boolean staggered;
+    private String chainTo;
 
     AbilityRun(LdMob mob, MobCombat combat, String name, MobBehaviour.Ability ability, LivingEntity aim, double speed) {
         this.mob = mob;
@@ -157,6 +158,21 @@ public final class AbilityRun {
 
     boolean wasStaggered() {
         return staggered;
+    }
+
+    /** Ends this ability and starts the named one right away, with the same aim (e.g. a charge into its finisher). */
+    public void chain(String abilityName) {
+        chainTo = abilityName;
+        cancel();
+    }
+
+    String chainTo() {
+        return chainTo;
+    }
+
+    /** Lets an event steer the mob (e.g. a homing chase); the run keeps facing this way. */
+    public void setYaw(float degrees) {
+        yaw = degrees;
     }
 
     public List<LivingEntity> enemiesIn(Shape shape, Vec3 origin, float yawDegrees, double height) {

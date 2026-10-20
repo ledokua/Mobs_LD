@@ -50,7 +50,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `duration` | required | how long the mob is committed (normally the clip length) |
 | `cooldown` | 0 | before it can be used again |
 | `initial_cooldown` | 0 | after engaging, before first use |
-| `weight` | 1 | relative chance among the abilities usable right now |
+| `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
 | `range` | any | `{ "min", "max" }` distance to the aim target that allows starting it |
 | `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
@@ -83,6 +83,15 @@ skipped with a log warning.
 ### `dash` - charge
 `at`, `until`, `max_distance`, `overshoot` (1.0, blocks past the aim), `width` (2.0), optional `hit` (applied once
 to everyone the body sweeps through), `on_wall` (`stagger` | `stop`), `telegraph` (draws the path).
+
+### `chase` - homing run that hands over to another ability
+`at`, `clip` (loop played while running), `max_time`, `speed` (blocks per tick; a sprinting player is ~0.28),
+`turn_rate` (6, degrees per tick - lower is easier to side-step), `reach` (3.0), `on_reach` / `on_timeout` (ability
+names to chain into), `on_wall` (`stagger` | `stop`), `width` + optional `hit` (trample, once per victim).
+
+Chaining: the chased-into ability starts at once with the same aim, skipping `global_cooldown`. Give such
+follow-ups `"weight": 0` so they are never picked on their own. Gorefist's charge is `charge` (crouch tell, then
+chase) -> `charge_attack` on reach or `charge_exhaust` (a 2.5 s vulnerable window) after 10 s.
 
 ### `summon`
 `at`, `entity`, `count` (1), `forward` / `up` / `right` offset from the mob, `spread` (1.0), `max_alive` (8).

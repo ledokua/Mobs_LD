@@ -27,6 +27,7 @@ import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.Animation;
 import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.animation.PlayState;
@@ -66,8 +67,8 @@ public class LdMob extends Monster implements GeoEntity {
 
     /** Shared, immutable animation recipes; GeckoLib compares them by content, so caching just saves garbage. */
     private static final Map<String, RawAnimation> LOOPS = new ConcurrentHashMap<>();
-    private static final Map<String, RawAnimation> ONCE = new ConcurrentHashMap<>();
-    private static final Map<String, RawAnimation> HOLD = new ConcurrentHashMap<>();
+    /** Plays a clip with the loop mode authored in its animation file (loop, hold on last frame, or once). */
+    private static final Map<String, RawAnimation> AS_AUTHORED = new ConcurrentHashMap<>();
 
     private final MobDeclaration declaration;
     private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
@@ -302,7 +303,7 @@ public class LdMob extends Monster implements GeoEntity {
             clientHurtPlaying = true;
             state.getController().forceAnimationReset();
         }
-        return state.setAndContinue(ONCE.computeIfAbsent(hurt, name -> RawAnimation.begin().thenPlay(name)));
+        return state.setAndContinue(authored(hurt));
     }
 
     private PlayState actionState(AnimationState<LdMob> state) {
@@ -312,7 +313,7 @@ public class LdMob extends Monster implements GeoEntity {
             if (death == null) {
                 return PlayState.STOP;
             }
-            return state.setAndContinue(HOLD.computeIfAbsent(death, name -> RawAnimation.begin().thenPlayAndHold(name)));
+            return state.setAndContinue(authored(death));
         }
         String action = currentAction();
         String clip = action.isEmpty() ? null : hooks.animation(this, action);
@@ -325,7 +326,11 @@ public class LdMob extends Monster implements GeoEntity {
             clientActionSeq = seq;
             state.getController().forceAnimationReset();
         }
-        return state.setAndContinue(ONCE.computeIfAbsent(clip, name -> RawAnimation.begin().thenPlay(name)));
+        return state.setAndContinue(authored(clip));
+    }
+
+    private static RawAnimation authored(String clip) {
+        return AS_AUTHORED.computeIfAbsent(clip, name -> RawAnimation.begin().then(name, Animation.LoopType.DEFAULT));
     }
 
     /** Client: last rendered world position of a marker bone, if it has been rendered yet. */

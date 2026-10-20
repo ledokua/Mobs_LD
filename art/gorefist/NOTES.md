@@ -1,17 +1,18 @@
 # Gorefist — hand-off notes (`mobs_ld:gorefist`)
 
-Status: **blockout v2** (2026-10-20): v1 rig + the full clip set for LeDok's kit (12 clips). Texture is still the
-flat-colour blockout; look (crystal vs ember palette) awaiting LeDok's pick. Full concept: `concept.md` here.
+Status: **blockout v3** (2026-10-20): look B palette, right forearm rebuilt as a crystal cleaver (`blade_right`
+replaces `fist_right`), charge split into run / slash / exhaust clips (15 clips). Texture is still a flat-colour
+blockout. Full concept: `concept.md` here.
 
 ## Model
 - Hitbox: **2.5 × 4.0** blocks (width × height). Eye height ≈ 3.4 blocks (head pivot at y = 50/16).
-- Visual extent: 86 units wide (x −42 … +20, the fist overhangs 1.3 blocks to the creature's right),
-  60 units tall, z −30 … +12. Faces north, origin at the centre of the feet.
-- Texture 256 × 256, box UV, 1 texel per unit. Glowmask `gorefist_glowmask.png` (eyes + crystal cracks on the fist).
-- Bones: `root` › `body` › `chest` › `head` › `jaw`; `chest` › `arm_right` › `forearm_right` › `fist_right`;
+- Visual extent: x −35 … +20 (the arm overhangs ~0.9 block to the creature's right), 60 units tall, z −31 … +12
+  (the blade tip rests on the floor at about 1.4 blocks ahead of the origin). Faces north, origin at the centre of the feet.
+- Texture 256 × 256, box UV, 1 texel per unit, look B. Glowmask `gorefist_glowmask.png` (eyes + ember cracks on the blade).
+- Bones: `root` › `body` › `chest` › `head` › `jaw`; `chest` › `arm_right` › `forearm_right` › `blade_right`;
   `chest` › `arm_left` › `forearm_left`; `body` › `leg_right`, `leg_left`.
-- Marker bones (empty): `hit_fist_right` (bottom of the fist, where slams land), `fx_fist_right` (front knuckles),
-  `hit_hand_left`, `fx_mouth`, `fx_chest`.
+- Marker bones (empty): `hit_blade_right` (blade belly near the tip, where chops and the dragged tip land),
+  `fx_blade_right` (mid-edge), `hit_hand_left`, `fx_mouth`, `fx_chest`. **Renamed from `hit_fist_right` / `fx_fist_right` in v3.**
 
 ## Base clips
 | clip | length | loop | notes |
@@ -30,12 +31,12 @@ flat-colour blockout; look (crystal vs ember palette) awaiting LeDok's pick. Ful
 | `vertical` | 2.2 s | **1.1 s** → rectangle 2 × 5 blocks from the boss forward (fist lands ~3.3 blocks ahead), current target | 4 s |
 | `horizontal` | 1.8 s | **1.0 s** → cone 150°, 4.5 blocks, centred on the boss, current target; applies `spell_engine:bleed` | 6 s |
 | `combo` | 2.4 s | **0.6 s** → cone 60° × 4 (right jab); **1.1 s** → cone 60° × 4 (left backhand); **1.7 s** → rectangle 2 × 5 (overhead chop); all current target | 10 s |
-| `charge_slash` | 2.4 s | **0.5–1.4 s** → dash along a line toward the farthest player, rectangle 3 wide along the path (max 12 blocks); **1.7 s** → cone 90° × 4 at the stop point, knock-up. Wall hit during the dash → cancel into `stagger` | 14 s |
+| `charge` (4 clips) | `charge_start` 0.5 s (optional tell) → `charge_loop` 0.5 s loop while running at the **farthest** player for up to **10 s** → if reached: `charge_slash` 1.0 s with **0.3 s** → cone 90° × 4 at the stop point, knock-up; if not reached in 10 s: `charge_exhaust` 2.5 s, no hit, boss vulnerable. Optional trample while running: rectangle 3 wide along the path, low damage. Wall hit → cancel into `stagger` | 14 s |
 | `summon_rot_warts` | 1.6 s | **0.8 s** → spawn 2 `mobs_ld:rot_wart` at the `fx_chest` rest offset (≈ 0.75 forward, 2.6 up; the server cannot read bones) | 25 s (18 s in phase 2) |
 
 Tells: `vertical` lifts the right leg and raises the fist overhead; `horizontal` twists the chest to its right
 with the fist out to the side and no leg lift; `combo` flares flame particles at `fx_fist_right` at 0.15 s;
-`charge_slash` crouches with the fist dragging (cloud particles every 0.2 s while running).
+`charge_start`/`charge_loop` crouch and run with the blade tip dragging behind on the floor (cloud particles at `hit_blade_right` twice per loop).
 
 Client effects are inside the clips (sound, particle with `count=…; spread=…` scripts, `shake`). Vanilla
 particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.

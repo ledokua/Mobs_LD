@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,7 +20,8 @@ public interface AbilityEvent {
             "summon", SummonEvent.CODEC,
             "cloud", CloudEvent.CODEC,
             "effect", EffectEvent.CODEC,
-            "despawn", DespawnEvent.CODEC
+            "despawn", DespawnEvent.CODEC,
+            "chase", ChaseEvent.CODEC
     ));
 
     Codec<AbilityEvent> CODEC = Codec.STRING.dispatch("type", AbilityEvent::type, type -> {
@@ -37,6 +39,11 @@ public interface AbilityEvent {
 
     /** Seconds into the ability when the event completes (impact). Never before {@link #begin()}. */
     double end();
+
+    /** Abilities this event can hand over to (validated against the behaviour's ability names). */
+    default List<String> chains() {
+        return List.of();
+    }
 
     /** Creates the per-run state; called once at {@link #begin()}. */
     Instance start(AbilityRun run);

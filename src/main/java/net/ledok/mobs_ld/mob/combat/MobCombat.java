@@ -264,7 +264,13 @@ public final class MobCombat {
 
     private void finishCurrent(MobBehaviour behaviour, long now) {
         boolean staggered = current.wasStaggered();
+        String chained = current.chainTo();
+        LivingEntity aim = current.aim();
         current = null;
+        if (chained != null && behaviour.abilities().containsKey(chained)) {
+            start(chained, behaviour.abilities().get(chained), aim);
+            return;
+        }
         globalReadyAt = now + Math.round(behaviour.globalCooldown() * 20.0);
         if (staggered && behaviour.stagger().isPresent()) {
             MobBehaviour.Stagger stagger = behaviour.stagger().get();

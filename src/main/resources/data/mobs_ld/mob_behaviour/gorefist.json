@@ -35,18 +35,27 @@
           "shape": { "type": "rectangle", "width": 2, "length": 5 }, "hit": { "damage": 1.0, "knockback": 0.7 } }
       ]
     },
-    "charge_slash": {
-      "duration": 2.4, "cooldown": 14, "weight": 2,
+    "charge": {
+      "clip": "charge_start", "duration": 0.5, "cooldown": 16, "weight": 2,
       "target": "farthest",
-      "range": { "min": 6, "max": 24 },
+      "range": { "min": 7, "max": 32 },
       "events": [
-        { "type": "dash", "at": 0.5, "until": 1.4, "max_distance": 12, "overshoot": 1.5, "width": 3,
-          "telegraph": { "from": 0.1, "color": "#C05010" },
-          "hit": { "damage": 0.8, "knockback": 1.2 }, "on_wall": "stagger" },
-        { "type": "hit", "at": 1.7, "telegraph": { "from": 1.4 },
-          "shape": { "type": "cone", "radius": 4, "angle": 90 },
-          "hit": { "damage": 1.0, "knockback": 0.4, "knock_up": 0.7 } }
+        { "type": "chase", "at": 0.5, "clip": "charge_loop", "max_time": 10,
+          "speed": 0.32, "turn_rate": 5, "reach": 3.0,
+          "on_reach": "charge_attack", "on_timeout": "charge_exhaust", "on_wall": "stagger",
+          "width": 3, "hit": { "damage": 0.4, "knockback": 1.2 } }
       ]
+    },
+    "charge_attack": {
+      "clip": "charge_slash", "duration": 1.0, "weight": 0,
+      "events": [
+        { "type": "hit", "at": 0.3, "telegraph": { "from": 0.0 },
+          "shape": { "type": "cone", "radius": 4, "angle": 90 },
+          "hit": { "damage": 1.2, "knockback": 0.4, "knock_up": 0.7 } }
+      ]
+    },
+    "charge_exhaust": {
+      "clip": "charge_exhaust", "duration": 2.5, "weight": 0
     },
     "summon_rot_warts": {
       "duration": 1.6, "cooldown": 25, "initial_cooldown": 12, "weight": 1,

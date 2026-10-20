@@ -51,6 +51,19 @@ public record MobBehaviour(
     }
 
     private static DataResult<MobBehaviour> validate(MobBehaviour behaviour) {
+        List<Ability> all = new ArrayList<>(behaviour.abilities().values());
+        behaviour.intro().ifPresent(all::add);
+        behaviour.onDeath().ifPresent(all::add);
+        behaviour.phases().forEach(phase -> phase.transition().ifPresent(all::add));
+        for (Ability ability : all) {
+            for (AbilityEvent event : ability.events()) {
+                for (String chained : event.chains()) {
+                    if (!behaviour.abilities().containsKey(chained)) {
+                        return DataResult.error(() -> "A " + event.type() + " event chains into unknown ability '" + chained + "'");
+                    }
+                }
+            }
+        }
         for (Phase phase : behaviour.phases()) {
             for (String name : phase.abilities()) {
                 if (!behaviour.abilities().containsKey(name)) {
@@ -124,7 +137,8 @@ public record MobBehaviour(
      * @param clip       action clip to play; empty = the ability's key
      * @param duration   how long the mob is committed to it (usually the clip length)
      * @param cooldown   time before it can be used again
-     * @param weight     relative chance among the abilities usable right now
+     * @param weight     relative chance among the abilities usable right now; 0 = never picked on its own (only
+     *                   reached by chaining from another ability's event)
      * @param range      distance to the aim target that allows starting it
      * @param target     who it aims at
      * @param trackUntil the mob keeps turning toward its aim until this time; empty = until the first telegraph
