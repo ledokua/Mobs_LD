@@ -8,15 +8,18 @@ import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Optional;
+
 /**
  * Area attack: telegraphed from {@link Telegraph#start}, lands at {@code at} on everyone hostile inside the shape.
  * Origin and facing are fixed when the telegraph appears, so what is drawn is exactly what hits.
  *
  * @param offset blocks to push the origin along the facing (e.g. a fist landing in front of the body)
- * @param height how far above the origin a victim's feet may be and still be hit
+ * @param height how far above the origin a victim's feet may be and still be hit; empty = the mob's reach
+ * @param depth  how far below the origin; empty = the mob's reach depth
  */
-public record HitEvent(double at, Shape shape, Origin origin, double offset, double height, Telegraph telegraph,
-                       HitSpec hit) implements AbilityEvent {
+public record HitEvent(double at, Shape shape, Origin origin, double offset, Optional<Double> height,
+                       Optional<Double> depth, Telegraph telegraph, HitSpec hit) implements AbilityEvent {
     /** Default warning lead when the data does not say. */
     private static final double DEFAULT_LEAD = 0.8;
 
@@ -25,7 +28,8 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
             Shape.CODEC.fieldOf("shape").forGetter(HitEvent::shape),
             Origin.CODEC.optionalFieldOf("origin", Origin.SELF).forGetter(HitEvent::origin),
             Codec.DOUBLE.optionalFieldOf("offset", 0.0).forGetter(HitEvent::offset),
-            Codec.DOUBLE.optionalFieldOf("height", 3.0).forGetter(HitEvent::height),
+            Codec.DOUBLE.optionalFieldOf("height").forGetter(HitEvent::height),
+            Codec.DOUBLE.optionalFieldOf("depth").forGetter(HitEvent::depth),
             Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(HitEvent::telegraph),
             HitSpec.CODEC.optionalFieldOf("hit", HitSpec.DEFAULT).forGetter(HitEvent::hit)
     ).apply(i, HitEvent::new));
@@ -56,7 +60,9 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         return new Instance() {
             @Override
             public void finish(AbilityRun run) {
-                for (LivingEntity victim : run.enemiesIn(shape, point, yaw, height)) {
+                double up = height.orElse(run.combat().reachUp());
+                double down = depth.orElse(run.combat().reachDown());
+                for (LivingEntity victim : run.enemiesIn(shape, point, yaw, up, down)) {
                     hit.apply(run.mob(), victim, point);
                 }
                 run.flash(marker);

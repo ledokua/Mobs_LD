@@ -116,6 +116,10 @@ public final class AbilityRun {
         return mob;
     }
 
+    public MobCombat combat() {
+        return combat;
+    }
+
     public ServerLevel level() {
         return (ServerLevel) mob.level();
     }
@@ -180,14 +184,19 @@ public final class AbilityRun {
         yaw = degrees;
     }
 
-    public List<LivingEntity> enemiesIn(Shape shape, Vec3 origin, float yawDegrees, double height) {
+    /**
+     * Enemies standing in {@code shape} whose feet are at most {@code height} above and {@code depth} below the
+     * origin, i.e. within the mob's reach band unless the event says otherwise.
+     */
+    public List<LivingEntity> enemiesIn(Shape shape, Vec3 origin, float yawDegrees, double height, double depth) {
         Vec3 ahead = forward(yawDegrees);
         double reach = shape.reach() + 1.0;
-        AABB box = new AABB(origin.x - reach, origin.y - 1.0, origin.z - reach,
-                origin.x + reach, origin.y + height, origin.z + reach);
+        AABB box = new AABB(origin.x - reach, origin.y - depth - 2.0, origin.z - reach,
+                origin.x + reach, origin.y + height + 0.5, origin.z + reach);
         List<LivingEntity> inside = new ArrayList<>();
         for (LivingEntity candidate : enemiesNear(box)) {
-            if (candidate.getY() > origin.y + height || candidate.getBoundingBox().maxY < origin.y - 0.5) {
+            double dy = candidate.getY() - origin.y;
+            if (dy > height || dy < -depth) {
                 continue;
             }
             double dx = candidate.getX() - origin.x;

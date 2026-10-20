@@ -29,9 +29,14 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
 | `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random` |
-| `reach_height` | 2.5 | a target standing higher than this above its feet counts as unreachable unless it has a path up |
+| `reach_height` | 85 % of its height | how far above its feet it can strike |
+| `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
 
-**Unreachable targets** (high ground, no path for ~2 s) lose aggro: threat targeting, initial aggro and
+**Reach band**: `reach_height` / `reach_depth` are used everywhere a height matters - an ability only starts if the
+aim's feet are inside the band, hits land on anyone inside it, and a target outside it that the mob cannot path to
+is unreachable. Big mobs therefore reach higher on their own (Gorefist, 4 blocks tall, strikes 3.4 up).
+
+**Unreachable targets** (out of the reach band with no path for ~2 s) lose aggro: threat targeting, initial aggro and
 retaliation skip them and the mob turns on someone it can reach. If nobody is reachable it has no target, and a
 boss resets after `boss.reset_after`. They get aggro back as soon as they are reachable again.
 
@@ -56,7 +61,7 @@ boss resets after `boss.reset_after`. They get aggro back as soon as they are re
 | `cooldown` | 0 | before it can be used again |
 | `initial_cooldown` | 0 | after engaging, before first use |
 | `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
-| `range` | any | `{ "min", "max", "above": 2.5, "below": 4 }` horizontal distance, and how far above/below the mob's feet the aim's feet may be |
+| `range` | any | `{ "min", "max", "above", "below" }` horizontal distance; `above`/`below` default to the reach band |
 | `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |
@@ -78,7 +83,7 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `shape` | required | see Shapes |
 | `origin` | `self` | `self` (on the mob) or `target` (where the aim stood when the telegraph appeared) |
 | `offset` | 0 | push the origin forward along the facing |
-| `height` | 3.0 | how far above the origin a victim's feet may be |
+| `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
 | `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818" }` |
 | `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` |
 

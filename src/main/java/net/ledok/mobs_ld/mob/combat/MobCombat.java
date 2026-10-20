@@ -267,7 +267,8 @@ public final class MobCombat {
                 start(name, ability, aim);
                 return true;
             }
-            if (ability.range().contains(CombatTargets.distance(mob, aim), aim.getY() - mob.getY()) && ability.weight() > 0) {
+            if (ability.range().contains(CombatTargets.distance(mob, aim), aim.getY() - mob.getY(), reachUp(), reachDown())
+                    && ability.weight() > 0) {
                 options.add(new Candidate(name, ability, aim));
                 totalWeight += ability.weight();
             }
@@ -390,9 +391,20 @@ public final class MobCombat {
         }
     }
 
-    /** Close enough in height to hit, or the mob has a full path up to it. */
+    /** How far above its feet the mob strikes: the behaviour's {@code reach_height}, else 85 % of its height. */
+    public double reachUp() {
+        return movement().reachHeight().orElse(mob.getBbHeight() * 0.85);
+    }
+
+    /** How far below its feet the mob strikes. */
+    public double reachDown() {
+        return movement().reachDepth().orElse(1.5);
+    }
+
+    /** Within the reach band, or the mob has a full path to it. */
     private boolean canReach(LivingEntity entity, MobBehaviour.Movement movement) {
-        if (entity.getY() - mob.getY() <= movement.reachHeight()) {
+        double dy = entity.getY() - mob.getY();
+        if (dy <= reachUp() && dy >= -reachDown()) {
             return true;
         }
         if (mob.getNavigation() instanceof FlyingPathNavigation) {
