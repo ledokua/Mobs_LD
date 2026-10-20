@@ -6,13 +6,13 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.player.Player;
 
 import java.util.EnumSet;
 import java.util.UUID;
 
 /**
- * Targets the highest-threat valid player on the mob's {@link ThreatTable}. Runs at a higher priority than
+ * Targets the highest-threat valid holder on the mob's {@link ThreatTable}: a player or a player-owned summon
+ * (see {@link ThreatEvents}). Runs at a higher priority than
  * the vanilla target goals, so as soon as anyone builds threat (by dealing damage, or via a taunt effect)
  * this takes over target selection. When the table is empty it stands down and lets
  * {@code NearestAttackableTargetGoal} provide the initial "nobody's hit me yet" aggro.
@@ -63,7 +63,7 @@ public class ThreatTargetGoal extends Goal {
         }
     }
 
-    /** Highest-threat player that is currently online, attackable and within follow range, else null. */
+    /** Highest-threat holder that is loaded in this level, attackable and within follow range, else null. */
     private LivingEntity resolveTop() {
         if (!(mob.level() instanceof ServerLevel server)) {
             return null;
@@ -76,19 +76,25 @@ public class ThreatTargetGoal extends Goal {
         // through to threat if no controller is valid (e.g. they all moved out of range).
         UUID controller = ThreatEffects.lockedController(table, server, uuid -> isValidTarget(server, uuid));
         if (controller != null) {
-            return server.getPlayerByUUID(controller);
+            return holder(server, controller);
         }
         UUID id = table.topHolder(uuid -> isValidTarget(server, uuid));
-        return id == null ? null : server.getPlayerByUUID(id);
+        return id == null ? null : holder(server, id);
+    }
+
+    /** The player or summon behind a threat entry, if it is loaded in this level. */
+    private static LivingEntity holder(ServerLevel server, UUID uuid) {
+        return server.getEntity(uuid) instanceof LivingEntity living ? living : null;
     }
 
     private boolean isValidTarget(ServerLevel server, UUID uuid) {
-        Player player = server.getPlayerByUUID(uuid);
-        if (player == null || !player.isAlive() || !player.canBeSeenAsEnemy() || StealthCompat.isHidden(player)) {
+        LivingEntity holder = holder(server, uuid);
+        // mob.canAttack covers spectator/creative players, peaceful difficulty and invulnerable summons.
+        if (holder == null || !holder.isAlive() || !mob.canAttack(holder) || StealthCompat.isHidden(holder)) {
             return false;
         }
         double range = mob.getAttributeValue(Attributes.FOLLOW_RANGE);
-        return mob.distanceToSqr(player) <= range * range;
+        return mob.distanceToSqr(holder) <= range * range;
     }
 
     private void pruneAndDecay() {
@@ -96,8 +102,9 @@ public class ThreatTargetGoal extends Goal {
             return;
         }
         ThreatTable table = table();
-        // Drop holders who have logged out; their threat is meaningless until they return.
-        table.prune(uuid -> server.getPlayerByUUID(uuid) == null);
+        // Drop holders no longer in this level (logged out, changed dimension, despawned or unloaded summons);
+        // their threat is meaningless until they return.
+        table.prune(uuid -> server.getEntity(uuid) == null);
 
         double perSecond = ThreatConfig.get().threatDecayPerSecond;
         if (perSecond > 0.0) {

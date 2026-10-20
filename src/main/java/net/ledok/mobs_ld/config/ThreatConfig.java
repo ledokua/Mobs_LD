@@ -62,6 +62,13 @@ public final class ThreatConfig {
      */
     public double maxThreat = 1.0e12;
 
+    /**
+     * MMO-style summon threat. When true, damage from a player-owned entity (tamed wolf, Spell Engine summon)
+     * builds threat for that summon itself, so it can pull and tank mobs; an untargetable summon's threat goes to
+     * its owner. When false, summon damage generates no threat at all (players only).
+     */
+    public boolean summonThreat = true;
+
     /** When true, vanilla (and other mods') mobs also get the threat-targeting goal. This mod's own mobs always do. */
     public boolean affectVanillaMobs = true;
 
