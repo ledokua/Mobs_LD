@@ -10,10 +10,19 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
 
 public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEntity> {
     private static final int BRIGHT_WINDOW_TICKS = 2;
+
+    /** Edge length of a single "pixel" cell, in blocks — shapes are rasterized onto this grid for a blocky look. */
+    private static final float PIXEL_SIZE = 0.25F;
+
+    /** Inside-test for a zone, evaluated in the zone's local frame (+Z forward, +X right). */
+    private interface ZoneTest {
+        boolean inside(float localX, float localZ);
+    }
 
     public AttackZoneVisualRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -116,11 +125,8 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float backF = offsetForward;
         float frontF = offsetForward + scaledLength;
 
-        addQuad(matrix, buffer, color,
-                rotateX(-halfWidth, backF, yaw), rotateZ(-halfWidth, backF, yaw),
-                rotateX(halfWidth, backF, yaw), rotateZ(halfWidth, backF, yaw),
-                rotateX(halfWidth, frontF, yaw), rotateZ(halfWidth, frontF, yaw),
-                rotateX(-halfWidth, frontF, yaw), rotateZ(-halfWidth, frontF, yaw));
+        fillPixelated(matrix, buffer, color, yaw, -halfWidth, backF, halfWidth, frontF,
+                (x, z) -> true);
     }
 
     private void renderCone(
@@ -134,48 +140,23 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float dist = entity.getParamA() * sweepProgress * scaleMult;
         float angle = entity.getParamB();
         float yaw = (float) Math.toRadians(entity.getYawDegrees());
-        float halfAngle = (float) Math.toRadians(angle * 0.5F);
-        int segments = Math.max(8, (int) (angle / 5.0F));
-        float y = 0.02F;
-        for (int i = 0; i < segments; i++) {
-            float a1 = -halfAngle + (2.0F * halfAngle * i / segments);
-            float a2 = -halfAngle + (2.0F * halfAngle * (i + 1) / segments);
+        float halfAngleRad = (float) Math.toRadians(angle * 0.5F);
 
-            float localX1 = (float) (Math.sin(a1) * dist);
-            float localZ1 = (float) (Math.cos(a1) * dist);
-            float localX2 = (float) (Math.sin(a2) * dist);
-            float localZ2 = (float) (Math.cos(a2) * dist);
-
-            float x1 = rotateX(localX1, localZ1, yaw);
-            float z1 = rotateZ(localX1, localZ1, yaw);
-            float x2 = rotateX(localX2, localZ2, yaw);
-            float z2 = rotateZ(localX2, localZ2, yaw);
-
-            buffer.addVertex(matrix, x1, y, z1).setColor(color);
-            buffer.addVertex(matrix, x2, y, z2).setColor(color);
-            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-        }
+        fillPixelated(matrix, buffer, color, yaw, -dist, 0.0F, dist, dist, (x, z) -> {
+            float r = (float) Math.sqrt(x * x + z * z);
+            if (r > dist || r < 1.0e-4F) {
+                return false;
+            }
+            // angle between the cell vector and the +Z forward axis.
+            return Math.acos(Mth.clamp(z / r, -1.0F, 1.0F)) <= halfAngleRad;
+        });
     }
 
     private void renderCircle(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float scale) {
         float radius = entity.getParamA() * scale;
-        int segments = 32;
-        float y = 0.02F;
-        for (int i = 0; i < segments; i++) {
-            float a1 = (float) (2.0 * Math.PI * i / segments);
-            float a2 = (float) (2.0 * Math.PI * (i + 1) / segments);
-
-            float x1 = (float) Math.cos(a1) * radius;
-            float z1 = (float) Math.sin(a1) * radius;
-            float x2 = (float) Math.cos(a2) * radius;
-            float z2 = (float) Math.sin(a2) * radius;
-
-            buffer.addVertex(matrix, 0.0F, y, 0.0F).setColor(color);
-            buffer.addVertex(matrix, x1, y, z1).setColor(color);
-            buffer.addVertex(matrix, x2, y, z2).setColor(color);
-            buffer.addVertex(matrix, x2, y, z2).setColor(color);
-        }
+        float r2 = radius * radius;
+        fillPixelated(matrix, buffer, color, 0.0F, -radius, -radius, radius, radius,
+                (x, z) -> x * x + z * z <= r2);
     }
 
     private void renderCircleRays(
@@ -193,24 +174,52 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float effectiveLength = length * sweepProgress * scaleMult;
         float effectiveHalfWidth = halfWidth * scaleMult;
         float baseYawRad = (float) Math.toRadians(entity.getYawDegrees());
-        float y = 0.03F;
 
         for (int i = 0; i < rectCount; i++) {
             float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
+            fillPixelated(matrix, buffer, color, yawRad,
+                    -effectiveHalfWidth, -effectiveLength, effectiveHalfWidth, effectiveLength,
+                    (x, z) -> true);
+        }
+    }
 
-            float x0 = rotateX(-effectiveHalfWidth, -effectiveLength, yawRad);
-            float z0 = rotateZ(-effectiveHalfWidth, -effectiveLength, yawRad);
-            float x1 = rotateX(effectiveHalfWidth, -effectiveLength, yawRad);
-            float z1 = rotateZ(effectiveHalfWidth, -effectiveLength, yawRad);
-            float x2 = rotateX(effectiveHalfWidth, effectiveLength, yawRad);
-            float z2 = rotateZ(effectiveHalfWidth, effectiveLength, yawRad);
-            float x3 = rotateX(-effectiveHalfWidth, effectiveLength, yawRad);
-            float z3 = rotateZ(-effectiveHalfWidth, effectiveLength, yawRad);
-
-            buffer.addVertex(matrix, x0, y, z0).setColor(color);
-            buffer.addVertex(matrix, x1, y, z1).setColor(color);
-            buffer.addVertex(matrix, x2, y, z2).setColor(color);
-            buffer.addVertex(matrix, x3, y, z3).setColor(color);
+    /**
+     * Rasterizes a zone onto a fixed grid of square cells: every {@link #PIXEL_SIZE} cell whose center passes
+     * {@code test} (in the zone's local, unrotated frame) is emitted as a filled quad, rotated by {@code yaw}.
+     * This gives the indicator a chunky, Minecraft-style pixelated edge instead of a smooth polygon.
+     */
+    private void fillPixelated(
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float yaw,
+            float minX,
+            float minZ,
+            float maxX,
+            float maxZ,
+            ZoneTest test
+    ) {
+        if (maxX <= minX || maxZ <= minZ) {
+            return;
+        }
+        int cellsX = Math.max(1, Mth.ceil((maxX - minX) / PIXEL_SIZE));
+        int cellsZ = Math.max(1, Mth.ceil((maxZ - minZ) / PIXEL_SIZE));
+        for (int ix = 0; ix < cellsX; ix++) {
+            float x0 = minX + ix * PIXEL_SIZE;
+            float x1 = Math.min(x0 + PIXEL_SIZE, maxX);
+            float cx = (x0 + x1) * 0.5F;
+            for (int iz = 0; iz < cellsZ; iz++) {
+                float z0 = minZ + iz * PIXEL_SIZE;
+                float z1 = Math.min(z0 + PIXEL_SIZE, maxZ);
+                if (!test.inside(cx, (z0 + z1) * 0.5F)) {
+                    continue;
+                }
+                addQuad(matrix, buffer, color,
+                        rotateX(x0, z0, yaw), rotateZ(x0, z0, yaw),
+                        rotateX(x1, z0, yaw), rotateZ(x1, z0, yaw),
+                        rotateX(x1, z1, yaw), rotateZ(x1, z1, yaw),
+                        rotateX(x0, z1, yaw), rotateZ(x0, z1, yaw));
+            }
         }
     }
 

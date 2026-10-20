@@ -62,7 +62,8 @@ public class TelegraphedAttackGoal extends Goal {
             return false;
         }
 
-        return mob.distanceTo(mob.getTarget()) <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE;
+        return mob.distanceTo(mob.getTarget())
+                <= mob.getAttackZone().maxForwardReach() + ATTACK_TRIGGER_EXTRA_RANGE + mob.getZoneForwardOffset();
     }
 
     @Override
@@ -74,7 +75,6 @@ public class TelegraphedAttackGoal extends Goal {
     public void start() {
         windupTimer = mob.getWindupTicks();
         damageTimer = -1;
-        lockedOrigin = snapToGround(mob.position());
         if (mob.getAttackZone() instanceof AttackZone.CircleTarget && mob.getTarget() != null) {
             lockedTargetPos = snapToGround(mob.getTarget().position());
         } else {
@@ -90,6 +90,15 @@ public class TelegraphedAttackGoal extends Goal {
         } else {
             lockedYaw = mob.getYRot();
         }
+        // Push the origin forward along the locked aim so the zone lands in front of the mob (where it strikes).
+        Vec3 origin = mob.position();
+        double forwardOffset = mob.getZoneForwardOffset();
+        if (forwardOffset != 0.0) {
+            double yawRad = Math.toRadians(lockedYaw);
+            Vec3 forward = new Vec3(-Math.sin(yawRad), 0.0, Math.cos(yawRad));
+            origin = origin.add(forward.scale(forwardOffset));
+        }
+        lockedOrigin = snapToGround(origin);
         Vec3 displayOrigin = getZoneOrigin();
         display = AttackZoneDisplay.spawn(
                 (ServerLevel) mob.level(),

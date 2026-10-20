@@ -43,6 +43,21 @@ public abstract class BaseDungeonMob extends Monster {
         return true;
     }
 
+    /** Distance to push the zone origin forward (toward the locked aim) so it lands in front of the mob. */
+    protected double zoneForwardOffset() {
+        return 0.0;
+    }
+
+    /** Sideways shift of the mob's standing spot, in blocks; positive = the target's left. */
+    protected double lateralStandoffOffset() {
+        return 0.0;
+    }
+
+    /** When true, the mob stops re-aiming once the wind-up begins, so its facing matches the locked zone. */
+    protected boolean lockFacingDuringWindup() {
+        return false;
+    }
+
     protected AttackDisplayConfig displayConfig() {
         return AttackDisplayConfig.DEFAULT;
     }
@@ -76,6 +91,7 @@ public abstract class BaseDungeonMob extends Monster {
         goalSelector.addGoal(3, new MoveToIdealDistanceGoal(this, 1.0D));
         goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));
 
+        // The threat-targeting goal (priority 0) is installed for every mob by ThreatEvents on entity load.
         targetSelector.addGoal(1, new HurtByTargetGoal(this));
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
     }
@@ -88,7 +104,7 @@ public abstract class BaseDungeonMob extends Monster {
                 attackCooldown--;
             }
             LivingEntity target = getTarget();
-            if (target != null) {
+            if (target != null && !(windingUp && lockFacingDuringWindup())) {
                 getLookControl().setLookAt(target, 30.0F, 30.0F);
             }
         }
@@ -126,6 +142,18 @@ public abstract class BaseDungeonMob extends Monster {
 
     public boolean isCooldownStartingAtWindupStart() {
         return cooldownStartsAtWindupStart();
+    }
+
+    public double getZoneForwardOffset() {
+        return zoneForwardOffset();
+    }
+
+    public double getLateralStandoffOffset() {
+        return lateralStandoffOffset();
+    }
+
+    public boolean isFacingLockedDuringWindup() {
+        return lockFacingDuringWindup();
     }
 
     public AttackDisplayConfig getDisplayConfig() {

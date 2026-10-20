@@ -17,6 +17,10 @@
       "net.ledok.mobs_ld.MobsLdMod"
     ]
   },
+  "mixins": [
+    "mobs_ld.mixins.json"
+  ],
+  "accessWidener": "mobs_ld.accesswidener",
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",

@@ -1,0 +1,14 @@
+{
+  "entity.mobs_ld.sand_golem_guardian": "Sand Golem Guardian",
+  "entity.mobs_ld.mummy": "Mummy",
+  "entity.mobs_ld.ball": "Ball",
+  "effect.mobs_ld.provoke": "Provoke",
+  "effect.mobs_ld.taunt": "Taunt",
+  "attribute.name.mobs_ld.threat_multiplier": "Threat Multiplier",
+  "item.minecraft.potion.effect.taunt": "Potion of Taunt",
+  "item.minecraft.splash_potion.effect.taunt": "Splash Potion of Taunt",
+  "item.minecraft.lingering_potion.effect.taunt": "Lingering Potion of Taunt",
+  "item.minecraft.potion.effect.provoke": "Potion of Provoke",
+  "item.minecraft.splash_potion.effect.provoke": "Splash Potion of Provoke",
+  "item.minecraft.lingering_potion.effect.provoke": "Lingering Potion of Provoke"
+}

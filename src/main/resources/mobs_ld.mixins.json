@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "net.ledok.mobs_ld.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MobThreatMixin",
+    "PlayerThreatAttributeMixin",
+    "compat.SpellEngineAggroMixin"
+  ],
+  "client": [
+    "client.CameraMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
