@@ -28,10 +28,10 @@ flat-colour blockout; look (crystal vs ember palette) awaiting LeDok's pick. Ful
 | clip | length | hit events (time → shape, centre, target) | cooldown |
 |---|---|---|---|
 | `vertical` | 2.2 s | **1.1 s** → rectangle 2 × 5 blocks from the boss forward (fist lands ~3.3 blocks ahead), current target | 4 s |
-| `horizontal` | 1.8 s | **1.0 s** → cone 150°, 4.5 blocks, centred on the boss, current target; applies bleed DoT (id TBD) | 6 s |
+| `horizontal` | 1.8 s | **1.0 s** → cone 150°, 4.5 blocks, centred on the boss, current target; applies `spell_engine:bleed` | 6 s |
 | `combo` | 2.4 s | **0.6 s** → cone 60° × 4 (right jab); **1.1 s** → cone 60° × 4 (left backhand); **1.7 s** → rectangle 2 × 5 (overhead chop); all current target | 10 s |
 | `charge_slash` | 2.4 s | **0.5–1.4 s** → dash along a line toward the farthest player, rectangle 3 wide along the path (max 12 blocks); **1.7 s** → cone 90° × 4 at the stop point, knock-up. Wall hit during the dash → cancel into `stagger` | 14 s |
-| `summon_rot_warts` | 1.6 s | **0.8 s** → spawn 2 `mobs_ld:rot_wart` at `fx_chest` (no damage shape) | 25 s (18 s in phase 2) |
+| `summon_rot_warts` | 1.6 s | **0.8 s** → spawn 2 `mobs_ld:rot_wart` at the `fx_chest` rest offset (≈ 0.75 forward, 2.6 up; the server cannot read bones) | 25 s (18 s in phase 2) |
 
 Tells: `vertical` lifts the right leg and raises the fist overhead; `horizontal` twists the chest to its right
 with the fist out to the side and no leg lift; `combo` flares flame particles at `fx_fist_right` at 0.15 s;

@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.client.mob;
 
 import net.ledok.mobs_ld.mob.LdMob;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import software.bernie.geckolib.animation.AnimationState;
@@ -12,7 +13,9 @@ import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.model.data.EntityModelData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Generic GeckoLib model for every data-driven mob: files are found by entity id under the contract's paths
@@ -25,6 +28,8 @@ public class LdMobModel extends GeoModel<LdMob> {
     private final ResourceLocation model;
     private final ResourceLocation texture;
     private final ResourceLocation animations;
+    /** Texture per variant suffix, falling back to the base texture when the variant file does not exist. */
+    private final Map<String, ResourceLocation> variants = new HashMap<>();
 
     /** Baked model the marker list was built from; a resource reload bakes a new one. */
     private BakedGeoModel markerSource;
@@ -51,7 +56,15 @@ public class LdMobModel extends GeoModel<LdMob> {
 
     @Override
     public ResourceLocation getTextureResource(LdMob mob) {
-        return texture;
+        String variant = mob.textureVariant();
+        if (variant.isEmpty()) {
+            return texture;
+        }
+        // Renderers (and this model) are rebuilt on every resource reload, so the cache never goes stale.
+        return variants.computeIfAbsent(variant, name -> {
+            ResourceLocation candidate = texture.withPath(texture.getPath().replace(".png", "_" + name + ".png"));
+            return Minecraft.getInstance().getResourceManager().getResource(candidate).isPresent() ? candidate : texture;
+        });
     }
 
     @Override

@@ -54,7 +54,7 @@ is drawn 0.5 block longer than the model suggests. Leash 32 blocks. Soft enrage 
 | ability | type | shape / size | centre | target | clip | impact | cooldown | counter |
 |---|---|---|---|---|---|---|---|---|
 | `vertical` | melee chop (overhead) | rectangle 2 × 5 | from boss, forward | current | 2.2 s | 1.1 s | 4 s | tell: **right leg lifts** + fist overhead; sidestep any direction |
-| `horizontal` | melee sweep | cone 150°, 4.5 | boss | current | 1.8 s | 1.0 s | 6 s | slower, **no leg lift**; applies **bleed** DoT (effect id TBD); step *into* it / behind |
+| `horizontal` | melee sweep | cone 150°, 4.5 | boss | current | 1.8 s | 1.0 s | 6 s | slower, **no leg lift**; applies **bleed** (`spell_engine:bleed`, already in the pack); step *into* it / behind |
 | `combo` | 3 hits in one clip | cone 60° × 4 → cone 60° × 4 (left hand) → rectangle 2 × 5 | boss | current | 2.4 s | 0.6 / 1.1 / 1.7 s | 10 s | tell: **red flare** on the fist at 0.15 s; back off, don't trade |
 | `charge_slash` | dash + uppercut | rectangle 3 × 12 along the dash, then cone 90° × 4 at the stop | from boss / at the stop point | **farthest** player (MMO twist: the original fires when you are far) | 2.4 s | 0.5–1.4 s (moving) + **1.7 s** | 14 s | dodge sideways or to its left; wall hit → `stagger` 1.8 s |
 | `summon_rot_warts` | summon | 2 adds at `fx_chest` | boss | — | 1.6 s | 0.8 s (spawn) | 25 s | kill or kite the Warts before they reach the healers |

@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.ledok.mobs_ld.command.MobsLdCommands;
 import net.ledok.mobs_ld.entity.threat.ThreatEvents;
 import net.ledok.mobs_ld.mob.MobDeclarations;
+import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -18,6 +19,7 @@ public class MobsLdMod implements ModInitializer {
         ModAttributes.register();
         ModEntities.register();
         MobDeclarations.register();
+        MobBehaviours.register();
         ModEffects.register();
         ModPotions.register();
         ModCreativeTabs.register();

@@ -9,5 +9,7 @@
   "item.minecraft.splash_potion.effect.provoke": "Splash Potion of Provoke",
   "item.minecraft.lingering_potion.effect.provoke": "Lingering Potion of Provoke",
   "entity.mobs_ld.gorefist": "Gorefist",
-  "item.mobs_ld.gorefist_spawn_egg": "Gorefist Spawn Egg"
+  "item.mobs_ld.gorefist_spawn_egg": "Gorefist Spawn Egg",
+  "entity.mobs_ld.rot_wart": "Rot Wart",
+  "item.mobs_ld.rot_wart_spawn_egg": "Rot Wart Spawn Egg"
 }

@@ -51,7 +51,7 @@ public final class LdMobClientHooks implements MobClientHooks {
     @Override
     public double walkSpeed(LdMob mob) {
         double blocksPerCycle = mob.declaration().render().walkBlocksPerCycle();
-        String walk = animation(mob, "walk");
+        String walk = mob.movementClip(this);
         if (blocksPerCycle <= 0.0 || walk == null) {
             return 1.0;
         }

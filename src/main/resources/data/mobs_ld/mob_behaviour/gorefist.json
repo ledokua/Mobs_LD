@@ -1,0 +1,84 @@
+{
+  "movement": { "style": "standoff", "distance": 3.0, "speed": 1.0 },
+  "global_cooldown": 0.6,
+  "intro": { "clip": "intro", "duration": 2.0, "invulnerable": true },
+  "stagger": { "clip": "stagger", "duration": 1.8 },
+  "abilities": {
+    "vertical": {
+      "duration": 2.2, "cooldown": 4, "weight": 3,
+      "range": { "max": 4.5 },
+      "events": [
+        { "type": "hit", "at": 1.1, "telegraph": { "from": 0.4 },
+          "shape": { "type": "rectangle", "width": 2, "length": 5 },
+          "hit": { "damage": 1.4, "knockback": 0.6 } }
+      ]
+    },
+    "horizontal": {
+      "duration": 1.8, "cooldown": 6, "weight": 2,
+      "range": { "max": 4.0 },
+      "events": [
+        { "type": "hit", "at": 1.0, "telegraph": { "from": 0.35 },
+          "shape": { "type": "cone", "radius": 4.5, "angle": 150 },
+          "hit": { "damage": 1.0, "knockback": 0.9,
+                   "effects": [ { "id": "spell_engine:bleed", "duration": 6 } ] } }
+      ]
+    },
+    "combo": {
+      "duration": 2.4, "cooldown": 10, "weight": 2,
+      "range": { "max": 3.5 },
+      "events": [
+        { "type": "hit", "at": 0.6, "telegraph": { "from": 0.15 },
+          "shape": { "type": "cone", "radius": 4, "angle": 60 }, "hit": { "damage": 0.6, "knockback": 0.3 } },
+        { "type": "hit", "at": 1.1, "telegraph": { "from": 0.65 },
+          "shape": { "type": "cone", "radius": 4, "angle": 60 }, "hit": { "damage": 0.6, "knockback": 0.3 } },
+        { "type": "hit", "at": 1.7, "telegraph": { "from": 1.15 },
+          "shape": { "type": "rectangle", "width": 2, "length": 5 }, "hit": { "damage": 1.0, "knockback": 0.7 } }
+      ]
+    },
+    "charge_slash": {
+      "duration": 2.4, "cooldown": 14, "weight": 2,
+      "target": "farthest",
+      "range": { "min": 6, "max": 24 },
+      "events": [
+        { "type": "dash", "at": 0.5, "until": 1.4, "max_distance": 12, "overshoot": 1.5, "width": 3,
+          "telegraph": { "from": 0.1, "color": "#C05010" },
+          "hit": { "damage": 0.8, "knockback": 1.2 }, "on_wall": "stagger" },
+        { "type": "hit", "at": 1.7, "telegraph": { "from": 1.4 },
+          "shape": { "type": "cone", "radius": 4, "angle": 90 },
+          "hit": { "damage": 1.0, "knockback": 0.4, "knock_up": 0.7 } }
+      ]
+    },
+    "summon_rot_warts": {
+      "duration": 1.6, "cooldown": 25, "initial_cooldown": 12, "weight": 1,
+      "range": { "max": 32 },
+      "events": [
+        { "type": "summon", "at": 0.8, "entity": "mobs_ld:rot_wart", "count": 2,
+          "forward": 0.75, "up": 2.6, "spread": 1.5, "max_alive": 6 }
+      ]
+    }
+  },
+  "phases": [
+    { "below_health": 1.0 },
+    {
+      "below_health": 0.5,
+      "transition": {
+        "clip": "enrage", "duration": 1.8, "invulnerable": true,
+        "events": [
+          { "type": "summon", "at": 1.2, "entity": "mobs_ld:rot_wart", "count": 2,
+            "forward": 0.75, "up": 2.6, "spread": 1.5, "max_alive": 6 }
+        ]
+      },
+      "ready_in": { "summon_rot_warts": 5 },
+      "cooldowns": { "summon_rot_warts": 18 },
+      "attack_speed": 1.15,
+      "damage_taken": [ { "kind": "melee", "multiplier": 0.34 } ],
+      "texture": "phase2"
+    }
+  ],
+  "boss": {
+    "bar": { "color": "red" },
+    "leash": 32,
+    "reset_after": 15,
+    "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" }
+  }
+}

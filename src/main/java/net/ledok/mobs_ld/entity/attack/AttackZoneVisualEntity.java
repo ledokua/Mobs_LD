@@ -80,6 +80,12 @@ public class AttackZoneVisualEntity extends Entity {
         }
     }
 
+    /** Telegraphs only live for an ability's wind-up; never write one to disk where it would outlive its owner. */
+    @Override
+    public boolean shouldBeSaved() {
+        return false;
+    }
+
     @Override
     public boolean isPickable() {
         return false;
