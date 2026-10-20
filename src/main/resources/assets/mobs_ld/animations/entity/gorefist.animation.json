@@ -780,7 +780,12 @@
 				"1.5": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_blade_right",
-					"pre_effect_script": "count=4; spread=1.0;"
+					"pre_effect_script": "count=1;"
+				},
+				"1.52": {
+					"effect": "minecraft:poof",
+					"locator": "hit_blade_right",
+					"pre_effect_script": "count=10; spread=1.4; speed=0.04;"
 				}
 			},
 			"timeline": {
@@ -1177,7 +1182,12 @@
 				"1.1": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_blade_right",
-					"pre_effect_script": "count=6; spread=1.2;"
+					"pre_effect_script": "count=2; spread=0.6;"
+				},
+				"1.12": {
+					"effect": "minecraft:poof",
+					"locator": "hit_blade_right",
+					"pre_effect_script": "count=12; spread=1.6; speed=0.05;"
 				}
 			},
 			"timeline": {
@@ -2051,22 +2061,27 @@
 				"0.15": {
 					"effect": "minecraft:flame",
 					"locator": "fx_blade_right",
-					"pre_effect_script": "count=14; spread=0.9; speed=0.02;"
+					"pre_effect_script": "count=14; spread=0.6; spread_y=0.6; speed=0.02;"
 				},
 				"0.6": {
 					"effect": "minecraft:crit",
 					"locator": "hit_blade_right",
-					"pre_effect_script": "count=6; spread=0.6;"
+					"pre_effect_script": "count=6; spread=0.5; spread_y=0.4;"
 				},
 				"1.1": {
 					"effect": "minecraft:crit",
 					"locator": "hit_hand_left",
-					"pre_effect_script": "count=6; spread=0.6;"
+					"pre_effect_script": "count=6; spread=0.5; spread_y=0.4;"
 				},
 				"1.7": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_blade_right",
-					"pre_effect_script": "count=3; spread=0.8;"
+					"pre_effect_script": "count=1;"
+				},
+				"1.72": {
+					"effect": "minecraft:poof",
+					"locator": "hit_blade_right",
+					"pre_effect_script": "count=8; spread=1.2; speed=0.04;"
 				}
 			},
 			"timeline": {
@@ -3465,7 +3480,7 @@
 				"0.8": {
 					"effect": "minecraft:smoke",
 					"locator": "fx_chest",
-					"pre_effect_script": "count=24; spread=1.5; speed=0.05;"
+					"pre_effect_script": "count=20; spread=1.2; spread_y=0.8; speed=0.04;"
 				}
 			},
 			"timeline": {
@@ -3880,12 +3895,12 @@
 				"0.6": {
 					"effect": "minecraft:crit",
 					"locator": "fx_chest",
-					"pre_effect_script": "count=24; spread=1.4; speed=0.05;"
+					"pre_effect_script": "count=24; spread=1.2; spread_y=1.0; speed=0.05;"
 				},
 				"1.2": {
 					"effect": "minecraft:crit",
 					"locator": "fx_chest",
-					"pre_effect_script": "count=12; spread=1.2;"
+					"pre_effect_script": "count=12; spread=1.0; spread_y=0.8;"
 				}
 			},
 			"timeline": {
@@ -4178,7 +4193,7 @@
 				"0.1": {
 					"effect": "minecraft:crit",
 					"locator": "fx_mouth",
-					"pre_effect_script": "count=10; spread=0.8;"
+					"pre_effect_script": "count=10; spread=0.6; spread_y=0.5;"
 				}
 			}
 		},

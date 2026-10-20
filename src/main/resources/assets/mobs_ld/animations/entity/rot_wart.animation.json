@@ -360,17 +360,17 @@
 				"0.5": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_body",
-					"pre_effect_script": "count=5; spread=0.9;"
+					"pre_effect_script": "count=2; spread=0.5;"
 				},
 				"0.52": {
 					"effect": "minecraft:large_smoke",
 					"locator": "hit_body",
-					"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
+					"pre_effect_script": "count=14; spread=1.2; spread_y=0.6; speed=0.03;"
 				},
 				"0.54": {
 					"effect": "minecraft:item_slime",
 					"locator": "hit_body",
-					"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
+					"pre_effect_script": "count=12; spread=0.8; spread_y=0.5; speed=0.1;"
 				}
 			},
 			"timeline": {
@@ -575,17 +575,17 @@
 				"0.5": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_body",
-					"pre_effect_script": "count=5; spread=0.9;"
+					"pre_effect_script": "count=2; spread=0.5;"
 				},
 				"0.52": {
 					"effect": "minecraft:large_smoke",
 					"locator": "hit_body",
-					"pre_effect_script": "count=16; spread=1.2; speed=0.03;"
+					"pre_effect_script": "count=14; spread=1.2; spread_y=0.6; speed=0.03;"
 				},
 				"0.54": {
 					"effect": "minecraft:item_slime",
 					"locator": "hit_body",
-					"pre_effect_script": "count=12; spread=0.8; speed=0.1;"
+					"pre_effect_script": "count=12; spread=0.8; spread_y=0.5; speed=0.1;"
 				}
 			},
 			"timeline": {

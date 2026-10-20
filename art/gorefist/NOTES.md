@@ -70,3 +70,5 @@ particle ids only: explosion, sweep_attack, crit, flame, lava, cloud, smoke.
 - 2026-10-20 first in-game fight test (Mobs_LD 8911d85, includes the Minecraft-style textures): confirmed intro, vertical,
   horizontal, charge_start → charge_loop → charge_slash, wall → stagger (code path), Rot Wart summon + burst, phase-2
   shell growth with the texture swap, death hold + cleanup. Not yet seen on screen: `charge_exhaust`, the `stagger` pose.
+- 2026-10-20 particles reworked for Mobs_LD 2c33e44 (`spread` horizontal only, new `spread_y`): slam explosions cut to 1–2 sprites
+  at the impact + a flat `minecraft:poof` dust ring; chest/head effects got upward scatter.

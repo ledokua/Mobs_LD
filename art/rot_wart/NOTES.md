@@ -33,3 +33,5 @@ explosion + large_smoke + item_slime at `hit_body` on the pop; `shake 0.2 8`.
   from `tools/mc_texture.py`, per LeDok's "blend with Minecraft" direction; rules in `_references/STYLE.md`.
   Same UV, geometry and clips. Rot Wart burst/death: one particle per timestamp (0.5 / 0.52 / 0.54) for GeckoLib.
 - 2026-10-20 in-game test (8911d85): summon, run and burst (explosion / smoke / slime) confirmed.
+- 2026-10-20 particles reworked for Mobs_LD 2c33e44 (`spread` horizontal only, new `spread_y`): slam explosions cut to 1–2 sprites
+  at the impact + a flat `minecraft:poof` dust ring; chest/head effects got upward scatter.
