@@ -6,6 +6,7 @@
     "AreaEffectCloudMixin",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
+    "WitherBossMixin",
     "compat.SpellEngineAggroMixin"
   ],
   "client": [
