@@ -30,7 +30,8 @@ import java.util.UUID;
  * sub-stepped, so a blade cannot skip past someone between two ticks.
  *
  * @param clip    which clip's track to read; empty = the ability's own clip
- * @param aimSide re-aim when the window opens so a strike line this far to the mob's right meets the target
+ * @param aimSide turn so a strike line this far to the mob's right meets the target as the window opens (the run
+ *                starts turning {@link AbilityRun#AIM_LEAD} seconds ahead)
  */
 public record TraceEvent(double from, double to, List<String> path, double radius, Optional<String> clip,
                          Optional<Double> aimSide, HitSpec hit) implements AbilityEvent {
@@ -62,6 +63,11 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
     @Override
     public double end() {
         return Math.max(from, to);
+    }
+
+    @Override
+    public Optional<Double> preAim() {
+        return aimSide;
     }
 
     @Override

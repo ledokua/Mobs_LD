@@ -16,7 +16,9 @@ import java.util.Optional;
  *
  * @param offset blocks to push the origin along the facing (e.g. a fist landing in front of the body)
  * @param side   blocks to push the origin to the mob's right (under a one-handed weapon)
- * @param aimSide re-aim before this beat so a strike line this far to the right meets the target
+ * @param aimSide turn so a strike line this far to the right meets the target: aimed when the telegraph appears and
+ *                turned into during the last {@link AbilityRun#AIM_LEAD} seconds before the impact (so the body
+ *                does not leave a beat that is still swinging); without a telegraph, turned into before the impact
  * @param height how far above the origin a victim's feet may be and still be hit; empty = the mob's reach
  * @param depth  how far below the origin; empty = the mob's reach depth
  */
@@ -54,16 +56,32 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         return at;
     }
 
+    /** Only an untelegraphed hit needs the run to turn ahead of it; a telegraphed one turns itself (see start). */
+    @Override
+    public Optional<Double> preAim() {
+        return telegraphed() ? Optional.empty() : aimSide;
+    }
+
     @Override
     public Instance start(AbilityRun run) {
-        // Re-aiming turns the body over the next ticks; draw (and hit) where it will be facing at the impact.
-        float yaw = aimSide.isPresent() ? run.reaim(aimSide.get()) : run.yaw();
+        // The zone locks here, but the body only turns into it just before the impact: an earlier beat may still be
+        // swinging along the old facing. Without a telegraph the run has already been turning; keep following.
+        boolean telegraphed = telegraphed();
+        float yaw = aimSide.isEmpty() ? run.yaw() : telegraphed ? run.aimFor(aimSide.get()) : run.reaim(aimSide.get());
         Vec3 base = origin == Origin.TARGET ? run.aimPosition() : run.mob().position();
         Vec3 point = run.groundAt(base.add(AbilityRun.forward(yaw).scale(offset)).add(AbilityRun.right(yaw).scale(side)));
-        AbilityRun.Marker marker = telegraph.show() && begin() < at
-                ? run.telegraph(point, yaw, shape, telegraph, at)
-                : null;
+        AbilityRun.Marker marker = telegraphed ? run.telegraph(point, yaw, shape, telegraph, at) : null;
         return new Instance() {
+            private boolean turned = !telegraphed || aimSide.isEmpty();
+
+            @Override
+            public void tick(AbilityRun run) {
+                if (!turned && run.seconds() >= at - AbilityRun.AIM_LEAD) {
+                    turned = true;
+                    run.steer(yaw);
+                }
+            }
+
             @Override
             public void finish(AbilityRun run) {
                 double up = height.orElse(run.combat().reachUp());
@@ -79,5 +97,9 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
                 run.clear(marker);
             }
         };
+    }
+
+    private boolean telegraphed() {
+        return telegraph.show() && begin() < at;
     }
 }

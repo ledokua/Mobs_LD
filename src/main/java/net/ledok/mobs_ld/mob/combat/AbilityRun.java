@@ -27,8 +27,8 @@ import java.util.List;
 public final class AbilityRun {
     /** Degrees per tick a mob may turn while tracking its aim; big bodies should not snap around. */
     private static final float TRACK_TURN_RATE = 12.0F;
-    /** Seconds before a beat with its own {@code aim_side} the body starts turning for it. */
-    private static final double AIM_LEAD = 0.3;
+    /** Seconds before a beat with its own {@code aim_side} lands that the body starts turning for it. */
+    public static final double AIM_LEAD = 0.3;
 
     private final LdMob mob;
     private final MobCombat combat;
@@ -190,12 +190,28 @@ public final class AbilityRun {
      * where it stands now; returns the facing it is turning to, for telegraphs that must be drawn where it will hit.
      */
     public float reaim(double side) {
-        if (aim != null && aim.isAlive()) {
-            aimPosition = aim.position();
-            steerYaw = aimedYaw(aimPosition, side);
-            return steerYaw;
+        if (aim == null || !aim.isAlive()) {
+            return yaw;
         }
-        return yaw;
+        steerYaw = aimFor(side);
+        return steerYaw;
+    }
+
+    /**
+     * The facing that would put a strike line {@code side} blocks to the mob's right through the aim where it stands
+     * now (which also becomes {@link #aimPosition()}), without turning; pair with {@link #steer} to turn later.
+     */
+    public float aimFor(double side) {
+        if (aim == null || !aim.isAlive()) {
+            return yaw;
+        }
+        aimPosition = aim.position();
+        return aimedYaw(aimPosition, side);
+    }
+
+    /** Turns toward {@code degrees} at the tracking rate (not a snap), e.g. into a telegraph drawn earlier. */
+    public void steer(float degrees) {
+        steerYaw = degrees;
     }
 
     /** Lets an event steer the mob (e.g. a homing chase); the run keeps facing this way. */
@@ -346,9 +362,9 @@ public final class AbilityRun {
         }
 
         private void tick(AbilityRun run, double seconds) {
-            if (!aimed && event.aimSide().isPresent() && seconds >= event.begin() - AIM_LEAD) {
+            if (!aimed && event.preAim().isPresent() && seconds >= event.begin() - AIM_LEAD) {
                 aimed = true;
-                run.reaim(event.aimSide().get());
+                run.reaim(event.preAim().get());
             }
             if (state == State.PENDING && seconds >= event.begin()) {
                 instance = event.start(run);

@@ -85,7 +85,7 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `origin` | `self` | `self` (on the mob) or `target` (where the aim stood when the telegraph appeared) |
 | `offset` | 0 | push the origin forward along the facing |
 | `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
-| `aim_side` | - | re-aim for this beat (turns from 0.3 s before it, at the normal turn rate) |
+| `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
 | `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
 | `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818" }` |
 | `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` |
@@ -95,12 +95,16 @@ skipped with a log warning.
 
 Hits ignore vanilla's 10-tick hurt immunity (each event lands at most once per victim), so combo beats and a
 slash right after a trample all count. Mod dodges that cancel damage (Combat Roll's roll i-frames) still work.
-Keep knockback low on a combo's opening beats, or the first hit pushes the target out of the next one's reach.
+`knockback` / `knock_up` are the whole push: vanilla's own 0.4 shove on every melee hit is removed, so 0 means the
+victim does not budge. Keep knockback low on a combo's opening beats, or the first hit pushes the target out of the
+next one's reach.
 
 ### `trace` - weapon hitbox that follows the animation
 `from`, `to` (active window, seconds), `path` (bones, e.g. `["blade_right", "hit_blade_right"]` = wrist to blade
 tip), `radius` (0.6, capsule thickness), optional `clip` (default: the ability's clip), optional `aim_side`
-(re-aim for this beat, e.g. a left-hand backhand in a right-hand combo), `hit`.
+(re-aim for this beat, e.g. a left-hand backhand in a right-hand combo; turns from 0.3 s before `from`), `hit`.
+A re-aim turns the whole body, so let a swing's window end before the next beat starts turning (0.3 s before its
+`from`, or before the `at` of a telegraphed `hit`), or the swing is dragged off its line.
 From `from` to `to` a capsule is swept along the bones' baked positions; anyone it passes through takes `hit`
 once. No ground telegraph: players read the swing. Use it for blade swings and punches; keep `hit` + telegraph
 for ground slams and area mechanics.

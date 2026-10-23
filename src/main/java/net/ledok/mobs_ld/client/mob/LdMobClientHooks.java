@@ -113,9 +113,10 @@ public final class LdMobClientHooks implements MobClientHooks {
     @Override
     public void onInstruction(CustomInstructionKeyframeEvent<LdMob> event) {
         LdMob mob = event.getAnimatable();
-        // Blockbench ends each instruction with ';' and may put several on one keyframe.
+        // Blockbench ends each instruction with ';' and may put several on one keyframe. Both `shake 0.3 12` and the
+        // call form `shake(0.3, 12)` (which Blockbench's Molang check accepts) split to the same words.
         for (String line : event.getKeyframeData().getInstructions().split("[;\\n]")) {
-            String[] args = line.trim().split("\\s+");
+            String[] args = line.trim().split("[\\s(),]+");
             if (args.length == 0 || args[0].isEmpty()) {
                 continue;
             }

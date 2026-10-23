@@ -84,7 +84,7 @@
         {
           "type": "trace",
           "from": 0.4,
-          "to": 0.7,
+          "to": 0.65,
           "path": [
             "blade_right",
             "hit_blade_right"

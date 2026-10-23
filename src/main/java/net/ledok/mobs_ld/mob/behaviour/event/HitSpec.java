@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.LdMob;
+import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -41,20 +43,36 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
         // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
         // would silently swallow a combo's second blow or a slash right after a trample.
         victim.invulnerableTime = 0;
+        Vec3 before = victim.getDeltaMovement();
+        boolean marked = victim.hurtMarked;
         boolean hurt = amount <= 0.0F || victim.hurt(mob.damageSources().mobAttack(mob), amount);
         if (!hurt) {
             return; // blocked, invulnerable or in damage cooldown: no rider effects either
         }
-        mob.combat().trace(String.format("hit %s for %.1f (feet %+.1f vs mob)", victim.getName().getString(), amount,
-                victim.getY() - mob.getY()));
+        // hurt() also shoves the victim by vanilla's fixed 0.4, which knocks a player out of a combo's next beat; the
+        // push is exactly the authored one below, so undo vanilla's (keeping a sync another hit already queued).
+        victim.setDeltaMovement(before);
+        victim.hurtMarked = marked;
+        mob.combat().trace(String.format("hit %s for %.1f at %.1f blocks (feet %+.1f vs mob)", victim.getName().getString(),
+                amount, CombatTargets.distance(mob, victim), victim.getY() - mob.getY()));
         for (EffectSpec effect : effects) {
             effect.instance().ifPresent(instance -> victim.addEffect(instance, mob));
         }
         if (knockback > 0.0 || knockUp > 0.0) {
             double dx = victim.getX() - from.x;
             double dz = victim.getZ() - from.z;
+            if (dx * dx + dz * dz <= 1.0e-6) {
+                // Standing right on the origin (a still target of an `origin: target` slam): push away from the mob.
+                dx = victim.getX() - mob.getX();
+                dz = victim.getZ() - mob.getZ();
+                if (dx * dx + dz * dz <= 1.0e-6) {
+                    Vec3 ahead = AbilityRun.forward(mob.getYRot());
+                    dx = ahead.x;
+                    dz = ahead.z;
+                }
+            }
             double resist = 1.0 - victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
-            if (knockback > 0.0 && dx * dx + dz * dz > 1.0e-6) {
+            if (knockback > 0.0) {
                 victim.knockback(knockback, -dx, -dz);
             }
             if (knockUp > 0.0 && resist > 0.0) {

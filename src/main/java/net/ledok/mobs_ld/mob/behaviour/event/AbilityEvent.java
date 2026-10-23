@@ -43,10 +43,11 @@ public interface AbilityEvent {
     double end();
 
     /**
-     * Strike line (blocks to the mob's right) to aim before this beat; the run starts turning a little ahead of
-     * {@link #begin()} so the body is facing right when the beat lands. Empty = keep the current facing.
+     * Strike line (blocks to the mob's right) the body must already face when this beat begins; the run starts
+     * turning {@link AbilityRun#AIM_LEAD} seconds ahead of {@link #begin()}. Empty = the event aims itself (or keeps
+     * the current facing).
      */
-    default Optional<Double> aimSide() {
+    default Optional<Double> preAim() {
         return Optional.empty();
     }
 

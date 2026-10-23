@@ -92,7 +92,9 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
   scatter (default 0, so ground impacts stay on the ground), random velocity. Default: one particle.
   Big sprites (`explosion` is ~2 blocks) at a hit marker burst right where the victim stands: keep counts low.
 - Blockbench **Instructions** (timeline) keyframes, one command per line:
-  - `shake <strength> <radius>` - camera shake for nearby players (strength 0.1-1.0, radius blocks).
+  - `shake(<strength>, <radius>)` - camera shake for nearby players (strength 0.1-1.0, radius blocks), e.g.
+    `shake(0.3, 12)`. The older `shake 0.3 12` still works in game, but Blockbench's Molang check flags it as an
+    error, so prefer the call form.
 
 ## Hand-off
 
