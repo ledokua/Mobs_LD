@@ -3,6 +3,8 @@ package net.ledok.mobs_ld.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.ledok.mobs_ld.entity.threat.ThreatHolder;
+import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
@@ -10,10 +12,13 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.function.Consumer;
 
 /**
@@ -54,6 +59,9 @@ public final class MobsLdCommands {
                             ctx.getSource().sendSuccess(() -> Component.literal("Mobs_LD ability trace " + (on ? "on" : "off")), true);
                             return 1;
                         }))
+                .then(Commands.literal("threat")
+                        .then(Commands.argument("targets", EntityArgument.entities())
+                                .executes(ctx -> showThreat(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
                 .then(Commands.literal("reset")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
@@ -62,6 +70,35 @@ public final class MobsLdCommands {
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
                                         LdMob::stopAction, "Stopped the action on")))));
+    }
+
+    /** Prints each mob's threat table, highest first, with its current target. */
+    private static int showThreat(CommandSourceStack source, Collection<? extends Entity> targets) {
+        int shown = 0;
+        for (Entity entity : targets) {
+            if (!(entity instanceof Mob mob) || !(entity instanceof ThreatHolder holder)) {
+                continue;
+            }
+            ThreatTable table = holder.getThreatTable();
+            StringBuilder line = new StringBuilder(mob.getName().getString()).append(" -> ")
+                    .append(mob.getTarget() == null ? "no target" : mob.getTarget().getName().getString()).append(':');
+            table.holders().stream()
+                    .sorted(Comparator.comparingDouble(table::get).reversed())
+                    .forEach(id -> {
+                        Entity holderEntity = ((ServerLevel) mob.level()).getEntity(id);
+                        String name = holderEntity != null ? holderEntity.getName().getString() : id.toString().substring(0, 8);
+                        line.append(String.format(" %s %.1f;", name, table.get(id)));
+                    });
+            if (table.isEmpty()) {
+                line.append(" (empty)");
+            }
+            source.sendSuccess(() -> Component.literal(line.toString()), false);
+            shown++;
+        }
+        if (shown == 0) {
+            source.sendFailure(Component.literal("No threat-tracking mob among the targets"));
+        }
+        return shown;
     }
 
     /** Starts an ability now, aimed at the mob's target or else the command's runner. */

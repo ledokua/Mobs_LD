@@ -69,6 +69,31 @@ public final class ThreatConfig {
      */
     public boolean summonThreat = true;
 
+    /**
+     * MMO-style heal threat: threat the healer earns per point of health actually restored (overheal earns nothing).
+     * Every mob already fighting the healed player or summon, within {@link #healThreatRadius} of it, adds it to the
+     * healer, so a healer keeping the tank up draws attention but never pulls mobs that are not in the fight.
+     * 0 turns heal threat off. Sources: Spell Engine heal spells and healing potions thrown or drunk by a player.
+     */
+    public double threatPerHeal = 0.5;
+
+    /** Blocks around the healed (or buffed) entity within which fighting mobs register the heal or buff. */
+    public double healThreatRadius = 32.0;
+
+    /**
+     * Threat per effect level (amplifier + 1) for a harmful effect a player or summon puts on a mob (Spell Engine
+     * debuffs, splash/lingering potions, tipped arrows). Debuffing a mob is attacking it, so it can pull the mob.
+     * Only a new application counts: refreshing an effect that is still running earns nothing. 0 = off.
+     */
+    public double threatPerDebuff = 10.0;
+
+    /**
+     * Threat per effect level for a beneficial effect a player or summon puts on another player or summon, credited
+     * by every mob already fighting the buffed one (as for heals). Buffs on oneself (own potions, gear, relics) and
+     * refreshes of a running effect earn nothing. 0 = off.
+     */
+    public double threatPerBuff = 5.0;
+
     /** When true, vanilla (and other mods') mobs also get the threat-targeting goal. This mod's own mobs always do. */
     public boolean affectVanillaMobs = true;
 

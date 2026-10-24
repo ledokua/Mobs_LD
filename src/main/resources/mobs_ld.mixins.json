@@ -4,10 +4,13 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AreaEffectCloudMixin",
+    "HealOrHarmMobEffectMixin",
+    "LivingEntityEffectThreatMixin",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
     "WitherBossMixin",
-    "compat.SpellEngineAggroMixin"
+    "compat.SpellEngineAggroMixin",
+    "compat.SpellEngineHealMixin"
   ],
   "client": [
     "client.CameraMixin"
