@@ -4,6 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
+import net.ledok.mobs_ld.mob.behaviour.event.ChainEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
@@ -22,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The behaviour files shipped in the jar decode (and the Wither's per-phase skull cadence merges as intended), and
- * the M3 references (slots, skulls, hit damage) are validated at load.
+ * The behaviour files shipped in the jar decode (and the Wither's per-phase skull cadence merges as intended), the
+ * M3 references (slots, skulls, hit damage) are validated at load, and so are the M4 dash and chain fields.
  */
 class ShippedBehavioursTest {
     @BeforeAll
@@ -68,6 +71,61 @@ class ShippedBehavioursTest {
             assertEquals(1, options.skulls().get("side").hit().effects().size());
             assertEquals(1.0, options.skulls().get("volley").splash().orElseThrow().amount());
         }
+    }
+
+    @Test
+    void witherSoulRushLoads() throws Exception {
+        MobBehaviour wither = load("/data/minecraft/mob_behaviour/wither.json");
+        assertTrue(wither.abilities().keySet().containsAll(java.util.List.of("soul_rush", "soul_rush_2", "soul_rush_follow",
+                "test_volley")));
+        assertFalse(wither.abilities().containsKey("test_hover_slam"));
+        DashEvent rush = dash(wither.abilities().get("soul_rush"));
+        assertEquals(java.util.Optional.of(1.4), rush.speed());
+        assertTrue(rush.width().blocks().isEmpty(), "width: body");
+        assertEquals(DashEvent.Push.SIDE, rush.push());
+        assertEquals(java.util.Optional.of(0.4), rush.height());
+        assertEquals(4.0, rush.staggerMinDistance());
+        assertEquals(Telegraph.Style.SWEEP, rush.telegraph().style());
+        assertTrue(rush.telegraph().arrow());
+        assertEquals(0.8, rush.begin(), 1.0e-9);
+        assertEquals(20.0, rush.hit().orElseThrow().amount().orElseThrow());
+        // 28 blocks at 1.4 per tick take 1 s: the event outlasts the longest rush, the ability outlasts the event.
+        assertTrue(rush.end() >= 1.8 + 1.0 && rush.end() <= wither.abilities().get("soul_rush").duration());
+        DashEvent follow = dash(wither.abilities().get("soul_rush_follow"));
+        assertFalse(follow.telegraph().show());
+        assertEquals(12.0, follow.hit().orElseThrow().amount().orElseThrow());
+        assertEquals(MobBehaviour.TargetRule.slot("left_head"), wither.abilities().get("soul_rush_follow").target());
+        // The follow rush locks 0.3 s before it starts, 0.7 s after the snap.
+        assertEquals(0.4, wither.abilities().get("soul_rush_follow").trackUntil().orElseThrow(), 1.0e-9);
+        assertEquals(0.7, follow.at(), 1.0e-9);
+        assertTrue(wither.abilities().get("soul_rush_2").events().stream().anyMatch(event -> event instanceof ChainEvent chain
+                && chain.to().equals("soul_rush_follow") && Math.abs(chain.at() - 2.9) < 1.0e-9));
+        assertEquals(java.util.List.of("soul_rush"), wither.phases().get(0).abilities());
+        assertEquals(java.util.List.of("soul_rush_2"), wither.phases().get(1).abilities());
+        assertEquals(java.util.List.of("soul_rush_2"), wither.phases().get(2).abilities());
+        assertTrue(wither.stagger().isPresent());
+    }
+
+    private static DashEvent dash(MobBehaviour.Ability ability) {
+        return ability.events().stream().filter(DashEvent.class::isInstance).map(DashEvent.class::cast).findFirst()
+                .orElseThrow();
+    }
+
+    @Test
+    void dashAndChainAreValidated() {
+        String base = "{\"abilities\": {\"a\": {\"duration\": 3, \"events\": [%s]}, \"b\": {\"duration\": 1}}}";
+        String timed = "{\"type\": \"dash\", \"at\": 1, \"until\": 2, \"max_distance\": 10}";
+        assertEquals("", error(base.formatted(timed)));
+        assertEquals("", error(base.formatted("{\"type\": \"dash\", \"at\": 1, \"speed\": 1.4, \"max_distance\": 28, "
+                + "\"width\": \"body\", \"push\": \"side\", \"telegraph\": {\"style\": \"sweep\", \"arrow\": true}}")));
+        assertEquals("", error(base.formatted(timed.replace("}", ", \"width\": 3.5}"))));
+        assertTrue(error(base.formatted("{\"type\": \"dash\", \"at\": 1, \"max_distance\": 10}")).contains("speed"));
+        assertTrue(error(base.formatted(timed.replace("\"until\": 2", "\"until\": 0.5"))).contains("before it starts"));
+        assertFalse(error(base.formatted(timed.replace("}", ", \"width\": \"wide\"}"))).isEmpty());
+        assertFalse(error(base.formatted(timed.replace("}", ", \"push\": \"up\"}"))).isEmpty());
+        assertFalse(error(base.formatted(timed.replace("}", ", \"telegraph\": {\"style\": \"spin\"}}"))).isEmpty());
+        assertEquals("", error(base.formatted("{\"type\": \"chain\", \"at\": 2, \"to\": \"b\"}")));
+        assertTrue(error(base.formatted("{\"type\": \"chain\", \"at\": 2, \"to\": \"c\"}")).contains("'c'"));
     }
 
     private static String error(String json) {

@@ -50,7 +50,8 @@ while an ability, a stagger or the walk home runs.
 the mob's feet for `hover`), never by heightmap, so under the Nether roof it is the floor, not the roof. The surface
 of water or lava below the point counts as floor (a flyer over a lava sea hovers over the lava, not its bed); a mob
 wading or swimming still gets the bed under it. With nothing within `ground_scan` (the void, a deep drop) there is no
-floor: telegraphs then sit at the point itself, and a `hover` over the ground keeps its altitude.
+floor: telegraphs then sit at the point itself (a `dash` strip leaves those parts out), and a `hover` over the ground
+keeps its altitude.
 
 **Reach band**: `reach_height` / `reach_depth` are used everywhere a height matters - an ability only starts if the
 aim's feet are inside the band, hits land on anyone inside it, and a target outside it that the mob cannot path to
@@ -109,8 +110,18 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
 | `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
 | `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
-| `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818" }` |
+| `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818", "style": "grow", "arrow": false }` (below) |
 | `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` (see below) |
+
+The `telegraph` block (also used by `dash`):
+
+| field | default | meaning |
+|---|---|---|
+| `show` | true | false = no ground warning |
+| `from` | shortly before the impact | when it appears |
+| `color` | `#B01818` | `#RRGGBB`; the impact flash is a brighter shade |
+| `style` | `grow` | how it fills until the impact: `grow` (the whole shape at once, growing from its origin: rectangles widen, circles and cones grow) or `sweep` (rectangles and dash strips fill along their length, from the origin toward the far end; cones grow their radius; circles as `grow`) |
+| `arrow` | false | rectangles (and dash strips) get an arrowhead past their far end, 1.5 times as wide as the rectangle at its base and 0.75 times its width long: a direction marking only, outside the area, nobody standing in it is hit. Other shapes ignore it |
 
 The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
 
@@ -144,18 +155,75 @@ GeckoLib animations, so it replays these. **Re-bake after any model or animation
 `/mobs_ld debug` on, swept blades show as electric sparks. Pick windows from the baked track (when the
 blade moves fast through body height, 0-1.8 blocks).
 
-### `dash` - charge
-`at`, `until`, `max_distance`, `overshoot` (1.0, blocks past the aim), `width` (2.0), optional `hit` (applied once
-to everyone the body sweeps through), `on_wall` (`stagger` | `stop`), `telegraph` (draws the path).
+### `dash` - charge in a straight line
+```json
+{ "type": "dash", "at": 1.8, "speed": 1.4, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
+  "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+  "telegraph": { "from": 0.8, "style": "sweep", "arrow": true, "color": "#6A2CB0" },
+  "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } }
+```
+| field | default | meaning |
+|---|---|---|
+| `at` | required | the body starts moving |
+| `until` | - | it covers its lane evenly by then; needed unless `speed` is set |
+| `speed` | - | instead: a constant speed in blocks per tick (a sprinting player is ~0.28), faster with the phase's `attack_speed` like the rest of the timeline; it runs until the lane is covered (with `until` as well: at most until then) |
+| `max_distance` | required | longest lane |
+| `overshoot` | 1.0 | blocks past the aim |
+| `width` | 2.0 | lane width in blocks, or `body`: the host's rendered body (the Wither: 3 x its scale; other mobs: their hitbox width) |
+| `height` | none | blocks above the aim's feet (where it stood when the dash locked) that the body's feet are driven to every tick: a flyer rushing low. Without it the body keeps its own vertical speed (gravity, a jump), and a host that holds its altitude (the Wither) stays level |
+| `push` | `away` | which way `hit`'s knockback shoves: `away` from the body, or `side`: out of the lane on the side the victim stands (dead centre: to the lane's right) |
+| `on_wall` | `stagger` | `stagger` (the behaviour's `stagger` window) or `stop` |
+| `stagger_min_distance` | 4 | a wall only staggers after this much travel; hit sooner, the dash just stops |
+| `telegraph` | shown | the strip (below); `{ "show": false }` for an untelegraphed rush |
+| `hit` | none | applied once to everyone the body meets |
+
+- **Locking.** Direction, length and lane lock when the telegraph appears (at `at` without one): the lane runs from
+  the body's centre straight at where the aim stood then (followed until the ability's `track_until`),
+  `distance to the aim + overshoot` long, at most `max_distance`, and the body turns along it. An untelegraphed dash
+  that must lock earlier ends `track_until` that much before `at` (the Wither's second rush locks 0.3 s ahead).
+- **Contact = the drawn strip.** A victim is hit when its centre is on the lane (within `width` / 2 of the centre
+  line, between the start and where the body's centre stops, the side edges included) as the body passes it (the
+  body reaches half its hitbox ahead and behind its centre; vertically, the victim's hitbox must come within half a
+  block of the height the body's hitbox spanned during the tick). The test is swept every tick from the old to the
+  new position of both (the dash remembers where everyone near the lane was at its previous tick, from a few blocks
+  ahead of the body), so a 1.4 blocks per tick rush cannot skip a player and a head-on roll through it still meets
+  it. Each victim is struck at most once per dash,
+  even when a dodge blocks it: a Combat Roll whose i-frames take the contact clears that player for the rest of the
+  dash. A sideways drift (a shove, a hover settling) is pulled back onto the centre line.
+- **The strip** is laid on the ground in segments of up to 6 blocks: the floor is sampled every block along the
+  centre line with the deep ground scan (from 2 blocks above the height the body will rush at, down
+  `movement.ground_scan`, so under the Nether roof it is the floor; where the ground rises above that start, the scan
+  starts at the first open block above it, so the strip lies on top of the rise, not inside it), blocks whose floors
+  are within half a block of each other share a segment (laid at their highest floor, so no part sinks into a rise),
+  and parts over the void are left out. With `style: sweep` it fills from the mob toward the tip, one segment after
+  the other; `arrow: true` adds the arrowhead past the end, laid on the highest floor of its own samples (left out
+  only if none has a floor). A body held at `height` (or by a host that holds its altitude) flies level: over a dip
+  or a downslope it passes above players more than half a block below its hitbox, and rising ground in the lane is a
+  wall.
+- **Walls** are blocks (and the world border): a dashing body passes through entities with collision boxes (boats,
+  shulkers, minecarts), and climbables (vines, ladders, scaffolding) do not slow it. Running into a wall ends the dash;
+  after `stagger_min_distance` blocks of travel with `on_wall: stagger` it puffs smoke and the mob staggers (the
+  behaviour's `stagger` block; without one it just stops).
 
 ### `chase` - homing run that hands over to another ability
 `at`, `clip` (loop played while running), `max_time`, `speed` (blocks per tick; a sprinting player is ~0.28),
 `turn_rate` (6, degrees per tick - lower is easier to side-step), `reach` (3.0), `on_reach` / `on_timeout` (ability
 names to chain into), `on_wall` (`stagger` | `stop`), `width` + optional `hit` (trample, once per victim).
 
-Chaining: the chased-into ability starts at once with the same aim, skipping `global_cooldown`. Give such
-follow-ups `"weight": 0` so they are never picked on their own. Gorefist's charge is `charge` (crouch tell, then
+Chaining (a chase's hand-over, a `chain` event): the chained-into ability starts at once, skipping
+`global_cooldown`, its range and the phase's ability list. It keeps the same aim if its own `target` is `current`
+(the default); any other rule picks its aim again (below). Give such follow-ups `"weight": 0` so they are never
+picked on their own. Gorefist's charge is `charge` (crouch tell, then
 chase) -> `charge_attack` on reach or `charge_exhaust` (a 2.5 s vulnerable window) after 10 s.
+
+### `chain` - hand over to another ability
+```json
+{ "type": "chain", "at": 2.9, "to": "soul_rush_follow" }
+```
+At `at` the ability ends (events still running are cut off, telegraphs vanish) and `to` starts at once (`to` must be
+one of the file's abilities). The follow-up keeps this ability's aim if its `target` is `current` (the default);
+any other rule picks again, so `"target": "slot:left_head"` turns it on whoever the left head holds now (with nobody
+there it keeps the old aim). A stagger, phase change or reset before `at` ends the ability without the hand-over.
 
 ### `summon`
 `at`, `entity`, `count` (1), `forward` / `up` / `right` offset from the mob, `spread` (1.0), `max_alive` (8).
@@ -406,7 +474,7 @@ Mobs_LD ships a behaviour for the vanilla Wither; a datapack can replace it at t
 - **Between abilities** it flies like vanilla (`movement.style: vanilla`) and its heads shoot: vanilla's skulls, or
   with `host.skulls` Mobs_LD's (below). While an ability, a stagger or
   the walk home runs, its own chase stops; during an ability it holds perfectly still unless an event (`hover`,
-  `dash`) moves it, and a `dash` or `chase` keeps its altitude; in a stagger it sinks.
+  `dash`) moves it, and a `chase` or a `dash` without `height` keeps its altitude; in a stagger it sinks.
 - **Targets.** With `boss.engage_on: players` its nearest-target goal looks for players only.
 - **Heads.** The middle head follows its main target (the tank: threat top or taunt lock). With
   [target slots](#target-slots) named `right_head` / `left_head` those slots aim the side heads (on the Wither's own
@@ -464,18 +532,38 @@ A skull spec:
 Per phase, e.g. `"host": { "skulls": { "center": { "every": 3.5 } } }` tightens one cadence and keeps the rest.
 
 - **Still vanilla:** the summoning charge itself, and every part of a Wither whose file leaves an option out.
-- **The shipped file is a placeholder kit:** base stats 1711 HP / 2.0 attack (so R = its attack damage / 2), players
+- **The shipped kit** (incomplete until milestone M5): base stats 1711 HP / 2.0 attack (so R = its attack damage / 2), players
   only, line-of-sight reach (hide 3 s and aggro passes on; 15 s with nobody visible and it resets), leash 64 (both off
   inside Arenas_LD runs), soft enrage at 8 min, phases at 50 % (blue, projectiles x0.6, player height) and 20 % (red).
   Heads: right = `lowest_threat`, left = `spread`, both within 30 blocks and in sight, the right one re-picked every
   9-11 s and the left one 5 s after each of its picks, replaced after 2 s out of sight. Skulls at level 0 / Normal: middle 2.4 direct + 0.6 splash
   every 4.0 / 3.5 / 3.0 s (by phase), sides 2.0 + 0.5 splash and Wither I for 3 s on a direct hit every 4-5 / 3.5-4.5 /
-  3-4 s, all at 1.6 blocks per tick; `volley` 4.0 + 1.0. Abilities: `test_hover_slam` (rise over the target, slam a
-  4.5-block circle under it), there to check hover and telegraphs in game, and `test_volley` (weight 0: only through
-  `/mobs_ld ability`; all heads lock onto the right head's player with a sound, soul flames at the mouths and an
-  action-bar line, then three waves of three `volley` skulls 0.5 s apart). The real kit (Soul Rush, Grave Call)
-  replaces them in later milestones; the kit is incomplete until then (milestone M5 of
-  `docs/design/wither-rework.md`).
+  3-4 s, all at 1.6 blocks per tick; `volley` 4.0 + 1.0. A wall stagger lasts 2 s. Abilities (milestone M5 of
+  `docs/design/wither-rework.md` adds Grave Call): **Soul Rush** in phase 1, **Soul Rush x2** in
+  phases 2 and 3 (below), and `test_volley` (weight 0: only through `/mobs_ld ability`; all heads lock onto the
+  right head's player with a sound, soul flames at the mouths and an action-bar line, then three waves of three
+  `volley` skulls 0.5 s apart).
+
+**Soul Rush** (`soul_rush`; cooldown 12 s, first use 8 s into the fight; target the tank within 22 blocks):
+- 0.0-0.8 s: it backs off to 12 blocks from its target, 4 above it (`hover` with `retreat_to`); all three heads snap
+  on (`look`), ambient sound at pitch 0.7 and soul flames at the mouths.
+- 0.8 s: direction and length lock and the purple strip appears: as wide as the body (3 x scale), the distance to the
+  target + 5 long (at most 28), laid on the ground in segments that follow slopes, filling from the Wither toward the
+  arrowhead at its end.
+- 0.8-1.8 s: it drops to 0.4 above the target's feet, holding its place.
+- 1.8 s: it rushes down the lane at 1.4 blocks per tick (28 blocks in 1 s), still 0.4 above where the target stood.
+  Contact only: 20.0 x R to everyone whose centre is on the strip as the body passes, once each, shoved sideways out
+  of the lane (0.8, knock-up 0.3). Dodge: step 2 blocks out of the lane, or Combat Roll through the body (its contact
+  lasts 1-2 ticks against 8 i-frame ticks, and a blocked contact clears the player for the whole rush).
+- A wall after 4+ blocks of travel: smoke and a 2 s stagger (it sinks to the ground, the heads hold fire).
+- Until 4.0 s it stays low where the rush ended: a short melee window.
+
+**Soul Rush x2** (`soul_rush_2`; cooldown 13 s, ready 6 s into phase 2; replaces Soul Rush there): the first rush as
+above with a 0.85 s strip (it locks at 0.95 s), then at 2.9 s a `chain` into `soul_rush_follow`, aimed at the left
+(spread) head's player: all heads snap onto that player with the shoot sound at pitch 0.5 and smoke at the mouths;
+the second rush has no strip, locks its direction 0.4 s after the snap (0.3 s before it starts) and starts 0.7 s after
+the snap, at 1.8 blocks per tick, for 12.0 x R (same contact, side push and wall rules). A stagger on the first rush
+ends the combo.
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).

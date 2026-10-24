@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
+import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
@@ -126,7 +127,7 @@ public final class AbilityRun {
         cancelled = true;
         List<AttackZoneDisplay> displays = new ArrayList<>();
         for (Marker marker : markers) {
-            displays.add(marker.display);
+            displays.addAll(marker.displays);
         }
         markers.clear();
         return displays;
@@ -317,6 +318,26 @@ public final class AbilityRun {
     }
 
     /**
+     * The floor under a point of a path (a dash strip's samples): as {@link #groundBelow(Vec3)}, except where the scan
+     * would start inside terrain (ground rising more than 2 blocks above the point): the scan then starts at the first
+     * open block above, so the zone lies on top of that terrain instead of underground. Steps up at most
+     * {@code movement.ground_scan} blocks; empty if it is still inside terrain then, or over the void.
+     */
+    public Optional<Vec3> floorNear(Vec3 point) {
+        ServerLevel level = level();
+        int start = Mth.floor(point.y) + 2;
+        int limit = Math.min(level.getMaxBuildHeight() - 1, start + combat.movement().groundScan());
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(Mth.floor(point.x), start, Mth.floor(point.z));
+        int y = start;
+        while (!level.getBlockState(cursor.setY(y)).getCollisionShape(level, cursor).isEmpty()) {
+            if (++y > limit) {
+                return Optional.empty();
+            }
+        }
+        return y == start ? groundBelow(point) : groundBelow(new Vec3(point.x, y, point.z), 0);
+    }
+
+    /**
      * Vertical speed for an event that steers the body only sideways (a dash, a chase): none for a host that holds
      * its altitude while the engine owns it (the Wither, whose move control would let it sink), else the body's own
      * (gravity, a jump in progress).
@@ -335,13 +356,35 @@ public final class AbilityRun {
         combat.markBodyMoved();
     }
 
-    /** Draws a telegraph that fills up until the impact at {@code impactSeconds}. */
+    /**
+     * Draws a telegraph that fills up until the impact at {@code impactSeconds}. A rectangle whose telegraph has
+     * {@code arrow} gets an arrowhead past its far end.
+     */
     public Marker telegraph(Vec3 origin, float yawDegrees, Shape shape, Telegraph style, double impactSeconds) {
+        if (style.arrow() && shape instanceof Shape.Rectangle rectangle) {
+            float width = (float) rectangle.width();
+            AttackZone strip = new AttackZone.Strip(width, (float) rectangle.length(),
+                    (float) DashLane.headLength(width), 0.0F, 1.0F);
+            Vec3 start = origin.add(forward(yawDegrees).scale(rectangle.offset()));
+            return telegraph(List.of(new Zone(start, yawDegrees, strip)), style, impactSeconds);
+        }
+        return telegraph(List.of(new Zone(origin, yawDegrees, shape.zone())), style, impactSeconds);
+    }
+
+    /**
+     * Draws one telegraph made of several zones (e.g. a dash strip laid on the ground in segments), which fill up
+     * together until the impact at {@code impactSeconds} and flash, fade or vanish together. No zones = nothing drawn
+     * (the marker is still valid).
+     */
+    public Marker telegraph(List<Zone> zones, Telegraph style, double impactSeconds) {
         int total = Math.max(1, (int) Math.round((impactSeconds - seconds()) * 20.0 / speed));
-        AttackDisplayConfig config = new AttackDisplayConfig(AttackDisplayConfig.AnimationStyle.GROW,
-                style.prepareColor(), style.invokeColor());
-        Marker marker = new Marker(AttackZoneDisplay.spawn(level(), origin, yawDegrees, shape.zone(), config, total),
-                impactSeconds, total);
+        AttackDisplayConfig config = new AttackDisplayConfig(style.style().animation(), style.prepareColor(),
+                style.invokeColor());
+        List<AttackZoneDisplay> displays = new ArrayList<>();
+        for (Zone zone : zones) {
+            displays.add(AttackZoneDisplay.spawn(level(), zone.origin(), zone.yaw(), zone.zone(), config, total));
+        }
+        Marker marker = new Marker(List.copyOf(displays), impactSeconds, total);
         markers.add(marker);
         return marker;
     }
@@ -349,14 +392,16 @@ public final class AbilityRun {
     /** The impact happened: flash the telegraph briefly, then let it go. */
     public void flash(Marker marker) {
         if (marker != null && markers.remove(marker)) {
-            marker.display.setBrightRed();
-            combat.fadeOut(marker.display);
+            for (AttackZoneDisplay display : marker.displays) {
+                display.setBrightRed();
+                combat.fadeOut(display);
+            }
         }
     }
 
     public void clear(Marker marker) {
         if (marker != null && markers.remove(marker)) {
-            marker.display.remove();
+            marker.displays.forEach(AttackZoneDisplay::remove);
         }
     }
 
@@ -402,21 +447,27 @@ public final class AbilityRun {
         mob.yHeadRot = degrees;
     }
 
-    /** A live telegraph on the ground. */
+    /** One zone of a telegraph: where it is drawn (on the ground), its facing and its shape. */
+    public record Zone(Vec3 origin, float yaw, AttackZone zone) {
+    }
+
+    /** A live telegraph on the ground (one or more zones). */
     public static final class Marker {
-        private final AttackZoneDisplay display;
+        private final List<AttackZoneDisplay> displays;
         private final double impactSeconds;
         private final int totalTicks;
 
-        private Marker(AttackZoneDisplay display, double impactSeconds, int totalTicks) {
-            this.display = display;
+        private Marker(List<AttackZoneDisplay> displays, double impactSeconds, int totalTicks) {
+            this.displays = displays;
             this.impactSeconds = impactSeconds;
             this.totalTicks = totalTicks;
         }
 
         private void update(AbilityRun run) {
             int remaining = Math.max(0, (int) Math.round((impactSeconds - run.seconds()) * 20.0 / run.speed()));
-            display.update(Math.min(remaining, totalTicks), totalTicks);
+            for (AttackZoneDisplay display : displays) {
+                display.update(Math.min(remaining, totalTicks), totalTicks);
+            }
         }
     }
 

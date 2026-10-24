@@ -5,10 +5,12 @@
   "mixins": [
     "AreaEffectCloudMixin",
     "EntityCombatViewersMixin",
+    "EntityDashMixin",
     "EntityTransferMixin",
     "HealOrHarmMobEffectMixin",
     "HurtingProjectileAccessor",
     "LivingEntityCombatMixin",
+    "LivingEntityDashMixin",
     "LivingEntityEffectThreatMixin",
     "MobCombatHostMixin",
     "MobGoalsAccessor",

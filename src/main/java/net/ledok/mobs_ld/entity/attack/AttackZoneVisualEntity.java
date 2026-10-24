@@ -21,6 +21,11 @@ public class AttackZoneVisualEntity extends Entity {
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_PARAM_C =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
+    /** The part of the wind-up a SWEEP fill runs in (fractions; 0..1 = all of it), for strips drawn in segments. */
+    private static final EntityDataAccessor<Float> DATA_SWEEP_FROM =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_SWEEP_TO =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_YAW_DEGREES =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_STYLE =
@@ -54,6 +59,8 @@ public class AttackZoneVisualEntity extends Entity {
         builder.define(DATA_PARAM_A, 0.0F);
         builder.define(DATA_PARAM_B, 0.0F);
         builder.define(DATA_PARAM_C, 0.0F);
+        builder.define(DATA_SWEEP_FROM, 0.0F);
+        builder.define(DATA_SWEEP_TO, 1.0F);
         builder.define(DATA_YAW_DEGREES, 0.0F);
         builder.define(DATA_STYLE, AttackDisplayConfig.AnimationStyle.DEFAULT.ordinal());
         builder.define(DATA_PREPARE_COLOR, 0xFF8B0000);
@@ -97,6 +104,8 @@ public class AttackZoneVisualEntity extends Entity {
     }
 
     public void configure(AttackZone zone, float yawDegrees, AttackDisplayConfig config, int totalWindupTicks, boolean preview) {
+        entityData.set(DATA_SWEEP_FROM, 0.0F);
+        entityData.set(DATA_SWEEP_TO, 1.0F);
         switch (zone) {
             case AttackZone.Rectangle r -> {
                 entityData.set(DATA_ZONE_KIND, 0);
@@ -127,6 +136,14 @@ public class AttackZoneVisualEntity extends Entity {
                 entityData.set(DATA_PARAM_A, (float) r.rayCount());
                 entityData.set(DATA_PARAM_B, r.length());
                 entityData.set(DATA_PARAM_C, r.width());
+            }
+            case AttackZone.Strip strip -> {
+                entityData.set(DATA_ZONE_KIND, 5);
+                entityData.set(DATA_PARAM_A, strip.width());
+                entityData.set(DATA_PARAM_B, strip.length());
+                entityData.set(DATA_PARAM_C, strip.headLength());
+                entityData.set(DATA_SWEEP_FROM, strip.sweepFrom());
+                entityData.set(DATA_SWEEP_TO, strip.sweepTo());
             }
         }
         entityData.set(DATA_YAW_DEGREES, yawDegrees);
@@ -162,6 +179,14 @@ public class AttackZoneVisualEntity extends Entity {
 
     public float getParamC() {
         return entityData.get(DATA_PARAM_C);
+    }
+
+    public float getSweepFrom() {
+        return entityData.get(DATA_SWEEP_FROM);
+    }
+
+    public float getSweepTo() {
+        return entityData.get(DATA_SWEEP_TO);
     }
 
     public float getYawDegrees() {

@@ -74,6 +74,14 @@ public interface HostAdapter {
     }
 
     /**
+     * How wide the mob's rendered body is, in blocks: a {@code dash} with {@code width: body} draws and hits a lane this
+     * wide. By default its hitbox width (which follows {@code generic.scale}).
+     */
+    default double bodyWidth(Mob mob) {
+        return mob.getBbWidth();
+    }
+
+    /**
      * The {@code host.type} this adapter reads its options from (see {@link HostSpec}); null = it takes none, and a
      * typed host block on its entity type is ignored with a warning at reload.
      */

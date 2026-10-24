@@ -3,6 +3,7 @@ package net.ledok.mobs_ld.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
+import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.ledok.mobs_ld.entity.attack.AttackZoneVisualEntity;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -77,7 +78,9 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
             scaleMult = switch (style) {
                 case GROW -> displayProgress;
-                case DEFAULT, SWEEP -> 1.0F;
+                // A circle has no length to sweep along: it grows instead.
+                case SWEEP -> isCircle(entity) ? displayProgress : 1.0F;
+                case DEFAULT -> 1.0F;
             };
             sweepProgress = switch (style) {
                 case SWEEP -> progress;
@@ -101,6 +104,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             case 1 -> renderCone(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 2, 3 -> renderCircle(entity, matrix, buffer, color, scaleMult);
             case 4 -> renderCircleRays(entity, matrix, buffer, color, scaleMult, sweepProgress);
+            case 5 -> renderStrip(entity, matrix, buffer, color, scaleMult, sweepProgress);
             default -> {
             }
         }
@@ -127,6 +131,38 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
         fillPixelated(matrix, buffer, color, yaw, -halfWidth, backF, halfWidth, frontF,
                 (x, z) -> true);
+    }
+
+    /**
+     * One segment of a lane: the lane part fills along its length first, then the arrowhead past its end (if any),
+     * while the global sweep runs through this segment's window, so the segments of one strip fill in turn. The lane's
+     * side edges are drawn exactly at half its width (they are the hit boundary); the arrowhead is wider.
+     */
+    private void renderStrip(
+            AttackZoneVisualEntity entity,
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float scaleMult,
+            float sweepProgress
+    ) {
+        float length = entity.getParamB();
+        float head = entity.getParamC();
+        float yaw = (float) Math.toRadians(entity.getYawDegrees());
+        float from = entity.getSweepFrom();
+        float to = entity.getSweepTo();
+        float local = to > from ? clamp01((sweepProgress - from) / (to - from)) : (sweepProgress >= to ? 1.0F : 0.0F);
+        float front = (length + head) * local;
+        float halfWidth = entity.getParamA() * scaleMult * 0.5F;
+
+        fillPixelated(matrix, buffer, color, yaw, -halfWidth, 0.0F, halfWidth, Math.min(front, length),
+                (x, z) -> true);
+        if (head > 0.0F && front > length) {
+            float headHalf = entity.getParamA() * scaleMult * AttackZone.Strip.HEAD_HALF_WIDTH;
+            float tip = length + head;
+            fillPixelated(matrix, buffer, color, yaw, -headHalf, length, headHalf, front,
+                    (x, z) -> Math.abs(x) <= headHalf * (tip - z) / head);
+        }
     }
 
     private void renderCone(
@@ -258,6 +294,12 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         double dy = entity.getY() - y;
         double dz = entity.getZ() - z;
         return (dx * dx + dy * dy + dz * dz) < (32.0 * 32.0);
+    }
+
+    /** Circle and target-circle zones (kinds 2 and 3). */
+    private static boolean isCircle(AttackZoneVisualEntity entity) {
+        int kind = entity.getZoneKind();
+        return kind == 2 || kind == 3;
     }
 
     private static float clamp01(float value) {

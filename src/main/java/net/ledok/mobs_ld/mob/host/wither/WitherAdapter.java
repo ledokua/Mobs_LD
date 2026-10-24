@@ -52,6 +52,8 @@ public final class WitherAdapter implements HostAdapter {
     /** Target slots shown on the side heads. */
     public static final String RIGHT_HEAD_SLOT = "right_head";
     public static final String LEFT_HEAD_SLOT = "left_head";
+    /** Width of the rendered body (side head to side head) at scale 1. */
+    private static final double RENDERED_WIDTH = 3.0;
 
     private WitherAdapter() {
     }
@@ -204,6 +206,15 @@ public final class WitherAdapter implements HostAdapter {
     @Override
     public MobBehaviour.BossBar defaultBarStyle() {
         return VANILLA_BAR;
+    }
+
+    /**
+     * The model is about 3 blocks across the side heads (its 0.9-block hitbox is only the spine), times
+     * {@code generic.scale} (an Arenas raid Wither at scale 3 rushes down a 9-block lane).
+     */
+    @Override
+    public double bodyWidth(Mob mob) {
+        return RENDERED_WIDTH * mob.getScale();
     }
 
     /** Its move control turns gravity on while nothing steers it, so a dash or chase would sink it. */

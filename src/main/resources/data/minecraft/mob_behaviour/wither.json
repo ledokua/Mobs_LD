@@ -33,6 +33,7 @@
     "ground_scan": 40
   },
   "global_cooldown": 1.0,
+  "stagger": { "clip": "stagger", "duration": 2.0 },
   "boss": {
     "engage_on": "players",
     "leash": 64,
@@ -40,17 +41,53 @@
     "soft_enrage": { "after": 480, "damage_multiplier": 1.5 }
   },
   "abilities": {
-    "test_hover_slam": {
-      "duration": 2.6, "cooldown": 15, "initial_cooldown": 6, "weight": 1,
-      "range": { "max": 6 },
-      "track_until": 0.6,
+    "soul_rush": {
+      "duration": 4.0, "cooldown": 12, "initial_cooldown": 8, "weight": 3, "target": "current",
+      "range": { "max": 22, "above": 6, "below": 16 },
+      "track_until": 0.8,
       "events": [
-        { "type": "hover", "from": 0.0, "until": 1.1, "relative_to": "aim", "height": 5, "rate": 0.35 },
-        { "type": "hover", "from": 1.1, "until": 1.5, "relative_to": "ground", "height": 0.5, "rate": 0.8 },
-        { "type": "hit", "at": 1.5, "telegraph": { "from": 0.6, "color": "#6A2CB0" },
-          "shape": { "type": "circle", "radius": 4.5 }, "height": 3, "depth": 2,
-          "hit": { "damage": 6.0, "knockback": 0.6, "knock_up": 0.5 } },
-        { "type": "hover", "from": 1.5, "until": 2.6, "relative_to": "ground", "height": 1.5, "rate": 0.15 }
+        { "type": "hover", "from": 0.0, "until": 0.8, "relative_to": "aim", "height": 4, "retreat_to": 12, "rate": 0.75 },
+        { "type": "look", "at": 0.0, "until": 1.8, "heads": "all", "target": "aim" },
+        { "type": "fx", "at": 0.0,
+          "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.7, "volume": 2 },
+          "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 } },
+        { "type": "hover", "from": 0.8, "until": 1.8, "relative_to": "aim", "height": 0.4, "rate": 0.25 },
+        { "type": "dash", "at": 1.8, "speed": 1.4, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "telegraph": { "from": 0.8, "style": "sweep", "arrow": true, "color": "#6A2CB0" },
+          "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } }
+      ]
+    },
+    "soul_rush_2": {
+      "duration": 2.9, "cooldown": 13, "initial_cooldown": 6, "weight": 3, "target": "current",
+      "range": { "max": 22, "above": 6, "below": 16 },
+      "track_until": 0.95,
+      "events": [
+        { "type": "hover", "from": 0.0, "until": 0.95, "relative_to": "aim", "height": 4, "retreat_to": 12, "rate": 0.75 },
+        { "type": "look", "at": 0.0, "until": 1.8, "heads": "all", "target": "aim" },
+        { "type": "fx", "at": 0.0,
+          "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.7, "volume": 2 },
+          "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 } },
+        { "type": "hover", "from": 0.95, "until": 1.8, "relative_to": "aim", "height": 0.4, "rate": 0.3 },
+        { "type": "dash", "at": 1.8, "speed": 1.4, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "telegraph": { "from": 0.95, "style": "sweep", "arrow": true, "color": "#6A2CB0" },
+          "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } },
+        { "type": "chain", "at": 2.9, "to": "soul_rush_follow" }
+      ]
+    },
+    "soul_rush_follow": {
+      "duration": 2.6, "weight": 0, "target": "slot:left_head",
+      "track_until": 0.4,
+      "events": [
+        { "type": "look", "at": 0.0, "until": 1.7, "heads": "all", "target": "aim" },
+        { "type": "fx", "at": 0.0,
+          "sound": { "id": "minecraft:entity.wither.shoot", "pitch": 0.5, "volume": 2 },
+          "particles": { "id": "minecraft:large_smoke", "at": "heads", "count": 16, "spread": 0.3 } },
+        { "type": "dash", "at": 0.7, "speed": 1.8, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "telegraph": { "show": false },
+          "hit": { "amount": 12.0, "knockback": 0.8, "knock_up": 0.3 } }
       ]
     },
     "test_volley": {
@@ -67,12 +104,13 @@
     }
   },
   "phases": [
-    { "below_health": 1.0, "bar": { "color": "purple" } },
-    { "below_health": 0.5, "bar": { "color": "blue" },
+    { "below_health": 1.0, "bar": { "color": "purple" }, "abilities": [ "soul_rush" ] },
+    { "below_health": 0.5, "bar": { "color": "blue" }, "abilities": [ "soul_rush_2" ],
+      "ready_in": { "soul_rush_2": 6 },
       "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
       "host": { "hover_height": 0,
         "skulls": { "center": { "every": 3.5 }, "side": { "every": [3.5, 4.5] } } } },
-    { "below_health": 0.2, "bar": { "color": "red" },
+    { "below_health": 0.2, "bar": { "color": "red" }, "abilities": [ "soul_rush_2" ],
       "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
       "host": { "hover_height": 0,
         "skulls": { "center": { "every": 3.0 }, "side": { "every": [3, 4] } } } }

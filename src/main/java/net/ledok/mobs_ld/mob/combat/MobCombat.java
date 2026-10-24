@@ -93,6 +93,8 @@ public final class MobCombat {
     private int reachCheckIn;
     /** Game time an ability event last set the body's velocity (see {@link #markBodyMoved}). */
     private long bodyMovedAt = Long.MIN_VALUE;
+    /** Game time a dash last moved the body (see {@link #markDashing}). */
+    private long dashedAt = Long.MIN_VALUE;
 
     private AbilityRun current;
     private AbilityRun deathRun;
@@ -423,6 +425,20 @@ public final class MobCombat {
         return bodyMovedAt == mob.level().getGameTime();
     }
 
+    /**
+     * A dash moves the body this tick: its move passes through entities with collision boxes (boats, shulkers,
+     * minecarts), which would otherwise stop it like a wall, and climbables (vines, ladders, scaffolding) do not slow
+     * it to a climb. Only the move of the tick it is marked in; nothing to undo.
+     */
+    public void markDashing() {
+        dashedAt = mob.level().getGameTime();
+    }
+
+    /** Whether a dash moves the body this tick (see {@link #markDashing}); cheap, asked on every move. */
+    public boolean dashingThisTick() {
+        return dashedAt != Long.MIN_VALUE && dashedAt == mob.level().getGameTime();
+    }
+
     public boolean engaged() {
         return engaged;
     }
@@ -510,7 +526,8 @@ public final class MobCombat {
         LivingEntity aim = current.aim();
         current = null;
         if (chained != null && behaviour.abilities().containsKey(chained)) {
-            start(chained, behaviour.abilities().get(chained), aim);
+            MobBehaviour.Ability next = behaviour.abilities().get(chained);
+            start(chained, next, chainedAim(next, aim));
             return;
         }
         globalReadyAt = now + Math.round(behaviour.globalCooldown() * 20.0);
@@ -521,6 +538,19 @@ public final class MobCombat {
         } else {
             host.mobs_ld$stopAction();
         }
+    }
+
+    /**
+     * Whom a chained-into ability aims at: the previous run's aim when its rule is {@code current} (a charge's finisher
+     * hits whoever was charged, not the tank), else a fresh pick by its own rule (e.g. a target slot's holder now),
+     * falling back to the previous aim when that finds nobody.
+     */
+    private LivingEntity chainedAim(MobBehaviour.Ability next, LivingEntity previous) {
+        if (next.target().kind() == MobBehaviour.TargetRule.Kind.CURRENT) {
+            return previous;
+        }
+        LivingEntity picked = CombatTargets.pick(mob, next.target());
+        return picked != null ? picked : previous;
     }
 
     private double cooldownOf(String name, MobBehaviour.Ability ability) {

@@ -28,7 +28,8 @@ public interface AbilityEvent {
             Map.entry("hover", HoverEvent.CODEC),
             Map.entry("look", LookEvent.CODEC),
             Map.entry("fx", FxEvent.CODEC),
-            Map.entry("projectile", ProjectileEvent.CODEC)
+            Map.entry("projectile", ProjectileEvent.CODEC),
+            Map.entry("chain", ChainEvent.CODEC)
     ));
 
     /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */
