@@ -5,6 +5,9 @@ How a data-driven mob fights. One JSON file per mob in a datapack:
 Reloads with `/reload`; a broken file is logged and skipped. Times are **seconds**, distances **blocks**.
 Vanilla mobs can run a behaviour too: see [Vanilla hosts](#vanilla-hosts).
 
+Fields marked *time range* take a number (`4`) or a range (`[4, 5]`), from which a fresh value is rolled each time
+it is used (each re-pick, each shot), so repeating timers drift apart.
+
 The entity itself (hitbox, base stats, spawn egg) is declared in the jar at `mobs_ld/entities/<mob>.json`, and its
 art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_wart.json` in
 `src/main/resources/data/mobs_ld/mob_behaviour/`.
@@ -15,6 +18,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 |---|---|---|
 | `base_attributes` | none | `{ "minecraft:generic.max_health": 1711, ... }`: base values set on every new mob of the type (below) |
 | `host` | none | vanilla hosts only: the host adapter's options, or `{ "enabled": false }` to switch the file off (see [Vanilla hosts](#vanilla-hosts)) |
+| `target_slots` | none | secondary targets by name, e.g. the Wither's side heads (see [Target slots](#target-slots)) |
 | `movement` | standoff 2.0 | how it positions itself between abilities (below) |
 | `global_cooldown` | 0.5 | pause after every ability before the next can start |
 | `intro` | none | ability played once when it first engages (e.g. a roar; set `invulnerable`) |
@@ -31,7 +35,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary`, `vanilla` (the host's own AI moves and attacks between abilities; see below) |
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
-| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random` |
+| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `slot:<name>` (as an ability's `target`) |
 | `reach_height` | 85 % of its height | how far above its feet it can strike |
 | `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
 | `reach_rule` | `path` | what makes a target reachable: `path` (reach band or a full path) or `line_of_sight` (it can see the target) |
@@ -80,7 +84,7 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `initial_cooldown` | 0 | after engaging, before first use |
 | `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
 | `range` | any | `{ "min", "max", "above", "below" }` horizontal distance; `above`/`below` default to the reach band |
-| `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player |
+| `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player, `lowest_threat` (the player with the least threat, 0 counts; a tie goes to someone other than the tank), `slot:<name>` (whoever that [target slot](#target-slots) holds; no holder = the ability is not usable) |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |
 | `aim_side` | 0 | blocks to the mob's right where its weapon strikes (one-handed weapon); it turns so that line meets the target |
@@ -106,10 +110,17 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
 | `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
 | `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818" }` |
-| `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` |
+| `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` (see below) |
 
-`effects`: `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id; unknown ids are
-skipped with a log warning.
+The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
+
+| field | default | meaning |
+|---|---|---|
+| `damage` | 1.0 | multiplier on the mob's live `attack_damage` (the LdMob way) |
+| `amount` | - | instead of `damage`: absolute raw damage at level 0 on Normal, multiplied at hit time by **R** = the mob's live `attack_damage` / the `attack_damage` its `base_attributes` declare (1 if the file declares none, so `amount` then works like `damage`). R is 1 on an unscaled mob and carries what scales its attack (Dungeon Difficulty levels, soft enrage), so a balance sheet lists every hit as one number. Setting both is an error |
+| `damage_type` | `minecraft:mob_attack` | damage type id (any datapack's; skulls default to vanilla's `minecraft:wither_skull`); the mob stays the attacker either way. Unknown ids are reported when the server starts or reloads, and those hits deal the default type |
+| `effects` | none | `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id, applied only when the hit lands; unknown ids are skipped with a log warning |
+| `knockback` / `knock_up` | 0.4 / 0 | the whole push (below) |
 
 Hits ignore vanilla's 10-tick hurt immunity (each event lands at most once per victim), so combo beats and a
 slash right after a trample all count. Mod dodges that cancel damage (Combat Roll's roll i-frames) still work.
@@ -176,6 +187,99 @@ Every tick its velocity is set straight toward the point (horizontally it holds 
 so a flyer stays pinned whatever its own move control does with gravity. Chain several for a rise, a slam and a
 low recovery. Meant for flying hosts (the Wither, flying Mobs_LD mobs); a walker would float.
 
+### `look` - turn heads onto someone
+```json
+{ "type": "look", "at": 0.0, "until": 1.8, "heads": "all", "target": "aim" }
+```
+| field | default | meaning |
+|---|---|---|
+| `at` / `until` | required | active window |
+| `heads` | `all` | `all`, `side`, `center`, `right`, `left` (the host's own right) |
+| `target` | `aim` | `aim` (the ability's aim), `current` (the main target now) or `slot:<name>`; read every tick |
+
+While it runs the heads it names follow `target` instead of their target slots (a tell: all heads snap onto the
+player a rush is aimed at), and those side heads hold their own skull fire; afterwards the slots take them back.
+On a mob with one head, `center` turns its head (the body still faces the ability's aim).
+
+### `fx` - sound, particles, text
+```json
+{ "type": "fx", "at": 0.0,
+  "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.7, "volume": 2 },
+  "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 },
+  "message": { "key": "mobs_ld.cue.wither.grave_call", "where": "actionbar" } }
+```
+All parts are optional and sent from the server (no client mod code).
+- `sound`: any sound id (`pitch` 1, `volume` 1), played at the mob; an id no mod registers still plays if a resource
+  pack defines it.
+- `particles`: a particle type that needs no extra settings; `at` = `self` (middle of the body), `heads` (every head:
+  the Wither's three mouths, a one-headed mob's eyes), `aim` (middle of the aim's body) or `ground` (the floor under
+  the mob); `count` 8, `spread` 0.3 blocks, `speed` 0.02.
+- `message`: a translation key (`assets/<namespace>/lang/*.json`) shown in the action bar of every player within 64
+  blocks or on the mob's threat table. The action bar, because Arenas_LD's timed runs hide boss bars.
+
+### `projectile` - skull volley
+```json
+{ "type": "projectile", "at": 1.0, "skull": "volley", "from": "heads", "aim": "slot:right_head",
+  "waves": 3, "interval": 0.5, "spread": 1.5 }
+```
+| field | default | meaning |
+|---|---|---|
+| `at` | required | first wave |
+| `skull` | required | a skull spec from the host block's `skulls` (validated at load) |
+| `from` | `heads` | `heads` / `all`, `side`, `center`, `right`, `left`; a host without those heads fires from its eyes |
+| `aim` | `aim` | `aim`, `current` or `slot:<name>`, read at each wave (so a wave goes where the target is then) |
+| `waves` / `interval` | 1 / 0.5 | how many waves, how far apart |
+| `spread` | 0 | each wave fires one skull per head as a flat wall across the line of fire, its ends `spread` blocks to either side of the target (the host's right head takes the right end) |
+| `speed` | the spec's | blocks per tick |
+| `dangerous` | false | vanilla's blue skulls (only the look: speed and damage stay the spec's) |
+
+Skulls fly at a constant speed from launch, so one reaches a target `d` blocks away after `d / speed` ticks (vanilla
+skulls start slow and settle at 1.9; the blue ones at 0.27). They are vanilla wither skulls, spawned inside the mob's
+tick, and deal their spec: see [The Wither](#the-wither-dataminecraftmob_behaviourwitherjson).
+
+## Target slots
+
+Secondary targets the mob keeps besides its main one (the threat top or taunt lock). The host adapter decides how a
+slot shows: the Wither's `right_head` and `left_head` slots turn those heads. Abilities aim at a slot with
+`"target": "slot:<name>"`, `look` and `projectile` events with `slot:<name>`.
+
+```json
+"target_slots": {
+  "right_head": { "rule": "lowest_threat", "range": 30, "line_of_sight": true, "repick": [9, 11], "lost_after": 2 },
+  "left_head":  { "rule": "spread", "range": 30, "line_of_sight": true, "repick": [9, 11], "offset": 5, "lost_after": 2 }
+}
+```
+
+| field | default | meaning |
+|---|---|---|
+| `rule` | required | `lowest_threat` or `spread` (below) |
+| `range` | 30 | candidates within this many blocks of the mob |
+| `line_of_sight` | true | candidates must be in sight of the slot's head (the Wither's side mouths; the eyes for a slot without a head) |
+| `repick` | 10 | *time range*: picks again this often (at least 0.5) |
+| `offset` | 0 | re-pick this long after each pick of its lead (the first slot listed without an offset), for the whole fight, whatever made either pick, so the two never switch together; must be shorter than the lead's `repick`. Without a lead it only delays the first scheduled re-pick |
+| `lost_after` | 2 | a holder out of sight this long is replaced |
+
+Candidates: players that are alive, attackable, not stealthed (Rogues' vanish), not spectating or in creative, within
+`range` and (with `line_of_sight`) visible from that head. Pets and summons only as a spread slot's last resort;
+other mobs never.
+- `lowest_threat`: the player with the least threat on the mob's table (0 counts). A tie goes to someone other than
+  the main target, then at random.
+- `spread`: a player that neither the main target nor any other slot is on (avoiding its own previous pick when there
+  is another choice); else the player with the fewest of them on him, ties away from its previous pick (so with two
+  players it alternates at each re-pick); only if no player qualifies, a pet or summon with threat on the table, held
+  only until a player qualifies again (checked every quarter second).
+
+A slot picks as soon as the fight starts (lowest-threat slots first, so a spread slot sees their picks), then every
+`repick` (a slot with an `offset`: that long after each of its lead's picks), and at once when its holder dies,
+leaves, goes out of range, vanishes, or has been out of sight for `lost_after`. With nobody to pick it tries again every half second. Slots empty when the fight ends (reset, wipe,
+disengage). Results for the Wither's heads (middle head = the main target):
+
+| Group | Middle | Right (`lowest_threat`) | Left (`spread`) |
+|---|---|---|---|
+| Solo (with or without a pet) | the player (or a pet holding aggro) | the player | the player |
+| 2 players | tank | other player | alternates between them |
+| 3+ players | tank | lowest threat | a third player |
+
 ## Shapes
 | type | fields |
 |---|---|
@@ -211,7 +315,7 @@ low recovery. Meant for flying hosts (the Wither, flying Mobs_LD mobs); a walker
 | `texture` | uses `<mob>_<texture>.png` if it exists |
 | `movement` | overrides `movement` |
 | `bar` | `{ "color": "blue", "overlay": "notched_10" }`: each part set replaces `boss.bar`'s while the phase runs; on a vanilla host with its own bar (the Wither) it recolours that bar, even without `boss.bar`, and a part neither sets goes back to the host bar's own look |
-| `host` | host options for this phase, laid key by key over the file's `host` block (e.g. `{ "hover_height": 0 }`); it cannot change the `type` |
+| `host` | host options for this phase, laid key by key over the file's `host` block (nested blocks merge too: `{ "hover_height": 0, "skulls": { "center": { "every": 3.5 } } }` changes only that skull's cadence); it cannot change the `type` |
 
 ## Boss
 
@@ -253,8 +357,8 @@ vanilla AI. Everything above works the same, except:
   sun shelter) run only outside a fight, so most hosts should have no `boss` block and drop out after 10 s without
   a target. With `movement.style: vanilla` the vanilla goals keep running in the fight too, between abilities (a
   ranged host keeps shooting). Vanilla target goals skip players the engine gave up on. `hit.damage` multiplies the
-  mob's own `attack_damage` (a zombie's is 3); a mob without that attribute (cow, ghast) deals no hit damage (one
-  log warning).
+  mob's own `attack_damage` (a zombie's is 3), `hit.amount` is scaled by R; a mob without that attribute (cow, ghast)
+  deals no hit damage (one log warning).
 - **Clips and textures.** Vanilla models have no action layer: an ability's `clip`, the stagger and enrage clips and
   a phase `texture` become cues for the entity type's host adapter. Without one (the default) nothing shows; the
   timeline, telegraphs and hits run regardless.
@@ -299,10 +403,37 @@ Mobs_LD ships a behaviour for the vanilla Wither; a datapack can replace it at t
   starts at once.
 - **Bar.** Its own vanilla bar stays (darkens the sky, follows its health); phases only recolour it (`bar`), and a
   phase without one shows the vanilla purple again.
-- **Between abilities** it flies and shoots like vanilla (`movement.style: vanilla`). While an ability, a stagger or
+- **Between abilities** it flies like vanilla (`movement.style: vanilla`) and its heads shoot: vanilla's skulls, or
+  with `host.skulls` Mobs_LD's (below). While an ability, a stagger or
   the walk home runs, its own chase stops; during an ability it holds perfectly still unless an event (`hover`,
   `dash`) moves it, and a `dash` or `chase` keeps its altitude; in a stagger it sinks.
 - **Targets.** With `boss.engage_on: players` its nearest-target goal looks for players only.
+- **Heads.** The middle head follows its main target (the tank: threat top or taunt lock). With
+  [target slots](#target-slots) named `right_head` / `left_head` those slots aim the side heads (on the Wither's own
+  right and left) and vanilla's random side-head targets stop; a side head without a slot then stays idle. `look`
+  events turn any of the three.
+- **Skulls.** With `host.skulls` Mobs_LD fires all its skulls: vanilla's shots, its side-head shots and the idle blue
+  skulls (and their sound) stop. Between abilities the middle head fires the `center` spec at the tank and each side
+  head the `side` spec at its own target, each exactly every `every`, from its own mouth (shoot sound per skull).
+  A head holds its shot while its target is out of sight or `range`; all skull fire pauses while an ability or a
+  stagger runs (the timers wait, so the heads do not all fire the moment it ends), and the first shots come one
+  interval into the fight. The side heads are kept apart: the left one starts half an interval after the right one,
+  and neither fires within half a `side` interval (its average) of the other's last shot, so on a lone player the
+  second skull does not land inside the first one's hurt immunity; the middle head keeps its own timing. `projectile` events fire any spec by name. The skulls are vanilla wither skulls (vanilla
+  look and client), owned by the Wither (so Dungeon Difficulty's and DD Loot Stage's damage_dealt scale them) and
+  tagged `mobs_ld_skull:<spec>`; when one lands its spec is looked up in the Wither's current phase, so reloads and
+  phase changes apply in flight and saved skulls keep working:
+  - direct hit: `hit.amount` x R (`damage_type` default `minecraft:wither_skull`; vanilla's knockback and hurt
+    immunity), its `effects` only if the hit lands (also on Easy); no Wither II, no 5 HP heal for the Wither on a
+    kill;
+  - `splash`: in place of vanilla's blast, `amount` x R to every enemy (players, their pets, its current target)
+    within `radius` blocks of the impact that the blast can see, except the one hit directly, as vanilla's skull
+    blast (an explosion caused by the Wither); vanilla's puff and bang; no block is broken and nobody pushed, and the
+    block it lands on does not react either (a decorated pot or chorus flower stays, a target block or bell stays
+    quiet);
+  - they fly through the Wither, its adds and undead allies (non-player `#minecraft:wither_friends`).
+  A skull spawned that way whose Wither is gone (or lost the spec) hits as vanilla but still breaks no blocks. An
+  unhosted Wither's skulls are entirely vanilla.
 - **Host options** (`"type": "mobs_ld:wither"`; all may be overridden per phase):
 
 | option | vanilla default | meaning |
@@ -311,19 +442,50 @@ Mobs_LD ships a behaviour for the vanilla Wither; a datapack can replace it at t
 | `regen_while_engaged` | true | false = no 1 HP/s regeneration while it is fighting |
 | `arrow_immunity` | true | false = arrows and wind charges hit it below half health too (scale them with the phase's `damage_taken`) |
 | `block_breaking` | `always` | breaking the blocks around it 1 s after a hit: `always`, `never`, or `outside_runs` (never while it carries Arenas_LD's run tag `arenas_ld_run_mob`) |
+| `skulls` | none (vanilla skulls) | skull specs by name: `center` and `side` are fired by the heads on their own, any name by `projectile` events (below) |
 
-- **Still vanilla for now:** skull damage, the side heads' targets, the idle blue skulls (until the heads and skulls
-  rework), and the summoning charge itself.
-- **The shipped file is a placeholder kit:** base stats 1711 HP / 2.0 attack, players only, line-of-sight reach
-  (hide 3 s and aggro passes on; 15 s with nobody visible and it resets), leash 64 (both off inside Arenas_LD runs),
-  soft enrage at 8 min, phases at
-  50 % (blue, projectiles x0.6, player height) and 20 % (red). Its only ability is `test_hover_slam` (rise over the
-  target, slam a 4.5-block circle under it), there to check hover and telegraphs in game; the real kit (heads, Soul
-  Rush, Grave Call) replaces it in later milestones and the kit is incomplete until then (milestone M5 of
+A skull spec:
+```json
+"skulls": {
+  "center": { "every": 4.0, "speed": 1.6, "range": 30, "hit": { "amount": 2.4 }, "splash": { "radius": 1.5, "amount": 0.6 } },
+  "side":   { "every": [4, 5], "speed": 1.6, "hit": { "amount": 2.0, "effects": [ { "id": "minecraft:wither", "duration": 3 } ] },
+              "splash": { "radius": 1.5, "amount": 0.5 } },
+  "volley": { "speed": 1.6, "hit": { "amount": 4.0 }, "splash": { "radius": 1.5, "amount": 1.0 } }
+}
+```
+| field | default | meaning |
+|---|---|---|
+| `every` | none | *time range*: cadence of a head firing it on its own (at least 0.25); without it only events fire the spec |
+| `speed` | 1.9 | blocks per tick, constant from launch (at most 3.9) |
+| `range` | 30 | a head only fires it at targets this close |
+| `hit` | required | the direct hit (see `hit` under Events; `knockback` / `knock_up` are not used: vanilla's knockback applies) |
+| `splash` | none | `{ "radius": 1.5, "amount": ... }` |
+
+Per phase, e.g. `"host": { "skulls": { "center": { "every": 3.5 } } }` tightens one cadence and keeps the rest.
+
+- **Still vanilla:** the summoning charge itself, and every part of a Wither whose file leaves an option out.
+- **The shipped file is a placeholder kit:** base stats 1711 HP / 2.0 attack (so R = its attack damage / 2), players
+  only, line-of-sight reach (hide 3 s and aggro passes on; 15 s with nobody visible and it resets), leash 64 (both off
+  inside Arenas_LD runs), soft enrage at 8 min, phases at 50 % (blue, projectiles x0.6, player height) and 20 % (red).
+  Heads: right = `lowest_threat`, left = `spread`, both within 30 blocks and in sight, the right one re-picked every
+  9-11 s and the left one 5 s after each of its picks, replaced after 2 s out of sight. Skulls at level 0 / Normal: middle 2.4 direct + 0.6 splash
+  every 4.0 / 3.5 / 3.0 s (by phase), sides 2.0 + 0.5 splash and Wither I for 3 s on a direct hit every 4-5 / 3.5-4.5 /
+  3-4 s, all at 1.6 blocks per tick; `volley` 4.0 + 1.0. Abilities: `test_hover_slam` (rise over the target, slam a
+  4.5-block circle under it), there to check hover and telegraphs in game, and `test_volley` (weight 0: only through
+  `/mobs_ld ability`; all heads lock onto the right head's player with a sound, soul flames at the mouths and an
+  action-bar line, then three waves of three `volley` skulls 0.5 s apart). The real kit (Soul Rush, Grave Call)
+  replaces them in later milestones; the kit is incomplete until then (milestone M5 of
   `docs/design/wither-rework.md`).
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).
-- `/mobs_ld ability <targets> <name>` - start an ability now.
+- `/mobs_ld ability <targets> <name>` - start an ability now, aimed by its `target` rule (else at the mob's target,
+  else at you).
 - `/mobs_ld reset <targets>` - run the boss reset.
 - `/mobs_ld play <targets> <clip>` / `/mobs_ld stop <targets>` - preview an animation clip (a host cue on vanilla mobs).
+- `/mobs_ld threat <targets>` - print the threat table, highest first, and the current target.
+- `/mobs_ld heads <targets>` - print what every head aims at: the middle head's main target, then each target slot
+  with its rule, the head it shows on, its holder, the time to its next re-pick (and the slot it follows) and how
+  long the holder has been out of sight.
+- `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks (abilities, hits, slot picks,
+  skull hits and splashes with their amounts).

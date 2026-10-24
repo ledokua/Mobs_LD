@@ -3,7 +3,11 @@ package net.ledok.mobs_ld.mob.host;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.Optional;
 
 /**
  * What the ability engine needs to know about one vanilla (or other mod's) entity type it runs on: when the fight
@@ -83,5 +87,32 @@ public interface HostAdapter {
      */
     default int goalPriority() {
         return 0;
+    }
+
+    /**
+     * Where {@code head}'s shots, sight lines and particles start; empty = the host has no such head. Every host has
+     * a {@link Head#CENTER}: by default its eyes.
+     */
+    default Optional<Vec3> muzzle(Mob mob, Head head) {
+        return head == Head.CENTER ? Optional.of(mob.getEyePosition()) : Optional.empty();
+    }
+
+    /**
+     * Turns {@code head} toward {@code target} (null = let it go back to the host's own aiming). Called every tick a
+     * {@code look} event or a target slot holds the head. By default the center head is the mob's own head, turned
+     * with its look control; hosts without other heads ignore them.
+     */
+    default void aimHead(Mob mob, Head head, LivingEntity target) {
+        if (head == Head.CENTER && target != null) {
+            mob.getLookControl().setLookAt(target, 60.0F, 60.0F);
+        }
+    }
+
+    /**
+     * The head a target slot shows on (e.g. the Wither's {@code right_head} slot is its right head); empty = the slot
+     * has no visual, it only feeds abilities ({@code target: slot:<name>}).
+     */
+    default Optional<Head> slotHead(String slot) {
+        return Optional.empty();
     }
 }

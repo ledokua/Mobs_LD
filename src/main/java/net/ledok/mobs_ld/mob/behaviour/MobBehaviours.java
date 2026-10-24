@@ -2,8 +2,10 @@ package net.ledok.mobs_ld.mob.behaviour;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.JsonOps;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.ledok.mobs_ld.MobsLdMod;
@@ -12,12 +14,16 @@ import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.HostSpec;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -50,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -81,6 +88,11 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
     private static final Set<EntityType<?>> WARNED = ConcurrentHashMap.newKeySet();
 
     private static volatile Map<EntityType<?>, MobBehaviour> byType = Map.of();
+    /**
+     * The {@code damage_type} ids each loaded file names, checked against the server's damage types once they are
+     * known (a reload listener runs before the world's registries can be read).
+     */
+    private static volatile Map<ResourceLocation, Set<String>> damageTypes = Map.of();
     /** Bumped by every reload; 0 = nothing loaded yet. */
     private static volatile int generation;
 
@@ -90,6 +102,37 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
 
     public static void register() {
         ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new MobBehaviours());
+        ServerLifecycleEvents.SERVER_STARTED.register(MobBehaviours::checkDamageTypes);
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, manager, success) -> checkDamageTypes(server));
+    }
+
+    /** Reports {@code damage_type} ids in the loaded files that the server does not have (hits then deal their default). */
+    private static void checkDamageTypes(MinecraftServer server) {
+        Registry<DamageType> registry = server.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
+        damageTypes.forEach((file, ids) -> {
+            for (String id : ids) {
+                ResourceLocation parsed = ResourceLocation.tryParse(id);
+                if (parsed == null || !registry.containsKey(parsed)) {
+                    LOGGER.warn("Mob behaviour {}: unknown damage_type {}; those hits deal their default type", file, id);
+                }
+            }
+        });
+    }
+
+    /** Every string value of a {@code damage_type} key anywhere in {@code json}. */
+    private static void collectDamageTypes(JsonElement json, Set<String> into) {
+        if (json.isJsonArray()) {
+            json.getAsJsonArray().forEach(element -> collectDamageTypes(element, into));
+        } else if (json.isJsonObject()) {
+            JsonObject object = json.getAsJsonObject();
+            for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+                if (entry.getKey().equals("damage_type") && entry.getValue().isJsonPrimitive()) {
+                    into.add(entry.getValue().getAsString());
+                } else {
+                    collectDamageTypes(entry.getValue(), into);
+                }
+            }
+        }
     }
 
     public static MobBehaviour get(EntityType<?> type) {
@@ -160,6 +203,15 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
                 used.add(id);
             }
         });
+        Map<ResourceLocation, Set<String>> named = new LinkedHashMap<>();
+        for (ResourceLocation id : used) {
+            Set<String> types = new TreeSet<>();
+            collectDamageTypes(files.get(id), types);
+            if (!types.isEmpty()) {
+                named.put(id, types);
+            }
+        }
+        damageTypes = named;
         byType = Collections.unmodifiableMap(result);
         generation++;
         LOGGER.info("Loaded {} mob behaviour(s): {}", used.size(), used);

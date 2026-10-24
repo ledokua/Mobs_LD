@@ -9,7 +9,20 @@
     "hover_height": 3.5,
     "regen_while_engaged": false,
     "arrow_immunity": false,
-    "block_breaking": "outside_runs"
+    "block_breaking": "outside_runs",
+    "skulls": {
+      "center": { "every": 4.0, "speed": 1.6, "range": 30,
+        "hit": { "amount": 2.4 }, "splash": { "radius": 1.5, "amount": 0.6 } },
+      "side": { "every": [4, 5], "speed": 1.6, "range": 30,
+        "hit": { "amount": 2.0, "effects": [ { "id": "minecraft:wither", "duration": 3 } ] },
+        "splash": { "radius": 1.5, "amount": 0.5 } },
+      "volley": { "speed": 1.6,
+        "hit": { "amount": 4.0 }, "splash": { "radius": 1.5, "amount": 1.0 } }
+    }
+  },
+  "target_slots": {
+    "right_head": { "rule": "lowest_threat", "range": 30, "line_of_sight": true, "repick": [9, 11], "lost_after": 2 },
+    "left_head": { "rule": "spread", "range": 30, "line_of_sight": true, "repick": [9, 11], "offset": 5, "lost_after": 2 }
   },
   "movement": {
     "style": "vanilla",
@@ -39,15 +52,29 @@
           "hit": { "damage": 6.0, "knockback": 0.6, "knock_up": 0.5 } },
         { "type": "hover", "from": 1.5, "until": 2.6, "relative_to": "ground", "height": 1.5, "rate": 0.15 }
       ]
+    },
+    "test_volley": {
+      "duration": 2.6, "weight": 0, "target": "slot:right_head",
+      "events": [
+        { "type": "look", "at": 0.0, "until": 2.2, "heads": "all", "target": "aim" },
+        { "type": "fx", "at": 0.0,
+          "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.7, "volume": 2 },
+          "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 },
+          "message": { "key": "mobs_ld.cue.wither.test_volley", "where": "actionbar" } },
+        { "type": "projectile", "at": 1.0, "skull": "volley", "from": "heads", "aim": "aim",
+          "waves": 3, "interval": 0.5, "spread": 1.5 }
+      ]
     }
   },
   "phases": [
     { "below_health": 1.0, "bar": { "color": "purple" } },
     { "below_health": 0.5, "bar": { "color": "blue" },
       "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
-      "host": { "hover_height": 0 } },
+      "host": { "hover_height": 0,
+        "skulls": { "center": { "every": 3.5 }, "side": { "every": [3.5, 4.5] } } } },
     { "below_health": 0.2, "bar": { "color": "red" },
       "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
-      "host": { "hover_height": 0 } }
+      "host": { "hover_height": 0,
+        "skulls": { "center": { "every": 3.0 }, "side": { "every": [3, 4] } } } }
   ]
 }

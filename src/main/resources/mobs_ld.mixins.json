@@ -7,6 +7,7 @@
     "EntityCombatViewersMixin",
     "EntityTransferMixin",
     "HealOrHarmMobEffectMixin",
+    "HurtingProjectileAccessor",
     "LivingEntityCombatMixin",
     "LivingEntityEffectThreatMixin",
     "MobCombatHostMixin",
@@ -19,7 +20,9 @@
     "compat.SpellEngineAggroMixin",
     "compat.SpellEngineHealMixin",
     "wither.WitherBossAccessor",
-    "wither.WitherBossHostMixin"
+    "wither.WitherBossHostMixin",
+    "wither.ProjectileBlockHitMixin",
+    "wither.WitherSkullMixin"
   ],
   "client": [
     "client.CameraMixin"

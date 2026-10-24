@@ -1,6 +1,8 @@
 package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.entity.threat.StealthCompat;
+import net.ledok.mobs_ld.entity.threat.ThreatHolder;
+import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -51,20 +53,42 @@ public final class CombatTargets {
 
     /** Applies a target rule; null when nobody qualifies. */
     public static LivingEntity pick(Mob mob, MobBehaviour.TargetRule rule) {
-        if (rule == MobBehaviour.TargetRule.CURRENT) {
-            LivingEntity target = mob.getTarget();
-            return target != null && isEnemy(mob, target) ? target : null;
+        switch (rule.kind()) {
+            case CURRENT -> {
+                LivingEntity target = mob.getTarget();
+                return target != null && isEnemy(mob, target) ? target : null;
+            }
+            case SLOT -> {
+                MobCombat combat = CombatHost.of(mob);
+                LivingEntity held = combat == null ? null : combat.slots().target(rule.slot().orElse(""));
+                return held != null && isEnemy(mob, held) ? held : null;
+            }
+            default -> {
+            }
         }
         List<LivingEntity> options = candidates(mob);
         if (options.isEmpty()) {
             return null;
         }
-        return switch (rule) {
+        return switch (rule.kind()) {
             case NEAREST -> options.stream().min(Comparator.comparingDouble(mob::distanceToSqr)).orElse(null);
             case FARTHEST -> options.stream().max(Comparator.comparingDouble(mob::distanceToSqr)).orElse(null);
             case RANDOM -> options.get(mob.getRandom().nextInt(options.size()));
-            case CURRENT -> throw new AssertionError();
+            case LOWEST_THREAT -> lowestThreat(mob, options);
+            case CURRENT, SLOT -> throw new AssertionError();
         };
+    }
+
+    /** The lowest-threat player among {@code options} (0 counts); a tie goes to someone other than the tank. */
+    private static LivingEntity lowestThreat(Mob mob, List<LivingEntity> options) {
+        ThreatTable table = ((ThreatHolder) mob).getThreatTable();
+        List<SlotPicker.Candidate<LivingEntity>> players = new ArrayList<>();
+        for (LivingEntity option : options) {
+            if (option instanceof Player) {
+                players.add(new SlotPicker.Candidate<>(option, true, table.get(option.getUUID()), true, false, 0.0, true));
+            }
+        }
+        return SlotPicker.lowestThreat(players, mob.getTarget(), bound -> mob.getRandom().nextInt(bound));
     }
 
     /** Horizontal distance between the two bodies' centres. */

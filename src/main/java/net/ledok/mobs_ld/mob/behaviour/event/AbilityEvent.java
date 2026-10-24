@@ -16,16 +16,19 @@ import java.util.Optional;
  * datapacks load; the built-ins are below.
  */
 public interface AbilityEvent {
-    Map<String, MapCodec<? extends AbilityEvent>> TYPES = new LinkedHashMap<>(Map.of(
-            "hit", HitEvent.CODEC,
-            "dash", DashEvent.CODEC,
-            "summon", SummonEvent.CODEC,
-            "cloud", CloudEvent.CODEC,
-            "effect", EffectEvent.CODEC,
-            "despawn", DespawnEvent.CODEC,
-            "chase", ChaseEvent.CODEC,
-            "trace", TraceEvent.CODEC,
-            "hover", HoverEvent.CODEC
+    Map<String, MapCodec<? extends AbilityEvent>> TYPES = new LinkedHashMap<>(Map.ofEntries(
+            Map.entry("hit", HitEvent.CODEC),
+            Map.entry("dash", DashEvent.CODEC),
+            Map.entry("summon", SummonEvent.CODEC),
+            Map.entry("cloud", CloudEvent.CODEC),
+            Map.entry("effect", EffectEvent.CODEC),
+            Map.entry("despawn", DespawnEvent.CODEC),
+            Map.entry("chase", ChaseEvent.CODEC),
+            Map.entry("trace", TraceEvent.CODEC),
+            Map.entry("hover", HoverEvent.CODEC),
+            Map.entry("look", LookEvent.CODEC),
+            Map.entry("fx", FxEvent.CODEC),
+            Map.entry("projectile", ProjectileEvent.CODEC)
     ));
 
     /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */
@@ -54,6 +57,16 @@ public interface AbilityEvent {
 
     /** Abilities this event can hand over to (validated against the behaviour's ability names). */
     default List<String> chains() {
+        return List.of();
+    }
+
+    /** Target slots this event aims at (validated against the behaviour's {@code target_slots}). */
+    default List<String> slots() {
+        return List.of();
+    }
+
+    /** Skull specs this event fires (validated against the host block's {@code skulls}). */
+    default List<String> skulls() {
         return List.of();
     }
 

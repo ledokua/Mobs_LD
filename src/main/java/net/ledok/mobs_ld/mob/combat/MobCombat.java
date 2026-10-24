@@ -5,6 +5,7 @@ import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.behaviour.SkullSpec;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Server-side fight state of one mob that runs a behaviour (a data-driven LdMob, or any vanilla mob a datapack gives
@@ -78,6 +80,7 @@ public final class MobCombat {
     private final Mob mob;
     private final CombatHost host;
     private final HostAdapter adapter;
+    private final TargetSlots slots;
     private final Map<String, Long> readyAt = new HashMap<>();
     private final List<UUID> summons = new ArrayList<>();
     private final List<Fading> fading = new ArrayList<>();
@@ -110,11 +113,14 @@ public final class MobCombat {
     private boolean returning;
     private int returnTicks;
     private ServerBossEvent bar;
+    /** Per-mob state the host adapter keeps (e.g. the Wither's skull timers); see {@link #hostState}. */
+    private Object hostState;
 
     public MobCombat(Mob mob) {
         this.mob = mob;
         this.host = (CombatHost) mob;
         this.adapter = HostAdapters.get(mob.getType());
+        this.slots = new TargetSlots(mob, this);
     }
 
     /**
@@ -162,6 +168,29 @@ public final class MobCombat {
     /** How this mob's entity type hosts the engine (cues, readiness, its own boss bar). */
     public HostAdapter adapter() {
         return adapter;
+    }
+
+    /** Its target slots ({@code target_slots}) and the heads {@code look} events hold. */
+    public TargetSlots slots() {
+        return slots;
+    }
+
+    /**
+     * State the host adapter keeps for this mob (adapters are shared by every mob of a type): the current one if it
+     * is a {@code type}, else a fresh one from {@code create}.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T hostState(Class<T> type, Supplier<T> create) {
+        if (!type.isInstance(hostState)) {
+            hostState = create.get();
+        }
+        return (T) hostState;
+    }
+
+    /** The skull spec {@code name} in the host options in effect now (see {@link #hostOptions}), or null. */
+    public SkullSpec skullSpec(String name) {
+        HostOptions options = hostOptions();
+        return options == null ? null : options.skulls().get(name);
     }
 
     // --- Ticking ---
@@ -215,6 +244,9 @@ public final class MobCombat {
         if (staggerUntil >= 0 && now >= staggerUntil) {
             staggerUntil = -1;
             host.mobs_ld$stopAction();
+        }
+        if (!mob.isRemoved()) {
+            slots.tick(behaviour, engaged);
         }
         if (engaged && !busy() && !mob.isRemoved() && movement().style() == MobBehaviour.Movement.Style.VANILLA) {
             // The combat goal only runs during abilities for these hosts, so abilities are picked from here.
@@ -278,6 +310,7 @@ public final class MobCombat {
         }
         staggerUntil = -1;
         host.mobs_ld$stopAction();
+        slots.clear();
         engaged = false;
         idleTicks = 0;
     }
@@ -306,6 +339,7 @@ public final class MobCombat {
             current = null;
         }
         host.mobs_ld$stopAction();
+        slots.clear();
         staggerUntil = -1;
         returning = false;
         engaged = false;
@@ -677,6 +711,7 @@ public final class MobCombat {
         host.mobs_ld$stopAction();
         ((ThreatHolder) mob).getThreatTable().clear();
         mob.setTarget(null);
+        slots.clear();
         mob.setHealth(mob.getMaxHealth());
         phase = 0;
         host.mobs_ld$setVariant("");
@@ -796,6 +831,11 @@ public final class MobCombat {
 
     public void trackSummon(Entity summoned) {
         summons.add(summoned.getUUID());
+    }
+
+    /** Whether {@code entity} is one of the adds this mob summoned (its skulls fly through them). */
+    public boolean ownsSummon(Entity entity) {
+        return !summons.isEmpty() && summons.contains(entity.getUUID());
     }
 
     public int aliveSummons() {

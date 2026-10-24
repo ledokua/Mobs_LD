@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.HostSpec;
 import net.minecraft.core.Holder;
@@ -35,10 +36,12 @@ import java.util.Optional;
  * @param baseAttributes attribute id -> base value, set on every new mob of the type as it is constructed (before
  *                       its own constructor finishes and before other mods scale it); saved mobs keep their values
  * @param host           how the engine runs on a vanilla host (its adapter's options; an off switch)
+ * @param targetSlots    secondary targets by name (e.g. the Wither's side heads), see {@link TargetSlot}
  */
 public record MobBehaviour(
         Map<ResourceLocation, Double> baseAttributes,
         HostSpec host,
+        Map<String, TargetSlot> targetSlots,
         Movement movement,
         double globalCooldown,
         Optional<Ability> intro,
@@ -51,6 +54,7 @@ public record MobBehaviour(
     public static final Codec<MobBehaviour> CODEC = RecordCodecBuilder.<MobBehaviour>create(i -> i.group(
             Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("base_attributes", Map.of()).forGetter(MobBehaviour::baseAttributes),
             HostSpec.CODEC.optionalFieldOf("host", HostSpec.NONE).forGetter(MobBehaviour::host),
+            Codec.unboundedMap(Codec.STRING, TargetSlot.CODEC).optionalFieldOf("target_slots", Map.of()).forGetter(MobBehaviour::targetSlots),
             Movement.CODEC.optionalFieldOf("movement", Movement.DEFAULT).forGetter(MobBehaviour::movement),
             Codec.DOUBLE.optionalFieldOf("global_cooldown", 0.5).forGetter(MobBehaviour::globalCooldown),
             Ability.CODEC.optionalFieldOf("intro").forGetter(MobBehaviour::intro),
@@ -64,6 +68,7 @@ public record MobBehaviour(
     public MobBehaviour {
         // Keep authoring order (phases sorted from full health down) and a stable ability order.
         baseAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(baseAttributes));
+        targetSlots = Collections.unmodifiableMap(new LinkedHashMap<>(targetSlots));
         abilities = new LinkedHashMap<>(abilities);
         List<Phase> sorted = new ArrayList<>(phases);
         sorted.sort((a, b) -> Double.compare(b.belowHealth(), a.belowHealth()));
@@ -75,13 +80,48 @@ public record MobBehaviour(
         behaviour.intro().ifPresent(all::add);
         behaviour.onDeath().ifPresent(all::add);
         behaviour.phases().forEach(phase -> phase.transition().ifPresent(all::add));
+        Map<String, SkullSpec> skulls = behaviour.host().options().map(HostOptions::skulls).orElse(Map.of());
         for (Ability ability : all) {
+            String slotError = behaviour.unknownSlot(ability.target(), "An ability aims at");
+            if (slotError != null) {
+                return DataResult.error(() -> slotError);
+            }
             for (AbilityEvent event : ability.events()) {
                 for (String chained : event.chains()) {
                     if (!behaviour.abilities().containsKey(chained)) {
                         return DataResult.error(() -> "A " + event.type() + " event chains into unknown ability '" + chained + "'");
                     }
                 }
+                for (String slot : event.slots()) {
+                    if (!behaviour.targetSlots().containsKey(slot)) {
+                        return DataResult.error(() -> "A " + event.type() + " event names unknown target slot '" + slot
+                                + "' (target_slots has " + behaviour.targetSlots().keySet() + ")");
+                    }
+                }
+                for (String skull : event.skulls()) {
+                    if (!skulls.containsKey(skull)) {
+                        return DataResult.error(() -> "A " + event.type() + " event fires unknown skull '" + skull
+                                + "' (the host block's skulls are " + skulls.keySet() + ")");
+                    }
+                }
+            }
+        }
+        for (String name : behaviour.targetSlots().keySet()) {
+            Optional<String> lead = behaviour.leadSlot(name);
+            TargetSlot slot = behaviour.targetSlots().get(name);
+            if (lead.isPresent() && slot.offset() >= behaviour.targetSlots().get(lead.get()).repick().min()) {
+                return DataResult.error(() -> "Target slot '" + name + "' re-picks " + slot.offset() + " s after '"
+                        + lead.get() + "', which re-picks every " + behaviour.targetSlots().get(lead.get()).repick()
+                        + ": the offset must be shorter than that");
+            }
+        }
+        List<Movement> movements = new ArrayList<>();
+        movements.add(behaviour.movement());
+        behaviour.phases().forEach(phase -> phase.movement().ifPresent(movements::add));
+        for (Movement movement : movements) {
+            String slotError = behaviour.unknownSlot(movement.follow(), "Movement follows");
+            if (slotError != null) {
+                return DataResult.error(() -> slotError);
             }
         }
         for (Phase phase : behaviour.phases()) {
@@ -104,6 +144,30 @@ public record MobBehaviour(
         return resolvePhaseHosts(behaviour);
     }
 
+    /**
+     * The slot that target slot {@code name} keeps its {@code offset} behind: the first slot listed without an offset;
+     * empty for a slot without an offset (or when every slot has one).
+     */
+    public Optional<String> leadSlot(String name) {
+        TargetSlot slot = targetSlots.get(name);
+        if (slot == null || slot.offset() <= 0.0) {
+            return Optional.empty();
+        }
+        for (Map.Entry<String, TargetSlot> entry : targetSlots.entrySet()) {
+            if (entry.getValue().offset() <= 0.0 && !entry.getKey().equals(name)) {
+                return Optional.of(entry.getKey());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** An error message if {@code rule} names a target slot the behaviour does not define, else null. */
+    private String unknownSlot(TargetRule rule, String what) {
+        return rule.slot().filter(slot -> !targetSlots.containsKey(slot))
+                .map(slot -> what + " unknown target slot '" + slot + "' (target_slots has " + targetSlots.keySet() + ")")
+                .orElse(null);
+    }
+
     /** Lays each phase's own {@code host} block over the behaviour's, once at load (see {@link HostSpec#withOverride}). */
     private static DataResult<MobBehaviour> resolvePhaseHosts(MobBehaviour behaviour) {
         if (behaviour.phases().stream().noneMatch(phase -> phase.hostOverride().isPresent())) {
@@ -123,7 +187,8 @@ public record MobBehaviour(
             }
             resolved.add(phase.withHost(options.get()));
         }
-        return DataResult.success(new MobBehaviour(behaviour.baseAttributes(), behaviour.host(), behaviour.movement(),
+        return DataResult.success(new MobBehaviour(behaviour.baseAttributes(), behaviour.host(),
+                behaviour.targetSlots(), behaviour.movement(),
                 behaviour.globalCooldown(), behaviour.intro(), behaviour.stagger(), behaviour.onDeath(),
                 behaviour.abilities(), resolved, behaviour.boss()));
     }
@@ -325,24 +390,99 @@ public record MobBehaviour(
         }
     }
 
-    /** Who an ability aims at. CURRENT is the threat target (normally the tank). */
-    public enum TargetRule implements StringRepresentable {
-        CURRENT("current"),
-        NEAREST("nearest"),
-        FARTHEST("farthest"),
-        RANDOM("random");
+    /**
+     * Who an ability aims at (or movement follows): {@code current} (the threat target, normally the tank),
+     * {@code nearest}, {@code farthest}, {@code random} player, {@code lowest_threat} (the player with the least threat;
+     * ties prefer someone other than the tank) or {@code slot:<name>} (whoever that target slot holds now).
+     *
+     * @param slot the slot's name, for {@link Kind#SLOT}
+     */
+    public record TargetRule(Kind kind, Optional<String> slot) {
+        public static final TargetRule CURRENT = new TargetRule(Kind.CURRENT, Optional.empty());
+        public static final TargetRule NEAREST = new TargetRule(Kind.NEAREST, Optional.empty());
+        public static final TargetRule FARTHEST = new TargetRule(Kind.FARTHEST, Optional.empty());
+        public static final TargetRule RANDOM = new TargetRule(Kind.RANDOM, Optional.empty());
+        public static final TargetRule LOWEST_THREAT = new TargetRule(Kind.LOWEST_THREAT, Optional.empty());
+        private static final String SLOT_PREFIX = "slot:";
 
-        public static final Codec<TargetRule> CODEC = StringRepresentable.fromEnum(TargetRule::values);
-        private final String name;
+        public static final Codec<TargetRule> CODEC = Codec.STRING.comapFlatMap(TargetRule::parse, TargetRule::serialized);
 
-        TargetRule(String name) {
-            this.name = name;
+        public static TargetRule slot(String name) {
+            return new TargetRule(Kind.SLOT, Optional.of(name));
         }
 
-        @Override
-        public String getSerializedName() {
-            return name;
+        private static DataResult<TargetRule> parse(String text) {
+            if (text.startsWith(SLOT_PREFIX)) {
+                String name = text.substring(SLOT_PREFIX.length());
+                return name.isEmpty() ? DataResult.error(() -> "'slot:' needs a target slot name, e.g. slot:right_head")
+                        : DataResult.success(slot(name));
+            }
+            for (Kind kind : Kind.values()) {
+                if (kind != Kind.SLOT && kind.name.equals(text)) {
+                    return DataResult.success(new TargetRule(kind, Optional.empty()));
+                }
+            }
+            return DataResult.error(() -> "Unknown target '" + text
+                    + "' (expected current, nearest, farthest, random, lowest_threat or slot:<name>)");
         }
+
+        public String serialized() {
+            return kind == Kind.SLOT ? SLOT_PREFIX + slot.orElse("") : kind.name;
+        }
+
+        public enum Kind {
+            CURRENT("current"),
+            NEAREST("nearest"),
+            FARTHEST("farthest"),
+            RANDOM("random"),
+            LOWEST_THREAT("lowest_threat"),
+            SLOT("slot");
+
+            private final String name;
+
+            Kind(String name) {
+                this.name = name;
+            }
+        }
+    }
+
+    /**
+     * A secondary target the mob keeps besides its main one (the Wither's side heads), picked by a rule from the
+     * players around it and re-picked on a timer or as soon as its holder is lost. The host adapter decides how a
+     * slot shows (the Wither's {@code right_head} / {@code left_head} turn those heads); abilities, {@code look} and
+     * {@code projectile} events can aim at it as {@code slot:<name>}.
+     *
+     * @param rule        how it picks (see {@link SlotPicker})
+     * @param range       candidates within this many blocks of the mob
+     * @param lineOfSight candidates must be in sight of the slot's head (and a holder out of sight for
+     *                    {@code lostAfter} seconds is replaced)
+     * @param repick      picks again this often (rolled per pick)
+     * @param offset      keeps its re-picks this long after those of the first slot listed without an offset (its
+     *                    lead), for the whole fight, so the two never switch together; must be shorter than the
+     *                    lead's {@code repick}. Without a lead it only delays the first scheduled re-pick
+     * @param lostAfter   seconds out of sight before the holder is replaced
+     */
+    public record TargetSlot(SlotPicker.Rule rule, double range, boolean lineOfSight, Seconds repick, double offset,
+                             double lostAfter) {
+        /** Shortest re-pick period (each pick casts a sight line to every player in range). */
+        private static final double MIN_REPICK = 0.5;
+
+        private static final Codec<SlotPicker.Rule> RULE = Codec.STRING.comapFlatMap(name -> {
+            SlotPicker.Rule rule = SlotPicker.Rule.byName(name);
+            return rule != null ? DataResult.success(rule)
+                    : DataResult.error(() -> "Unknown target slot rule '" + name + "' (expected lowest_threat or spread)");
+        }, SlotPicker.Rule::serializedName);
+
+        public static final Codec<TargetSlot> CODEC = RecordCodecBuilder.<TargetSlot>create(i -> i.group(
+                RULE.fieldOf("rule").forGetter(TargetSlot::rule),
+                Codec.doubleRange(1.0, 128.0).optionalFieldOf("range", 30.0).forGetter(TargetSlot::range),
+                Codec.BOOL.optionalFieldOf("line_of_sight", true).forGetter(TargetSlot::lineOfSight),
+                Seconds.CODEC.optionalFieldOf("repick", Seconds.of(10.0)).forGetter(TargetSlot::repick),
+                Codec.doubleRange(0.0, 600.0).optionalFieldOf("offset", 0.0).forGetter(TargetSlot::offset),
+                Codec.doubleRange(0.0, 600.0).optionalFieldOf("lost_after", 2.0).forGetter(TargetSlot::lostAfter)
+        ).apply(i, TargetSlot::new)).validate(slot -> slot.repick().min() < MIN_REPICK
+                ? DataResult.error(() -> "A target slot re-picks at least every " + MIN_REPICK + " s, got " + slot.repick())
+                : DataResult.success(slot));
     }
 
     /** Helpless window after e.g. a charge into a wall: the clip holds while the mob does nothing. */

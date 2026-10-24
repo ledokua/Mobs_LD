@@ -8,6 +8,7 @@ import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.combat.CombatHost;
+import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -25,8 +26,9 @@ import java.util.function.BiConsumer;
 /**
  * Debug commands for mobs running a behaviour (ops only; LdMobs and vanilla hosts alike): {@code play <targets> <clip>}
  * / {@code stop <targets>} preview an animation clip (a host cue on vanilla mobs), {@code ability <targets> <name>}
- * forces a behaviour ability now (telegraphs, hits and all), and {@code reset <targets>} runs the boss reset (full
- * heal, phases and adds cleared).
+ * forces a behaviour ability now (telegraphs, hits and all), {@code reset <targets>} runs the boss reset (full
+ * heal, phases and adds cleared), {@code threat <targets>} prints the threat table and {@code heads <targets>} what
+ * every head and target slot is aimed at.
  */
 public final class MobsLdCommands {
     private MobsLdCommands() {
@@ -66,6 +68,9 @@ public final class MobsLdCommands {
                 .then(Commands.literal("threat")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> showThreat(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
+                .then(Commands.literal("heads")
+                        .then(Commands.argument("targets", EntityArgument.entities())
+                                .executes(ctx -> showHeads(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
                 .then(Commands.literal("reset")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
@@ -105,7 +110,40 @@ public final class MobsLdCommands {
         return shown;
     }
 
-    /** Starts an ability now, aimed at the mob's target or else the command's runner. */
+    /**
+     * Prints each mob's heads: the middle head's target (the mob's main target), then every target slot with its rule,
+     * the head it shows on, its holder and the time to its next re-pick.
+     */
+    private static int showHeads(CommandSourceStack source, Collection<? extends Entity> targets) {
+        int shown = 0;
+        for (Entity entity : targets) {
+            if (!(entity instanceof Mob mob)) {
+                continue;
+            }
+            MobCombat combat = CombatHost.of(mob);
+            MobBehaviour behaviour = combat == null ? null : combat.behaviour();
+            if (behaviour == null) {
+                continue;
+            }
+            String header = mob.getName().getString() + " " + mob.getId() + ": center -> "
+                    + (mob.getTarget() == null ? "nobody" : mob.getTarget().getName().getString()) + " (main target)"
+                    + (behaviour.targetSlots().isEmpty() ? "; no target slots" : "");
+            source.sendSuccess(() -> Component.literal(header), false);
+            for (String line : combat.slots().describe(behaviour)) {
+                source.sendSuccess(() -> Component.literal("  " + line), false);
+            }
+            shown++;
+        }
+        if (shown == 0) {
+            source.sendFailure(Component.literal("No mob running a Mobs_LD behaviour among the targets"));
+        }
+        return shown;
+    }
+
+    /**
+     * Starts an ability now, aimed by its own target rule (e.g. a target slot's holder), else at the mob's target, else
+     * at the command's runner.
+     */
     private static void forceAbility(CommandSourceStack source, Mob mob, MobCombat combat, String name) {
         MobBehaviour behaviour = combat.behaviour();
         MobBehaviour.Ability ability = behaviour == null ? null : behaviour.abilities().get(name);
@@ -113,8 +151,11 @@ public final class MobsLdCommands {
             source.sendFailure(Component.literal(mob.getType().getDescription().getString() + " has no ability '" + name + "'"));
             return;
         }
-        LivingEntity aim = mob.getTarget() != null ? mob.getTarget()
-                : source.getEntity() instanceof LivingEntity living ? living : null;
+        LivingEntity aim = CombatTargets.pick(mob, ability.target());
+        if (aim == null) {
+            aim = mob.getTarget() != null ? mob.getTarget()
+                    : source.getEntity() instanceof LivingEntity living ? living : null;
+        }
         combat.start(name, ability, aim);
     }
 

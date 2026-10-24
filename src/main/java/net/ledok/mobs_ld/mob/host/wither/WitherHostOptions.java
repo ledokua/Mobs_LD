@@ -4,11 +4,14 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.MobsLdMod;
+import net.ledok.mobs_ld.mob.behaviour.SkullSpec;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.Mob;
+
+import java.util.Map;
 
 /**
  * The Wither's {@code host} options ({@code "type": "mobs_ld:wither"}). Every default is the vanilla behaviour, so a
@@ -20,18 +23,27 @@ import net.minecraft.world.entity.Mob;
  * @param arrowImmunity     false = arrows and wind charges hit it below half health too (vanilla: immune)
  * @param blockBreaking     when it may break the blocks around it 1 s after being hurt (vanilla: always, with
  *                          mobGriefing)
+ * @param skulls            the skulls it fires, by name ({@link SkullSpec}); {@code center} and {@code side} are fired
+ *                          by the heads on their own cadence, any name by {@code projectile} events. Non-empty =
+ *                          Mobs_LD fires all its skulls: vanilla's shots and idle blue skulls stop. Empty = vanilla
  */
 public record WitherHostOptions(double hoverHeight, boolean regenWhileEngaged, boolean arrowImmunity,
-                                BlockBreaking blockBreaking) implements HostOptions {
+                                BlockBreaking blockBreaking, Map<String, SkullSpec> skulls) implements HostOptions {
+    /** The spec the middle head fires on its own. */
+    public static final String CENTER_SKULL = "center";
+    /** The spec each side head fires on its own. */
+    public static final String SIDE_SKULL = "side";
+
     public static final ResourceLocation TYPE = ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "wither");
     /** A hosted Wither whose file has no (Wither) host block. */
-    public static final WitherHostOptions VANILLA = new WitherHostOptions(5.0, true, true, BlockBreaking.ALWAYS);
+    public static final WitherHostOptions VANILLA = new WitherHostOptions(5.0, true, true, BlockBreaking.ALWAYS, Map.of());
 
     public static final MapCodec<WitherHostOptions> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.doubleRange(0.0, 64.0).optionalFieldOf("hover_height", VANILLA.hoverHeight()).forGetter(WitherHostOptions::hoverHeight),
             Codec.BOOL.optionalFieldOf("regen_while_engaged", true).forGetter(WitherHostOptions::regenWhileEngaged),
             Codec.BOOL.optionalFieldOf("arrow_immunity", true).forGetter(WitherHostOptions::arrowImmunity),
-            BlockBreaking.CODEC.optionalFieldOf("block_breaking", BlockBreaking.ALWAYS).forGetter(WitherHostOptions::blockBreaking)
+            BlockBreaking.CODEC.optionalFieldOf("block_breaking", BlockBreaking.ALWAYS).forGetter(WitherHostOptions::blockBreaking),
+            Codec.unboundedMap(Codec.STRING, SkullSpec.CODEC).optionalFieldOf("skulls", Map.of()).forGetter(WitherHostOptions::skulls)
     ).apply(i, WitherHostOptions::new));
 
     @Override

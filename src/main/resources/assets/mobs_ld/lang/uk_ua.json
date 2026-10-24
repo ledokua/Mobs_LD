@@ -1,0 +1,13 @@
+{
+  "effect.mobs_ld.provoke": "Провокація",
+  "effect.mobs_ld.taunt": "Глузування",
+  "attribute.name.mobs_ld.threat_multiplier": "Множник загрози",
+  "item.minecraft.potion.effect.taunt": "Зілля глузування",
+  "item.minecraft.splash_potion.effect.taunt": "Вибухове зілля глузування",
+  "item.minecraft.lingering_potion.effect.taunt": "Туманне зілля глузування",
+  "item.minecraft.potion.effect.provoke": "Зілля провокації",
+  "item.minecraft.splash_potion.effect.provoke": "Вибухове зілля провокації",
+  "item.minecraft.lingering_potion.effect.provoke": "Туманне зілля провокації",
+  "mobs_ld.cue.wither.test_volley": "Голови Візера беруть ціль!",
+  "mobs_ld.cue.wither.grave_call": "Візер кличе своїх мерців"
+}
