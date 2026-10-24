@@ -13,6 +13,8 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 
 | field | default | meaning |
 |---|---|---|
+| `base_attributes` | none | `{ "minecraft:generic.max_health": 1711, ... }`: base values set on every new mob of the type (below) |
+| `host` | none | vanilla hosts only: the host adapter's options, or `{ "enabled": false }` to switch the file off (see [Vanilla hosts](#vanilla-hosts)) |
 | `movement` | standoff 2.0 | how it positions itself between abilities (below) |
 | `global_cooldown` | 0.5 | pause after every ability before the next can start |
 | `intro` | none | ability played once when it first engages (e.g. a roar; set `invulnerable`) |
@@ -26,21 +28,35 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 
 | field | default | meaning |
 |---|---|---|
-| `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary` |
+| `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary`, `vanilla` (the host's own AI moves and attacks between abilities; see below) |
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
 | `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random` |
 | `reach_height` | 85 % of its height | how far above its feet it can strike |
 | `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
+| `reach_rule` | `path` | what makes a target reachable: `path` (reach band or a full path) or `line_of_sight` (it can see the target) |
+| `lose_after` | 2 (`path`), 3 (`line_of_sight`) | seconds a target must stay unreachable before it loses aggro |
+| `ground_scan` | 8 | how many blocks below a point telegraphs and `hover` look for the floor; a high flyer needs more (the Wither uses 40) |
+
+**`style: vanilla`** (vanilla hosts): between abilities the mob keeps its own movement and attacks (the Wither flies
+and fires skulls as usual); the engine still picks an ability every tick it is free, and only takes the body over
+while an ability, a stagger or the walk home runs.
+
+**Ground scan**: the floor is found by scanning down block by block (from 2 blocks above a telegraph's point, from
+the mob's feet for `hover`), never by heightmap, so under the Nether roof it is the floor, not the roof. The surface
+of water or lava below the point counts as floor (a flyer over a lava sea hovers over the lava, not its bed); a mob
+wading or swimming still gets the bed under it. With nothing within `ground_scan` (the void, a deep drop) there is no
+floor: telegraphs then sit at the point itself, and a `hover` over the ground keeps its altitude.
 
 **Reach band**: `reach_height` / `reach_depth` are used everywhere a height matters - an ability only starts if the
 aim's feet are inside the band, hits land on anyone inside it, and a target outside it that the mob cannot path to
 is unreachable. Big mobs therefore reach higher on their own (Gorefist, 4 blocks tall, strikes 3.4 up).
 
-**Unreachable targets** (out of the reach band with no path for ~2 s) lose aggro: threat targeting, initial aggro and
-retaliation skip them and the mob turns on someone it can reach. If nobody is reachable it has no target, and a
-boss resets after `boss.reset_after` (other mobs stop fighting after 10 s). They get aggro back as soon as they are
-reachable again. Flyers never count as unreachable (see [Vanilla hosts](#vanilla-hosts)).
+**Unreachable targets** (out of the reach band with no path, or out of sight with `reach_rule: line_of_sight`, for
+`lose_after` seconds) lose aggro: threat targeting, initial aggro and retaliation skip them and the mob turns on
+someone it can reach. If nobody is reachable it has no target, and a boss resets after `boss.reset_after` (other mobs
+stop fighting after 10 s). They get aggro back as soon as they are reachable again. By `path`, flyers never count as
+unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding behind cover counts for flyers too.
 
 ## Abilities
 
@@ -144,6 +160,22 @@ summoner's tick (Arenas_LD treats them as minions of a run boss).
 ### `despawn`
 `at` - removes the mob in a puff of smoke (no death, drops or `on_death`), e.g. after a self-destruct.
 
+### `hover` - fly to a height and hold it (flyers)
+```json
+{ "type": "hover", "from": 0.0, "until": 0.8, "relative_to": "aim", "height": 4, "rate": 0.5, "retreat_to": 12 }
+```
+| field | default | meaning |
+|---|---|---|
+| `from` / `until` | required | active window |
+| `height` | required | blocks above the reference (may be negative) |
+| `relative_to` | `ground` | `ground` (the floor under the mob, see `movement.ground_scan`; over the void it keeps its altitude), `aim` (the aim's feet: tracked until `track_until`, then where it stood), `self` (its own height when the hover began) |
+| `rate` | 0.4 | top speed in blocks per tick (scaled with the phase's `attack_speed`) |
+| `retreat_to` | none | also back off horizontally until this far from the aim (only backs off; never closes in) |
+
+Every tick its velocity is set straight toward the point (horizontally it holds still unless `retreat_to` moves it),
+so a flyer stays pinned whatever its own move control does with gravity. Chain several for a rise, a slam and a
+low recovery. Meant for flying hosts (the Wither, flying Mobs_LD mobs); a walker would float.
+
 ## Shapes
 | type | fields |
 |---|---|
@@ -178,19 +210,26 @@ summoner's tick (Arenas_LD treats them as minions of a run boss).
 | `damage_taken` | `kind`: `melee`, `projectile`, `other` (spells, fire, ...), `all` |
 | `texture` | uses `<mob>_<texture>.png` if it exists |
 | `movement` | overrides `movement` |
+| `bar` | `{ "color": "blue", "overlay": "notched_10" }`: each part set replaces `boss.bar`'s while the phase runs; on a vanilla host with its own bar (the Wither) it recolours that bar, even without `boss.bar`, and a part neither sets goes back to the host bar's own look |
+| `host` | host options for this phase, laid key by key over the file's `host` block (e.g. `{ "hover_height": 0 }`); it cannot change the `type` |
 
 ## Boss
 
 ```json
 "boss": { "bar": { "color": "red", "overlay": "progress" }, "leash": 32, "reset_after": 15,
-          "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" } }
+          "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" }, "engage_on": "players" }
 ```
 
 - `bar`: vanilla boss bar, shown while engaged.
+- `engage_on`: `any` (default: whatever its own AI targets) or `players`: only players, player-owned summons on its
+  threat table and mobs that hurt it in the last 10 s can be its target, so only they start or steer the fight
+  (cows and endermen never pull it).
 - `leash`: if pulled further than this from its spawn point it resets and walks home (invulnerable and ignoring
   everyone meanwhile).
 - `reset_after`: seconds without any target before it resets (a wipe).
 - `soft_enrage`: after `after` seconds in combat its damage is multiplied.
+- **Inside an Arenas_LD run** (the mob carries Arenas' run tag `arenas_ld_run_mob`) `leash` and `reset_after` are off:
+  Arenas owns the wipe there. `/mobs_ld reset` still works.
 - Reset = full heal, phase 1, cooldowns and enrage cleared, adds removed. Bosses never despawn while their behaviour
   has a `boss` block (decided by entity type; the mob's own `PersistenceRequired` is not touched).
 
@@ -212,24 +251,76 @@ vanilla AI. Everything above works the same, except:
 - **Goals.** The engine adds its combat goal (priority 0, above every vanilla attack goal) and threat targeting. While
   engaged it moves per `movement` and attacks only through its abilities; vanilla attack goals (and wandering,
   sun shelter) run only outside a fight, so most hosts should have no `boss` block and drop out after 10 s without
-  a target. Vanilla target goals skip players the engine gave up on. `hit.damage` multiplies the mob's own
-  `attack_damage` (a zombie's is 3); a mob without that attribute (cow, ghast) deals no hit damage (one log warning).
+  a target. With `movement.style: vanilla` the vanilla goals keep running in the fight too, between abilities (a
+  ranged host keeps shooting). Vanilla target goals skip players the engine gave up on. `hit.damage` multiplies the
+  mob's own `attack_damage` (a zombie's is 3); a mob without that attribute (cow, ghast) deals no hit damage (one
+  log warning).
 - **Clips and textures.** Vanilla models have no action layer: an ability's `clip`, the stagger and enrage clips and
   a phase `texture` become cues for the entity type's host adapter. Without one (the default) nothing shows; the
   timeline, telegraphs and hits run regardless.
 - **No `trace`.** Hit tracks come from Mobs_LD's own models, so a `trace` event does nothing on a vanilla mob (one log
   warning). Use `hit` with a telegraph.
 - **Boss bar.** `boss.bar` gets an engine bar, unless the host adapter supplies the mob's own bar (then only its
-  colour and overlay are applied). A behaviour with a `boss` block keeps the mob from despawning.
+  colour and overlay are applied, and a phase's `bar` recolours it even without `boss.bar`). A behaviour with a
+  `boss` block keeps the mob from despawning.
 - **Not supported**, logged and ignored at reload: the Ender Dragon (its AI bypasses the mob tick) and Brain-driven
   mobs (Warden, piglins, hoglin, zoglin, breeze, villager, allay, axolotl, frog, tadpole, goat, camel, sniffer,
   armadillo), which ignore goals. Players and armor stands are not mobs.
 - **Flyers and climbers.** A mob with flying navigation, a flying body (ghast, phantom), a flying move control, no
-  gravity (vex) or a wall-climbing navigation (spider) always counts as able to reach its target, so it is never made to drop aggro as unreachable. The reach band is
-  still measured from its feet, so a hovering mob needs `movement.reach_depth` (or `range.below`) to start
-  abilities on targets under it. A blaze (ground navigation, rises on its own) is still judged by ground paths.
+  gravity (vex) or a wall-climbing navigation (spider) always counts as able to reach its target by `path`, so it is
+  never made to drop aggro as unreachable; give a ranged flyer `reach_rule: line_of_sight` instead, so hiding from it
+  works. The reach band is still measured from its feet, so a hovering mob needs `movement.reach_depth` (or
+  `range.below`) to start abilities on targets under it. A blaze (ground navigation, rises on its own) is still
+  judged by ground paths.
 - **Dimensions.** A host carried to another dimension (portal, `/tp`) keeps fighting and re-homes where it arrives;
   only a mob loaded back from disk mid-fight resets.
+- **Base stats.** `base_attributes` sets base values (any attribute id, other mods' too) on every mob of the type as
+  it is constructed, server side: before the host's own constructor fills its health from them and before Dungeon
+  Difficulty scales it on entering the world. Setting `max_health` also fills its health. Mobs loaded from disk keep
+  their saved base values; ids that are unknown or that the entity does not have are reported at reload and skipped,
+  and a value outside the attribute's range (as it stands with the installed mods, e.g. AttributeFix lifts
+  max_health's 1024 cap) is reported and clamped by the game. On a dedicated server AttributeFix widens ranges only
+  once the server has started, so that report can be a false alarm there. Some vanilla mobs rewrite a few of their
+  own base values after spawning (wither skeleton attack damage in finalizeSpawn, slime and magma cube size stats,
+  horse stats, phantom size, ravager speed, tamed wolf health, ...); a file cannot override those values on them.
+- **The `host` block.** `{ "type": "<adapter type>", "enabled": true, ...options }`. `"enabled": false` switches the
+  file off: the type is not hosted at all, exactly as if the file were absent (a server datapack can override a file
+  shipped in a jar this way). `type` names the options its host adapter reads (only the Wither has one so far:
+  `mobs_ld:wither`); every option defaults to vanilla. A `type` for another adapter, and keys nobody defines, are
+  reported at reload and ignored. Phases may override options (see Phases).
+
+### The Wither (`data/minecraft/mob_behaviour/wither.json`)
+
+Mobs_LD ships a behaviour for the vanilla Wither; a datapack can replace it at the same path or switch it off with
+`{ "host": { "enabled": false } }`. The Wither stays the vanilla entity: model, build ritual, the 11 s blue charge
+(which now ends at full health, and whose blast deals `mobs_ld:wither_spawn_blast`), death, loot and the nether star.
+
+- **Start.** A built Wither starts fighting once its charge is over; one made by `/summon` (or a spawner, or Arenas_LD)
+  starts at once.
+- **Bar.** Its own vanilla bar stays (darkens the sky, follows its health); phases only recolour it (`bar`), and a
+  phase without one shows the vanilla purple again.
+- **Between abilities** it flies and shoots like vanilla (`movement.style: vanilla`). While an ability, a stagger or
+  the walk home runs, its own chase stops; during an ability it holds perfectly still unless an event (`hover`,
+  `dash`) moves it, and a `dash` or `chase` keeps its altitude; in a stagger it sinks.
+- **Targets.** With `boss.engage_on: players` its nearest-target goal looks for players only.
+- **Host options** (`"type": "mobs_ld:wither"`; all may be overridden per phase):
+
+| option | vanilla default | meaning |
+|---|---|---|
+| `hover_height` | 5.0 | how high above its target it hovers between abilities; below half health vanilla brings it to the target's height anyway |
+| `regen_while_engaged` | true | false = no 1 HP/s regeneration while it is fighting |
+| `arrow_immunity` | true | false = arrows and wind charges hit it below half health too (scale them with the phase's `damage_taken`) |
+| `block_breaking` | `always` | breaking the blocks around it 1 s after a hit: `always`, `never`, or `outside_runs` (never while it carries Arenas_LD's run tag `arenas_ld_run_mob`) |
+
+- **Still vanilla for now:** skull damage, the side heads' targets, the idle blue skulls (until the heads and skulls
+  rework), and the summoning charge itself.
+- **The shipped file is a placeholder kit:** base stats 1711 HP / 2.0 attack, players only, line-of-sight reach
+  (hide 3 s and aggro passes on; 15 s with nobody visible and it resets), leash 64 (both off inside Arenas_LD runs),
+  soft enrage at 8 min, phases at
+  50 % (blue, projectiles x0.6, player height) and 20 % (red). Its only ability is `test_hover_slam` (rise over the
+  target, slam a 4.5-block circle under it), there to check hover and telegraphs in game; the real kit (heads, Soul
+  Rush, Grave Call) replaces it in later milestones and the kit is incomplete until then (milestone M5 of
+  `docs/design/wither-rework.md`).
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).

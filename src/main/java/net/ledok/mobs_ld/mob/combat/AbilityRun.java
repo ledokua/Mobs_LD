@@ -12,12 +12,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * One ability in flight: its clock (scaled by attack speed), aim, facing, and the state of each timeline event.
@@ -263,19 +265,74 @@ public final class AbilityRun {
         return level().getEntitiesOfClass(LivingEntity.class, box, candidate -> CombatTargets.isEnemy(mob, candidate));
     }
 
-    /** Ground level under a point, so telegraphs lie on the floor even when the mob is mid-step or airborne. */
+    /**
+     * Ground level under a point, so telegraphs lie on the floor even when the mob is mid-step or airborne; the point
+     * itself when there is no floor within reach (see {@link #groundBelow}).
+     */
     public Vec3 groundAt(Vec3 point) {
+        return groundBelow(point).orElse(point);
+    }
+
+    /**
+     * The first floor under a point, scanned from 2 blocks above it (so a zone on a slope finds the step it is on).
+     * See {@link #groundBelow(Vec3, int)}.
+     */
+    public Optional<Vec3> groundBelow(Vec3 point) {
+        return groundBelow(point, 2);
+    }
+
+    /**
+     * The first floor under a point: scanned block by block from {@code fromAbove} blocks above it down
+     * {@code movement.ground_scan} blocks (no heightmap, which would find the Nether roof). The surface of a lake or a
+     * lava sea below the point counts as floor (not its bed); a point under the surface (a mob wading or swimming)
+     * still gets the bed. Empty over the void or a drop deeper than the scan, so callers can skip a zone or spot that
+     * has nothing to lie on.
+     */
+    public Optional<Vec3> groundBelow(Vec3 point, int fromAbove) {
         ServerLevel level = level();
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(Mth.floor(point.x), 0, Mth.floor(point.z));
-        int top = Mth.floor(point.y) + 2;
-        for (int y = top; y >= Math.max(level.getMinBuildHeight(), top - 8); y--) {
+        int top = Mth.floor(point.y) + fromAbove;
+        int bottom = Math.max(level.getMinBuildHeight(), top - combat.movement().groundScan());
+        boolean fluidAbove = !level.getFluidState(cursor.setY(top + 1)).isEmpty();
+        for (int y = top; y >= bottom; y--) {
             cursor.setY(y);
+            double surface = Double.NEGATIVE_INFINITY;
             VoxelShape collision = level.getBlockState(cursor).getCollisionShape(level, cursor);
             if (!collision.isEmpty()) {
-                return new Vec3(point.x, y + collision.max(Direction.Axis.Y), point.z);
+                surface = y + collision.max(Direction.Axis.Y);
             }
+            FluidState fluid = level.getFluidState(cursor);
+            if (!fluid.isEmpty() && !fluidAbove) {
+                double fluidTop = y + fluid.getHeight(level, cursor);
+                if (fluidTop <= point.y + 1.0e-3) {
+                    surface = Math.max(surface, fluidTop);
+                }
+            }
+            if (surface > Double.NEGATIVE_INFINITY) {
+                return Optional.of(new Vec3(point.x, surface, point.z));
+            }
+            fluidAbove = !fluid.isEmpty();
         }
-        return point;
+        return Optional.empty();
+    }
+
+    /**
+     * Vertical speed for an event that steers the body only sideways (a dash, a chase): none for a host that holds
+     * its altitude while the engine owns it (the Wither, whose move control would let it sink), else the body's own
+     * (gravity, a jump in progress).
+     */
+    public double sidewaysY() {
+        return combat.adapter().holdsAltitude() ? 0.0 : mob.getDeltaMovement().y;
+    }
+
+    /**
+     * Sets the body's velocity for this tick (an event steering the mob: hover, dash, chase). It also tells the host
+     * that something drives the body now, so a host that holds still during abilities leaves it alone.
+     */
+    public void moveBody(double x, double y, double z) {
+        mob.setDeltaMovement(x, y, z);
+        mob.hasImpulse = true;
+        combat.markBodyMoved();
     }
 
     /** Draws a telegraph that fills up until the impact at {@code impactSeconds}. */

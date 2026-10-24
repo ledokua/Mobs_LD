@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.mob.MobDeclarations;
 import net.ledok.mobs_ld.mob.behaviour.HitTracks;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.combat.CombatEvents;
+import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -21,6 +22,7 @@ public class MobsLdMod implements ModInitializer {
         ModAttributes.register();
         ModEntities.register();
         MobDeclarations.register();
+        WitherAdapter.register(); // host adapters and their host types, before any datapack is read
         MobBehaviours.register();
         HitTracks.register();
         ModEffects.register();

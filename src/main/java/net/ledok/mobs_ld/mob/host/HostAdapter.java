@@ -1,5 +1,7 @@
 package net.ledok.mobs_ld.mob.host;
 
+import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.world.entity.Mob;
 
@@ -46,6 +48,32 @@ public interface HostAdapter {
      * instead of showing a second one; null = the engine makes its own bar if the behaviour asks for one.
      */
     default ServerBossEvent bossBar(Mob mob) {
+        return null;
+    }
+
+    /**
+     * The look of {@link #bossBar} where the behaviour sets none: each part neither the current phase's {@code bar} nor
+     * {@code boss.bar} sets goes back to this (after a reset to the first phase, or once the behaviour is gone). Null =
+     * leave the bar as it is.
+     */
+    default MobBehaviour.BossBar defaultBarStyle() {
+        return null;
+    }
+
+    /**
+     * Whether the mob keeps its altitude while an event steers it only sideways (a dash, a chase): true for a flyer
+     * whose move control lets it sink while the engine holds it, so those events give it no vertical speed. False
+     * keeps the body's own vertical speed (gravity, jumps).
+     */
+    default boolean holdsAltitude() {
+        return false;
+    }
+
+    /**
+     * The {@code host.type} this adapter reads its options from (see {@link HostSpec}); null = it takes none, and a
+     * typed host block on its entity type is ignored with a warning at reload.
+     */
+    default ResourceLocation hostType() {
         return null;
     }
 

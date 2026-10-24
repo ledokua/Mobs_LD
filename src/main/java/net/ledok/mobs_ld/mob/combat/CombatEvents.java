@@ -3,17 +3,27 @@ package net.ledok.mobs_ld.mob.combat;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 /**
- * Death and removal of mobs that run the ability engine, from Fabric's events (registered once from the mod
- * initializer). The tick, damage, save and viewer hooks live in mixins (MobCombatHostMixin, LivingEntityCombatMixin,
- * EntityCombatViewersMixin).
+ * Damage, death and removal of mobs that run the ability engine, from Fabric's events (registered once from the mod
+ * initializer). The tick, damage scaling, save and viewer hooks live in mixins (MobCombatHostMixin,
+ * LivingEntityCombatMixin, EntityCombatViewersMixin).
  */
 public final class CombatEvents {
     private CombatEvents() {
     }
 
     public static void register() {
+        // A mob that hit a players-only boss may fight it back for a while (boss.engage_on: players).
+        ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
+            MobCombat combat = CombatHost.of(entity);
+            if (combat != null && source.getEntity() instanceof LivingEntity attacker && !(attacker instanceof Player)
+                    && attacker != entity) {
+                combat.noteHurtBy(attacker);
+            }
+        });
         // Fired once per real death (from LivingEntity.die), before the body starts falling.
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobCombat combat = CombatHost.of(entity);

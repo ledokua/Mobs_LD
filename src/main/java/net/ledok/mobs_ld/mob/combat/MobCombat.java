@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
+import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
@@ -20,11 +21,13 @@ import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.FlyingMob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -32,6 +35,7 @@ import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
@@ -63,6 +67,10 @@ public final class MobCombat {
     private static final String SAVE_KEY = "mobs_ld_combat";
     /** Home as saved before {@link #SAVE_KEY}; still written so a world can go back to an older build. */
     private static final String LEGACY_HOME_KEY = "mobs_ld_home";
+    /** A non-player that hurt a players-only boss may be its target for this long (ticks). */
+    private static final int HURT_BY_WINDOW = 200;
+    /** Arenas_LD marks the mobs of a running dungeon or raid with this tag (read here, never written). */
+    public static final String ARENAS_RUN_TAG = "arenas_ld_run_mob";
 
     /** {@code /mobs_ld debug}: narrate ability decisions to operators in chat. */
     private static boolean debug;
@@ -77,7 +85,11 @@ public final class MobCombat {
     private final Map<UUID, Long> unreachableSince = new HashMap<>();
     /** Targets it has given up on until they are reachable again. */
     private final Set<UUID> unreachable = new HashSet<>();
+    /** Non-players that hurt it recently (game time of the last hit), for {@code engage_on: players}. */
+    private final Map<UUID, Long> hurtBy = new HashMap<>();
     private int reachCheckIn;
+    /** Game time an ability event last set the body's velocity (see {@link #markBodyMoved}). */
+    private long bodyMovedAt = Long.MIN_VALUE;
 
     private AbilityRun current;
     private AbilityRun deathRun;
@@ -103,6 +115,14 @@ public final class MobCombat {
         this.mob = mob;
         this.host = (CombatHost) mob;
         this.adapter = HostAdapters.get(mob.getType());
+    }
+
+    /**
+     * Whether {@code entity} belongs to a running Arenas_LD dungeon or raid. Arenas owns the wipe there, so Mobs_LD's
+     * leash and wipe reset stay off.
+     */
+    public static boolean inArenasRun(Entity entity) {
+        return entity.getTags().contains(ARENAS_RUN_TAG);
     }
 
     /** Leaves without dying: a puff of smoke, no drops, no {@code on_death}. */
@@ -174,6 +194,11 @@ public final class MobCombat {
             return;
         }
         tickReachability(behaviour, now);
+        LivingEntity target = mob.getTarget();
+        if (target != null && !mayTarget(target)) {
+            // Set before the engine was attached (or past the hook by other code), or a non-player whose hit is old.
+            mob.setTarget(null);
+        }
         tickEngagement(behaviour, now);
         if (engaged) {
             int desired = behaviour.phaseFor(mob.getHealth() / mob.getMaxHealth());
@@ -190,6 +215,10 @@ public final class MobCombat {
         if (staggerUntil >= 0 && now >= staggerUntil) {
             staggerUntil = -1;
             host.mobs_ld$stopAction();
+        }
+        if (engaged && !busy() && !mob.isRemoved() && movement().style() == MobBehaviour.Movement.Style.VANILLA) {
+            // The combat goal only runs during abilities for these hosts, so abilities are picked from here.
+            tryStartAbility();
         }
     }
 
@@ -209,13 +238,15 @@ public final class MobCombat {
             }
             return;
         }
-        if (idleTicks > boss.resetAfter() * 20.0) {
-            reset(); // everyone died or left: a wipe
-            return;
-        }
-        if (boss.leash() > 0.0 && mob.position().distanceTo(home) > boss.leash()) {
-            reset(); // pulled out of its arena
-            return;
+        if (!inArenasRun(mob)) { // inside a run Arenas_LD decides what a wipe is
+            if (idleTicks > boss.resetAfter() * 20.0) {
+                reset(); // everyone died or left: a wipe
+                return;
+            }
+            if (boss.leash() > 0.0 && mob.position().distanceTo(home) > boss.leash()) {
+                reset(); // pulled out of its arena
+                return;
+            }
         }
         if (!enraged) {
             boss.softEnrage().ifPresent(rule -> {
@@ -283,6 +314,13 @@ public final class MobCombat {
         removeBar();
         unreachable.clear(); // nothing re-checks them now, and targeting would keep skipping those players
         unreachableSince.clear();
+        hurtBy.clear();
+        ServerBossEvent hostBar = adapter.bossBar(mob);
+        MobBehaviour.BossBar vanilla = adapter.defaultBarStyle();
+        if (hostBar != null && vanilla != null) {
+            hostBar.setColor(vanilla.color());
+            hostBar.setOverlay(vanilla.overlay());
+        }
     }
 
     private void enterPhase(MobBehaviour behaviour, int index) {
@@ -321,6 +359,34 @@ public final class MobCombat {
     /** Whether the mob is committed to something (an ability or a stagger) and must not move on its own. */
     public boolean busy() {
         return current != null || staggerUntil >= 0;
+    }
+
+    /** Whether an ability (not a stagger) is running. */
+    public boolean inAbility() {
+        return current != null;
+    }
+
+    /** Index of the current boss phase (0 = the first; latched, it only goes down on a reset). */
+    public int phase() {
+        return phase;
+    }
+
+    /**
+     * The host adapter's options in effect now (the current phase's, see {@link MobBehaviour#hostOptions}); null when
+     * there are none: no behaviour (the mob is then fully vanilla), or no typed host block (the adapter's defaults).
+     */
+    public HostOptions hostOptions() {
+        MobBehaviour behaviour = behaviour();
+        return behaviour == null ? null : behaviour.hostOptions(phase).orElse(null);
+    }
+
+    /** An ability event drove the body this tick (a hover, dash or chase), so the host must not hold it still. */
+    public void markBodyMoved() {
+        bodyMovedAt = mob.level().getGameTime();
+    }
+
+    public boolean bodyMovedThisTick() {
+        return bodyMovedAt == mob.level().getGameTime();
     }
 
     public boolean engaged() {
@@ -444,8 +510,6 @@ public final class MobCombat {
 
     // --- Reachability ---
 
-    /** Ticks a target must stay unreachable before the mob gives up on it. */
-    private static final int UNREACHABLE_AFTER = 40;
     private static final int REACH_CHECK_INTERVAL = 10;
 
     /** Whether the mob has given up on {@code entity} because it cannot get to it (high ground, no path). */
@@ -458,6 +522,39 @@ public final class MobCombat {
         return returning || unreachable.contains(entity.getUUID());
     }
 
+    /** Whether a {@code boss.engage_on: players} rule is in force. */
+    public boolean engagesPlayersOnly() {
+        MobBehaviour behaviour = behaviour();
+        MobBehaviour.Boss boss = behaviour == null ? null : behaviour.boss().orElse(null);
+        return boss != null && boss.engageOn() == MobBehaviour.EngageOn.PLAYERS;
+    }
+
+    /**
+     * Whether {@code candidate} may be the mob's target at all. Always, unless the behaviour engages players only:
+     * then also player-owned summons on its threat table and mobs that hurt it in the last 10 s, nothing else.
+     */
+    public boolean mayTarget(LivingEntity candidate) {
+        if (candidate instanceof Player || !engagesPlayersOnly()) {
+            return true;
+        }
+        if (candidate instanceof OwnableEntity ownable && ownable.getOwner() instanceof Player
+                && ((ThreatHolder) mob).getThreatTable().get(candidate.getUUID()) > 0.0) {
+            return true;
+        }
+        Long hitAt = hurtBy.get(candidate.getUUID());
+        return hitAt != null && mob.level().getGameTime() - hitAt <= HURT_BY_WINDOW;
+    }
+
+    /** {@code attacker} (not a player) just damaged the mob: it may be targeted for a while under engage_on players. */
+    public void noteHurtBy(LivingEntity attacker) {
+        if (!engagesPlayersOnly()) {
+            return;
+        }
+        long now = mob.level().getGameTime();
+        hurtBy.values().removeIf(at -> now - at > HURT_BY_WINDOW);
+        hurtBy.put(attacker.getUUID(), now);
+    }
+
     private void tickReachability(MobBehaviour behaviour, long now) {
         if (--reachCheckIn > 0) {
             return;
@@ -465,6 +562,10 @@ public final class MobCombat {
         reachCheckIn = REACH_CHECK_INTERVAL;
         ServerLevel level = (ServerLevel) mob.level();
         LivingEntity target = mob.getTarget();
+        // Grace timers only run for the current target and those given up on: one that was swapped out mid-count
+        // starts over, instead of being given up on at its next single miss.
+        UUID targetId = target == null ? null : target.getUUID();
+        unreachableSince.keySet().removeIf(id -> !id.equals(targetId) && !unreachable.contains(id));
         if (target != null) {
             evaluateReach(target, behaviour, now);
         }
@@ -481,7 +582,8 @@ public final class MobCombat {
 
     private void evaluateReach(LivingEntity entity, MobBehaviour behaviour, long now) {
         UUID id = entity.getUUID();
-        if (canReach(entity, movement())) {
+        MobBehaviour.Movement movement = movement();
+        if (canReach(entity, movement)) {
             unreachableSince.remove(id);
             if (unreachable.remove(id)) {
                 trace(entity.getName().getString() + " is reachable again");
@@ -489,7 +591,7 @@ public final class MobCombat {
             return;
         }
         long since = unreachableSince.computeIfAbsent(id, key -> now);
-        if (now - since >= UNREACHABLE_AFTER) {
+        if (now - since >= Math.round(movement.loseAfterSeconds() * 20.0)) {
             if (unreachable.add(id)) {
                 trace(entity.getName().getString() + " is unreachable; switching targets");
             }
@@ -511,8 +613,14 @@ public final class MobCombat {
         return movement().reachDepth().orElse(1.5);
     }
 
-    /** Within the reach band, or the mob has a full path to it. */
+    /**
+     * By line of sight: the mob can see it. By path: within the reach band, or the mob has a full path to it (flyers
+     * and climbers always do).
+     */
     private boolean canReach(LivingEntity entity, MobBehaviour.Movement movement) {
+        if (movement.reachRule() == MobBehaviour.Movement.ReachRule.LINE_OF_SIGHT) {
+            return mob.getSensing().hasLineOfSight(entity);
+        }
         double dy = entity.getY() - mob.getY();
         if (dy <= reachUp() && dy >= -reachDown()) {
             return true;
@@ -731,28 +839,43 @@ public final class MobCombat {
 
     // --- Boss bar ---
 
+    /**
+     * The bar's look is {@code boss.bar} with the current phase's {@code bar} laid over it. A host with its own bar
+     * (the Wither's) keeps showing and filling it, and only takes the parts the behaviour sets.
+     */
     private void updateBar(MobBehaviour behaviour) {
         MobBehaviour.BossBar style = behaviour.boss().flatMap(MobBehaviour.Boss::bar).orElse(null);
+        MobBehaviour.Phase active = activePhase(behaviour);
+        MobBehaviour.BarStyle phaseStyle = active == null ? null : active.bar().orElse(null);
         ServerBossEvent hostBar = adapter.bossBar(mob);
+        // Parts nobody sets fall back to the host bar's own look (none for an engine bar: boss.bar sets both).
+        MobBehaviour.BossBar fallback = style != null ? style : hostBar != null ? adapter.defaultBarStyle() : null;
+        BossEvent.BossBarColor color = phaseStyle != null && phaseStyle.color().isPresent() ? phaseStyle.color().get()
+                : fallback != null ? fallback.color() : null;
+        BossEvent.BossBarOverlay overlay = phaseStyle != null && phaseStyle.overlay().isPresent() ? phaseStyle.overlay().get()
+                : fallback != null ? fallback.overlay() : null;
         if (style == null || hostBar != null) {
             removeBar();
-            if (style != null) {
-                // The host shows and fills its own bar; the behaviour only picks its look.
-                hostBar.setColor(style.color());
-                hostBar.setOverlay(style.overlay());
+            if (hostBar != null) {
+                if (color != null) {
+                    hostBar.setColor(color);
+                }
+                if (overlay != null) {
+                    hostBar.setOverlay(overlay);
+                }
             }
             return;
         }
         if (bar == null) {
-            bar = new ServerBossEvent(mob.getDisplayName(), style.color(), style.overlay());
+            bar = new ServerBossEvent(mob.getDisplayName(), color, overlay);
             for (ServerPlayer player : ((ServerLevel) mob.level()).players()) {
                 if (player.distanceToSqr(mob) < 64.0 * 64.0) {
                     bar.addPlayer(player);
                 }
             }
         }
-        bar.setColor(style.color());
-        bar.setOverlay(style.overlay());
+        bar.setColor(color);
+        bar.setOverlay(overlay);
         bar.setVisible(engaged);
         bar.setProgress(mob.getHealth() / mob.getMaxHealth());
     }

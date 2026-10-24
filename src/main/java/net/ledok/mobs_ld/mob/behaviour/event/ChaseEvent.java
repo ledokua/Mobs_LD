@@ -109,8 +109,7 @@ public record ChaseEvent(double at, String clip, double maxTime, double speed, d
                 float yaw = Mth.approachDegrees(run.yaw(), (float) Math.toDegrees(Math.atan2(-dx, dz)), (float) turnRate);
                 run.setYaw(yaw);
                 Vec3 direction = AbilityRun.forward(yaw);
-                mob.setDeltaMovement(direction.x * speed, mob.getDeltaMovement().y, direction.z * speed);
-                mob.hasImpulse = true;
+                run.moveBody(direction.x * speed, run.sidewaysY(), direction.z * speed);
                 running++;
                 hit.ifPresent(spec -> {
                     for (LivingEntity victim : run.enemiesNear(mob.getBoundingBox().inflate(width / 2.0, 0.5, width / 2.0))) {

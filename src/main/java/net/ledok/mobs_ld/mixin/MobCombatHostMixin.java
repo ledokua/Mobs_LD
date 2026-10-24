@@ -10,8 +10,11 @@ import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -92,6 +95,39 @@ public class MobCombatHostMixin implements CombatHost {
     }
 
     // --- Hooks (every mob, LdMob included) ---
+
+    /**
+     * {@code base_attributes}: inside the Mob constructor, just before it creates the navigation and then registers
+     * the goals, so both are built from the new values (follow range); before a subclass constructor fills its health
+     * from them (the Wither's) and before the mob is added to a level (where Dungeon Difficulty scales it). A mob
+     * loaded from disk then reads its saved base values over these.
+     */
+    @Inject(method = "<init>", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/Mob;createNavigation(Lnet/minecraft/world/level/Level;)Lnet/minecraft/world/entity/ai/navigation/PathNavigation;"))
+    private void mobs_ld$applyBaseAttributes(EntityType<? extends Mob> type, Level level, CallbackInfo ci) {
+        if (level == null || level.isClientSide()) {
+            return;
+        }
+        MobBehaviour behaviour = MobBehaviours.get(type);
+        if (behaviour != null && !behaviour.baseAttributes().isEmpty() && MobBehaviours.canHost(mobs_ld$self())) {
+            behaviour.applyBaseAttributes(mobs_ld$self());
+        }
+    }
+
+    /**
+     * A target the behaviour does not allow ({@code boss.engage_on: players}: a cow, an enderman) is never set, so it
+     * cannot start or steer the fight; the current target stays. Null (dropping the target) always goes through.
+     */
+    @Inject(method = "setTarget", at = @At("HEAD"), cancellable = true)
+    private void mobs_ld$filterTarget(LivingEntity target, CallbackInfo ci) {
+        if (target == null) {
+            return;
+        }
+        MobCombat combat = mobs_ld$combat();
+        if (combat != null && !combat.mayTarget(target)) {
+            ci.cancel();
+        }
+    }
 
     /**
      * The engine tick: after the mob's own {@code customServerAiStep}, so it runs inside the boss tick (summons are

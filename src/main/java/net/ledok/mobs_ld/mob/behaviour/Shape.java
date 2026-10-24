@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.mob.behaviour;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
@@ -20,12 +21,11 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
             "rays", Rays.CODEC
     );
 
-    Codec<Shape> CODEC = Codec.STRING.dispatch("type", Shape::type, type -> {
+    /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */
+    Codec<Shape> CODEC = Codec.STRING.partialDispatch("type", shape -> DataResult.success(shape.type()), type -> {
         MapCodec<? extends Shape> codec = TYPES.get(type);
-        if (codec == null) {
-            throw new IllegalArgumentException("Unknown shape type '" + type + "' (expected one of " + TYPES.keySet() + ")");
-        }
-        return codec;
+        return codec != null ? DataResult.success(codec)
+                : DataResult.error(() -> "Unknown shape type '" + type + "' (expected one of " + TYPES.keySet() + ")");
     });
 
     String type();

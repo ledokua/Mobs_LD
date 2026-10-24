@@ -15,6 +15,9 @@ import java.util.EnumSet;
  * with the threat system; the ability timeline is ticked by {@link MobCombat}. While a boss walks home after a reset
  * it only holds the movement and look flags, so no vanilla goal takes over the path {@link MobCombat} set.
  *
+ * <p>With {@code movement.style: vanilla} it only runs while an ability, a stagger or the walk home does: between
+ * abilities the host's own goals move and attack, and {@link MobCombat} picks the next ability itself.
+ *
  * <p>The combat is looked up on every use, never held: LdMob adds this goal from inside its constructor, before its
  * combat exists, and a vanilla mob only gets a combat once its type has a behaviour.
  */
@@ -34,7 +37,11 @@ public class CombatGoal extends Goal {
     @Override
     public boolean canUse() {
         MobCombat combat = CombatHost.of(mob);
-        return combat != null && combat.behaviour() != null && (combat.returning() || combat.busy() || combat.engaged());
+        if (combat == null || combat.behaviour() == null) {
+            return false;
+        }
+        return combat.returning() || combat.busy()
+                || (combat.engaged() && combat.movement().style() != MobBehaviour.Movement.Style.VANILLA);
     }
 
     @Override
@@ -62,11 +69,14 @@ public class CombatGoal extends Goal {
             mob.getNavigation().stop();
             return;
         }
+        MobBehaviour.Movement movement = combat.movement();
+        if (movement.style() == MobBehaviour.Movement.Style.VANILLA) {
+            return; // an ability just ended; the goal stops at the next goal update and the host's own AI resumes
+        }
         if (combat.tryStartAbility()) {
             mob.getNavigation().stop();
             return;
         }
-        MobBehaviour.Movement movement = combat.movement();
         LivingEntity follow = CombatTargets.pick(mob, movement.follow());
         if (follow == null) {
             mob.getNavigation().stop();
@@ -92,6 +102,9 @@ public class CombatGoal extends Goal {
                 }
             }
             case STATIONARY -> hold(follow);
+            case VANILLA -> {
+                // returned above
+            }
         }
     }
 

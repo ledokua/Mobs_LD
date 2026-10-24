@@ -2,15 +2,26 @@ package net.ledok.mobs_ld.mob.behaviour;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.host.HostOptions;
+import net.ledok.mobs_ld.mob.host.HostSpec;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +31,14 @@ import java.util.Optional;
  * The reloadable half of a mob definition: how it moves, what it can do and, for bosses, how the fight evolves.
  * One file per entity type at {@code data/<namespace>/mob_behaviour/<path>.json} (see docs/behaviour.md).
  * All times are seconds, as in the art hand-off notes; distances are blocks.
+ *
+ * @param baseAttributes attribute id -> base value, set on every new mob of the type as it is constructed (before
+ *                       its own constructor finishes and before other mods scale it); saved mobs keep their values
+ * @param host           how the engine runs on a vanilla host (its adapter's options; an off switch)
  */
 public record MobBehaviour(
+        Map<ResourceLocation, Double> baseAttributes,
+        HostSpec host,
         Movement movement,
         double globalCooldown,
         Optional<Ability> intro,
@@ -32,6 +49,8 @@ public record MobBehaviour(
         Optional<Boss> boss
 ) {
     public static final Codec<MobBehaviour> CODEC = RecordCodecBuilder.<MobBehaviour>create(i -> i.group(
+            Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("base_attributes", Map.of()).forGetter(MobBehaviour::baseAttributes),
+            HostSpec.CODEC.optionalFieldOf("host", HostSpec.NONE).forGetter(MobBehaviour::host),
             Movement.CODEC.optionalFieldOf("movement", Movement.DEFAULT).forGetter(MobBehaviour::movement),
             Codec.DOUBLE.optionalFieldOf("global_cooldown", 0.5).forGetter(MobBehaviour::globalCooldown),
             Ability.CODEC.optionalFieldOf("intro").forGetter(MobBehaviour::intro),
@@ -44,6 +63,7 @@ public record MobBehaviour(
 
     public MobBehaviour {
         // Keep authoring order (phases sorted from full health down) and a stable ability order.
+        baseAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(baseAttributes));
         abilities = new LinkedHashMap<>(abilities);
         List<Phase> sorted = new ArrayList<>(phases);
         sorted.sort((a, b) -> Double.compare(b.belowHealth(), a.belowHealth()));
@@ -81,7 +101,65 @@ public record MobBehaviour(
                 }
             }
         }
-        return DataResult.success(behaviour);
+        return resolvePhaseHosts(behaviour);
+    }
+
+    /** Lays each phase's own {@code host} block over the behaviour's, once at load (see {@link HostSpec#withOverride}). */
+    private static DataResult<MobBehaviour> resolvePhaseHosts(MobBehaviour behaviour) {
+        if (behaviour.phases().stream().noneMatch(phase -> phase.hostOverride().isPresent())) {
+            return DataResult.success(behaviour);
+        }
+        List<Phase> resolved = new ArrayList<>();
+        for (Phase phase : behaviour.phases()) {
+            if (phase.hostOverride().isEmpty()) {
+                resolved.add(phase);
+                continue;
+            }
+            DataResult<HostOptions> merged = behaviour.host().withOverride(phase.hostOverride().get());
+            Optional<HostOptions> options = merged.result();
+            if (options.isEmpty()) {
+                String message = merged.error().map(DataResult.Error::message).orElse("invalid host block");
+                return DataResult.error(() -> "Phase below " + phase.belowHealth() + ": " + message);
+            }
+            resolved.add(phase.withHost(options.get()));
+        }
+        return DataResult.success(new MobBehaviour(behaviour.baseAttributes(), behaviour.host(), behaviour.movement(),
+                behaviour.globalCooldown(), behaviour.intro(), behaviour.stagger(), behaviour.onDeath(),
+                behaviour.abilities(), resolved, behaviour.boss()));
+    }
+
+    /**
+     * The host adapter's options in effect for a phase: that phase's merged {@code host} block if it has one, else
+     * the behaviour's own; empty = no typed host block (the adapter keeps its vanilla defaults).
+     */
+    public Optional<HostOptions> hostOptions(int phaseIndex) {
+        if (!phases.isEmpty()) {
+            Optional<HostOptions> own = phases.get(Math.min(phaseIndex, phases.size() - 1)).host();
+            if (own.isPresent()) {
+                return own;
+            }
+        }
+        return host.options();
+    }
+
+    /**
+     * Sets {@code base_attributes} on a newly constructed mob, then fills its health to a new max. Unknown ids and
+     * attributes the mob does not have are skipped (both reported at reload).
+     */
+    public void applyBaseAttributes(LivingEntity entity) {
+        boolean maxHealth = false;
+        for (Map.Entry<ResourceLocation, Double> entry : baseAttributes.entrySet()) {
+            Optional<Holder.Reference<Attribute>> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(entry.getKey());
+            AttributeInstance instance = attribute.map(entity::getAttribute).orElse(null);
+            if (instance == null) {
+                continue;
+            }
+            instance.setBaseValue(entry.getValue());
+            maxHealth |= attribute.get().is(Attributes.MAX_HEALTH);
+        }
+        if (maxHealth) {
+            entity.setHealth(entity.getMaxHealth());
+        }
     }
 
     /** Phase index for a health fraction: the last phase whose threshold the mob has dropped below. */
@@ -101,19 +179,32 @@ public record MobBehaviour(
      * @param follow      whom it moves toward: its threat target, or e.g. always the nearest player
      * @param reachHeight how far above its feet it can strike; empty = 85 % of its own height (big mobs reach higher)
      * @param reachDepth  how far below its feet it can strike (into a pit, off a ledge); empty = 1.5 blocks
+     * @param reachRule   what makes a target reachable (see {@link ReachRule})
+     * @param loseAfter   seconds a target must stay unreachable before the mob gives up on it; empty = 3 s by line of
+     *                    sight, 2 s by path
+     * @param groundScan  how many blocks below a point telegraphs and ground-relative moves look for the floor (a
+     *                    high flyer needs more); deeper than this counts as no ground (the void)
      */
     public record Movement(Style style, double distance, double speed, TargetRule follow, Optional<Double> reachHeight,
-                           Optional<Double> reachDepth) {
+                           Optional<Double> reachDepth, ReachRule reachRule, Optional<Double> loseAfter, int groundScan) {
         public static final Movement DEFAULT = new Movement(Style.STANDOFF, 2.0, 1.0, TargetRule.CURRENT,
-                Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), ReachRule.PATH, Optional.empty(), 8);
         public static final Codec<Movement> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Style.CODEC.optionalFieldOf("style", Style.STANDOFF).forGetter(Movement::style),
                 Codec.DOUBLE.optionalFieldOf("distance", 2.0).forGetter(Movement::distance),
                 Codec.DOUBLE.optionalFieldOf("speed", 1.0).forGetter(Movement::speed),
                 TargetRule.CODEC.optionalFieldOf("follow", TargetRule.CURRENT).forGetter(Movement::follow),
                 Codec.DOUBLE.optionalFieldOf("reach_height").forGetter(Movement::reachHeight),
-                Codec.DOUBLE.optionalFieldOf("reach_depth").forGetter(Movement::reachDepth)
+                Codec.DOUBLE.optionalFieldOf("reach_depth").forGetter(Movement::reachDepth),
+                ReachRule.CODEC.optionalFieldOf("reach_rule", ReachRule.PATH).forGetter(Movement::reachRule),
+                Codec.doubleRange(0.0, 600.0).optionalFieldOf("lose_after").forGetter(Movement::loseAfter),
+                Codec.intRange(1, 384).optionalFieldOf("ground_scan", 8).forGetter(Movement::groundScan)
         ).apply(i, Movement::new));
+
+        /** Seconds a target must stay unreachable before the mob gives up on it. */
+        public double loseAfterSeconds() {
+            return loseAfter.orElse(reachRule == ReachRule.LINE_OF_SIGHT ? 3.0 : 2.0);
+        }
 
         public enum Style implements StringRepresentable {
             /** Walk up to {@code distance} from the target and hold there, facing it. */
@@ -121,12 +212,39 @@ public record MobBehaviour(
             /** Keep about {@code distance} away, backing off when the target closes in. */
             KITE("kite"),
             /** Never move; only turn to face the target. */
-            STATIONARY("stationary");
+            STATIONARY("stationary"),
+            /**
+             * The host moves and attacks with its own AI between abilities (a vanilla Wither's flight and skulls); the
+             * engine only takes over while an ability, a stagger or the walk home runs.
+             */
+            VANILLA("vanilla");
 
             public static final Codec<Style> CODEC = StringRepresentable.fromEnum(Style::values);
             private final String name;
 
             Style(String name) {
+                this.name = name;
+            }
+
+            @Override
+            public String getSerializedName() {
+                return name;
+            }
+        }
+
+        /** When a target counts as reachable; one that is not, for {@code lose_after}, loses aggro. */
+        public enum ReachRule implements StringRepresentable {
+            /**
+             * Inside the reach band or at the end of a full path (ground mobs); flyers and wall climbers always reach.
+             */
+            PATH("path"),
+            /** While the mob can see it (a ranged flyer: hiding behind cover passes aggro on). */
+            LINE_OF_SIGHT("line_of_sight");
+
+            public static final Codec<ReachRule> CODEC = StringRepresentable.fromEnum(ReachRule::values);
+            private final String name;
+
+            ReachRule(String name) {
                 this.name = name;
             }
 
@@ -245,6 +363,11 @@ public record MobBehaviour(
      *                    (e.g. a second wave of adds 5 s into the phase)
      * @param attackSpeed multiplier on ability timelines and their clips (1.15 = 15 % faster)
      * @param texture     texture variant suffix, e.g. "phase2" -> {@code <mob>_phase2.png}
+     * @param bar         boss bar colour / overlay while this phase runs, over {@code boss.bar} (also styles a host's
+     *                    own bar, e.g. the Wither's)
+     * @param hostOverride the phase's own {@code host} block as written
+     * @param host        the host options in effect in this phase: {@code hostOverride} laid over the behaviour's
+     *                    {@code host} block (resolved at load); empty = the behaviour's own
      */
     public record Phase(
             double belowHealth,
@@ -255,7 +378,10 @@ public record MobBehaviour(
             double attackSpeed,
             List<DamageTaken> damageTaken,
             Optional<String> texture,
-            Optional<Movement> movement
+            Optional<Movement> movement,
+            Optional<BarStyle> bar,
+            Optional<Dynamic<?>> hostOverride,
+            Optional<HostOptions> host
     ) {
         public static final Codec<Phase> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.doubleRange(0.0, 1.0).fieldOf("below_health").forGetter(Phase::belowHealth),
@@ -266,8 +392,18 @@ public record MobBehaviour(
                 Codec.DOUBLE.optionalFieldOf("attack_speed", 1.0).forGetter(Phase::attackSpeed),
                 DamageTaken.CODEC.listOf().optionalFieldOf("damage_taken", List.of()).forGetter(Phase::damageTaken),
                 Codec.STRING.optionalFieldOf("texture").forGetter(Phase::texture),
-                Movement.CODEC.optionalFieldOf("movement").forGetter(Phase::movement)
-        ).apply(i, Phase::new));
+                Movement.CODEC.optionalFieldOf("movement").forGetter(Phase::movement),
+                BarStyle.CODEC.optionalFieldOf("bar").forGetter(Phase::bar),
+                Codec.PASSTHROUGH.optionalFieldOf("host").forGetter(Phase::hostOverride)
+        ).apply(i, (belowHealth, abilities, transition, cooldowns, readyIn, attackSpeed, damageTaken, texture, movement,
+                bar, hostOverride) -> new Phase(belowHealth, abilities, transition, cooldowns, readyIn, attackSpeed,
+                damageTaken, texture, movement, bar, hostOverride, Optional.empty())));
+
+        /** This phase with its resolved host options. */
+        Phase withHost(HostOptions options) {
+            return new Phase(belowHealth, abilities, transition, cooldowns, readyIn, attackSpeed, damageTaken, texture,
+                    movement, bar, hostOverride, Optional.of(options));
+        }
 
         public boolean allows(String ability) {
             return abilities.isEmpty() || abilities.contains(ability);
@@ -330,19 +466,45 @@ public record MobBehaviour(
      * @param leash       distance from its spawn point at which the boss gives up, walks home and resets
      * @param resetAfter  seconds without any target before an engaged boss resets (a wipe)
      * @param softEnrage  after this long in combat its damage is multiplied
+     * @param engageOn    who may be its target and so start the fight
      */
     public record Boss(
             Optional<BossBar> bar,
             double leash,
             double resetAfter,
-            Optional<SoftEnrage> softEnrage
+            Optional<SoftEnrage> softEnrage,
+            EngageOn engageOn
     ) {
         public static final Codec<Boss> CODEC = RecordCodecBuilder.create(i -> i.group(
                 BossBar.CODEC.optionalFieldOf("bar").forGetter(Boss::bar),
                 Codec.DOUBLE.optionalFieldOf("leash", 0.0).forGetter(Boss::leash),
                 Codec.DOUBLE.optionalFieldOf("reset_after", 15.0).forGetter(Boss::resetAfter),
-                SoftEnrage.CODEC.optionalFieldOf("soft_enrage").forGetter(Boss::softEnrage)
+                SoftEnrage.CODEC.optionalFieldOf("soft_enrage").forGetter(Boss::softEnrage),
+                EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn)
         ).apply(i, Boss::new));
+    }
+
+    /** Who a boss fights. */
+    public enum EngageOn implements StringRepresentable {
+        /** Whatever its own AI targets (a vanilla Wither: any living thing that is not undead). */
+        ANY("any"),
+        /**
+         * Players only, plus player-owned summons on its threat table and mobs that hurt it in the last 10 s; cows and
+         * endermen never pull it.
+         */
+        PLAYERS("players");
+
+        public static final Codec<EngageOn> CODEC = StringRepresentable.fromEnum(EngageOn::values);
+        private final String name;
+
+        EngageOn(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name;
+        }
     }
 
     public record BossBar(BossEvent.BossBarColor color, BossEvent.BossBarOverlay overlay) {
@@ -350,6 +512,14 @@ public record MobBehaviour(
                 BossColorCodec.COLOR.optionalFieldOf("color", BossEvent.BossBarColor.RED).forGetter(BossBar::color),
                 BossColorCodec.OVERLAY.optionalFieldOf("overlay", BossEvent.BossBarOverlay.PROGRESS).forGetter(BossBar::overlay)
         ).apply(i, BossBar::new));
+    }
+
+    /** A phase's bar look: each part set here replaces {@code boss.bar}'s (or the host bar's own) while it runs. */
+    public record BarStyle(Optional<BossEvent.BossBarColor> color, Optional<BossEvent.BossBarOverlay> overlay) {
+        public static final Codec<BarStyle> CODEC = RecordCodecBuilder.create(i -> i.group(
+                BossColorCodec.COLOR.optionalFieldOf("color").forGetter(BarStyle::color),
+                BossColorCodec.OVERLAY.optionalFieldOf("overlay").forGetter(BarStyle::overlay)
+        ).apply(i, BarStyle::new));
     }
 
     public record SoftEnrage(double after, double damageMultiplier, Optional<String> clip) {

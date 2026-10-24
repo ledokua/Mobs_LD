@@ -10,12 +10,16 @@
     "LivingEntityCombatMixin",
     "LivingEntityEffectThreatMixin",
     "MobCombatHostMixin",
+    "MobGoalsAccessor",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
+    "TargetGoalCombatMixin",
     "TargetingConditionsMixin",
     "WitherBossMixin",
     "compat.SpellEngineAggroMixin",
-    "compat.SpellEngineHealMixin"
+    "compat.SpellEngineHealMixin",
+    "wither.WitherBossAccessor",
+    "wither.WitherBossHostMixin"
   ],
   "client": [
     "client.CameraMixin"

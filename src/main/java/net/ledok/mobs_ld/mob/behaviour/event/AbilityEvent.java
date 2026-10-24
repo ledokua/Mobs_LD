@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.mob.behaviour.event;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 
@@ -23,15 +24,15 @@ public interface AbilityEvent {
             "effect", EffectEvent.CODEC,
             "despawn", DespawnEvent.CODEC,
             "chase", ChaseEvent.CODEC,
-            "trace", TraceEvent.CODEC
+            "trace", TraceEvent.CODEC,
+            "hover", HoverEvent.CODEC
     ));
 
-    Codec<AbilityEvent> CODEC = Codec.STRING.dispatch("type", AbilityEvent::type, type -> {
+    /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */
+    Codec<AbilityEvent> CODEC = Codec.STRING.partialDispatch("type", event -> DataResult.success(event.type()), type -> {
         MapCodec<? extends AbilityEvent> codec = TYPES.get(type);
-        if (codec == null) {
-            throw new IllegalArgumentException("Unknown ability event type '" + type + "' (expected one of " + TYPES.keySet() + ")");
-        }
-        return codec;
+        return codec != null ? DataResult.success(codec)
+                : DataResult.error(() -> "Unknown ability event type '" + type + "' (expected one of " + TYPES.keySet() + ")");
     });
 
     String type();

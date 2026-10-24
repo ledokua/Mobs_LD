@@ -108,8 +108,7 @@ public record DashEvent(double at, double until, double maxDistance, double over
                     }
                     return;
                 }
-                mob.setDeltaMovement(direction.x * step, mob.getDeltaMovement().y, direction.z * step);
-                mob.hasImpulse = true;
+                run.moveBody(direction.x * step, run.sidewaysY(), direction.z * step);
                 travelled += step;
                 hit.ifPresent(spec -> {
                     for (LivingEntity victim : run.enemiesNear(mob.getBoundingBox().inflate(width / 2.0, 0.5, width / 2.0))) {

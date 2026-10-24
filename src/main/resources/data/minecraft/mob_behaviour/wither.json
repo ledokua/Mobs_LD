@@ -1,0 +1,53 @@
+{
+  "base_attributes": {
+    "minecraft:generic.max_health": 1711,
+    "minecraft:generic.attack_damage": 2.0
+  },
+  "host": {
+    "type": "mobs_ld:wither",
+    "enabled": true,
+    "hover_height": 3.5,
+    "regen_while_engaged": false,
+    "arrow_immunity": false,
+    "block_breaking": "outside_runs"
+  },
+  "movement": {
+    "style": "vanilla",
+    "reach_rule": "line_of_sight",
+    "lose_after": 3,
+    "reach_height": 4,
+    "reach_depth": 8,
+    "ground_scan": 40
+  },
+  "global_cooldown": 1.0,
+  "boss": {
+    "engage_on": "players",
+    "leash": 64,
+    "reset_after": 15,
+    "soft_enrage": { "after": 480, "damage_multiplier": 1.5 }
+  },
+  "abilities": {
+    "test_hover_slam": {
+      "duration": 2.6, "cooldown": 15, "initial_cooldown": 6, "weight": 1,
+      "range": { "max": 6 },
+      "track_until": 0.6,
+      "events": [
+        { "type": "hover", "from": 0.0, "until": 1.1, "relative_to": "aim", "height": 5, "rate": 0.35 },
+        { "type": "hover", "from": 1.1, "until": 1.5, "relative_to": "ground", "height": 0.5, "rate": 0.8 },
+        { "type": "hit", "at": 1.5, "telegraph": { "from": 0.6, "color": "#6A2CB0" },
+          "shape": { "type": "circle", "radius": 4.5 }, "height": 3, "depth": 2,
+          "hit": { "damage": 6.0, "knockback": 0.6, "knock_up": 0.5 } },
+        { "type": "hover", "from": 1.5, "until": 2.6, "relative_to": "ground", "height": 1.5, "rate": 0.15 }
+      ]
+    }
+  },
+  "phases": [
+    { "below_health": 1.0, "bar": { "color": "purple" } },
+    { "below_health": 0.5, "bar": { "color": "blue" },
+      "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
+      "host": { "hover_height": 0 } },
+    { "below_health": 0.2, "bar": { "color": "red" },
+      "damage_taken": [ { "kind": "projectile", "multiplier": 0.6 } ],
+      "host": { "hover_height": 0 } }
+  ]
+}
