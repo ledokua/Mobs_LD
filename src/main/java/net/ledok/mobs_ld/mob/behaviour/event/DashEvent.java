@@ -3,11 +3,11 @@ package net.ledok.mobs_ld.mob.behaviour.event;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.HashSet;
@@ -69,7 +69,7 @@ public record DashEvent(double at, double until, double maxDistance, double over
 
     @Override
     public Instance start(AbilityRun run) {
-        LdMob mob = run.mob();
+        Mob mob = run.mob();
         float yaw = run.yaw();
         Vec3 direction = AbilityRun.forward(yaw);
         Vec3 aim = run.aimPosition();
@@ -114,7 +114,7 @@ public record DashEvent(double at, double until, double maxDistance, double over
                 hit.ifPresent(spec -> {
                     for (LivingEntity victim : run.enemiesNear(mob.getBoundingBox().inflate(width / 2.0, 0.5, width / 2.0))) {
                         if (struck.add(victim.getUUID())) {
-                            spec.apply(mob, victim, mob.position());
+                            spec.apply(run, victim, mob.position());
                         }
                     }
                 });

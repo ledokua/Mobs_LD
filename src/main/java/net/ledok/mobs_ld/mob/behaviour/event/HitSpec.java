@@ -3,7 +3,6 @@ package net.ledok.mobs_ld.mob.behaviour.event;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.minecraft.core.Holder;
@@ -11,7 +10,10 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
@@ -30,6 +32,8 @@ import java.util.Set;
  */
 public record HitSpec(double damage, List<EffectSpec> effects, double knockback, double knockUp) {
     public static final HitSpec DEFAULT = new HitSpec(1.0, List.of(), 0.4, 0.0);
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Set<EntityType<?>> NO_ATTACK_DAMAGE = new HashSet<>();
     public static final Codec<HitSpec> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.DOUBLE.optionalFieldOf("damage", 1.0).forGetter(HitSpec::damage),
             EffectSpec.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(HitSpec::effects),
@@ -37,9 +41,10 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
             Codec.DOUBLE.optionalFieldOf("knock_up", 0.0).forGetter(HitSpec::knockUp)
     ).apply(i, HitSpec::new));
 
-    /** Damages, debuffs and pushes {@code victim}; {@code from} is where the blow came from. */
-    public void apply(LdMob mob, LivingEntity victim, Vec3 from) {
-        float amount = (float) (mob.getAttributeValue(Attributes.ATTACK_DAMAGE) * damage);
+    /** Damages, debuffs and pushes {@code victim} for the running ability; {@code from} is where the blow came from. */
+    public void apply(AbilityRun run, LivingEntity victim, Vec3 from) {
+        Mob mob = run.mob();
+        float amount = (float) (attackDamage(mob) * damage);
         // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
         // would silently swallow a combo's second blow or a slash right after a trample.
         victim.invulnerableTime = 0;
@@ -53,7 +58,7 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
         // push is exactly the authored one below, so undo vanilla's (keeping a sync another hit already queued).
         victim.setDeltaMovement(before);
         victim.hurtMarked = marked;
-        mob.combat().trace(String.format("hit %s for %.1f at %.1f blocks (feet %+.1f vs mob)", victim.getName().getString(),
+        run.combat().trace(String.format("hit %s for %.1f at %.1f blocks (feet %+.1f vs mob)", victim.getName().getString(),
                 amount, CombatTargets.distance(mob, victim), victim.getY() - mob.getY()));
         for (EffectSpec effect : effects) {
             effect.instance().ifPresent(instance -> victim.addEffect(instance, mob));
@@ -81,6 +86,21 @@ public record HitSpec(double damage, List<EffectSpec> effects, double knockback,
             }
             victim.hurtMarked = true; // sync the new velocity to players
         }
+    }
+
+    /** The mob's attack damage; 0 for mobs without the attribute (cow, ghast, bat), with one warning per type. */
+    private static double attackDamage(Mob mob) {
+        AttributeInstance attribute = mob.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (attribute != null) {
+            return attribute.getValue();
+        }
+        synchronized (NO_ATTACK_DAMAGE) {
+            if (NO_ATTACK_DAMAGE.add(mob.getType())) {
+                LOGGER.warn("Mob behaviour hits on {} deal no damage: it has no attack_damage attribute (knockback and "
+                        + "effects still apply)", BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
+            }
+        }
+        return 0.0;
     }
 
     /** A mob effect by registry id (any mod's, e.g. {@code spell_engine:bleed}); seconds, 0-based amplifier. */

@@ -3,6 +3,7 @@
 How a data-driven mob fights. One JSON file per mob in a datapack:
 `data/<namespace>/mob_behaviour/<mob>.json` (the file id is the entity id, e.g. `mobs_ld:gorefist`).
 Reloads with `/reload`; a broken file is logged and skipped. Times are **seconds**, distances **blocks**.
+Vanilla mobs can run a behaviour too: see [Vanilla hosts](#vanilla-hosts).
 
 The entity itself (hitbox, base stats, spawn egg) is declared in the jar at `mobs_ld/entities/<mob>.json`, and its
 art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_wart.json` in
@@ -38,7 +39,8 @@ is unreachable. Big mobs therefore reach higher on their own (Gorefist, 4 blocks
 
 **Unreachable targets** (out of the reach band with no path for ~2 s) lose aggro: threat targeting, initial aggro and
 retaliation skip them and the mob turns on someone it can reach. If nobody is reachable it has no target, and a
-boss resets after `boss.reset_after`. They get aggro back as soon as they are reachable again.
+boss resets after `boss.reset_after` (other mobs stop fighting after 10 s). They get aggro back as soon as they are
+reachable again. Flyers never count as unreachable (see [Vanilla hosts](#vanilla-hosts)).
 
 ## Abilities
 
@@ -185,12 +187,52 @@ summoner's tick (Arenas_LD treats them as minions of a run boss).
 ```
 
 - `bar`: vanilla boss bar, shown while engaged.
-- `leash`: if pulled further than this from its spawn point it resets and walks home (invulnerable meanwhile).
+- `leash`: if pulled further than this from its spawn point it resets and walks home (invulnerable and ignoring
+  everyone meanwhile).
 - `reset_after`: seconds without any target before it resets (a wipe).
 - `soft_enrage`: after `after` seconds in combat its damage is multiplied.
-- Reset = full heal, phase 1, cooldowns and enrage cleared, adds removed. Bosses never despawn.
+- Reset = full heal, phase 1, cooldowns and enrage cleared, adds removed. Bosses never despawn while their behaviour
+  has a `boss` block (decided by entity type; the mob's own `PersistenceRequired` is not touched).
+
+A mob **without** a `boss` block never resets: after 10 s with no target it just stops fighting, as it is (no heal,
+phase kept), and goes back to wandering; it engages again (intro, initial cooldowns) when it next has a target.
+
+Saved with the mob (chunk unload, restart), for every mob with a behaviour: home, the adds it summoned, and whether
+a fight was on (phase, enrage, fight time; `mobs_ld_combat` in its NBT). A chunk only unloads once every player has
+left, so a **boss** that comes back mid-fight (past phase 1, fight time, or adds alive) **resets** on its first tick:
+full heal, adds removed, threat cleared, walks home. Other mobs come back at phase 1, not engaged, and start their
+next fight fresh (keeping their health); their adds are still removed when they die.
+
+## Vanilla hosts
+
+Any goal-based mob runs a behaviour placed at its entity id, e.g. `data/minecraft/mob_behaviour/zombie.json`. Every
+zombie picks it up on its next AI tick, including after a `/reload`; deleting the file hands them back to their
+vanilla AI. Everything above works the same, except:
+
+- **Goals.** The engine adds its combat goal (priority 0, above every vanilla attack goal) and threat targeting. While
+  engaged it moves per `movement` and attacks only through its abilities; vanilla attack goals (and wandering,
+  sun shelter) run only outside a fight, so most hosts should have no `boss` block and drop out after 10 s without
+  a target. Vanilla target goals skip players the engine gave up on. `hit.damage` multiplies the mob's own
+  `attack_damage` (a zombie's is 3); a mob without that attribute (cow, ghast) deals no hit damage (one log warning).
+- **Clips and textures.** Vanilla models have no action layer: an ability's `clip`, the stagger and enrage clips and
+  a phase `texture` become cues for the entity type's host adapter. Without one (the default) nothing shows; the
+  timeline, telegraphs and hits run regardless.
+- **No `trace`.** Hit tracks come from Mobs_LD's own models, so a `trace` event does nothing on a vanilla mob (one log
+  warning). Use `hit` with a telegraph.
+- **Boss bar.** `boss.bar` gets an engine bar, unless the host adapter supplies the mob's own bar (then only its
+  colour and overlay are applied). A behaviour with a `boss` block keeps the mob from despawning.
+- **Not supported**, logged and ignored at reload: the Ender Dragon (its AI bypasses the mob tick) and Brain-driven
+  mobs (Warden, piglins, hoglin, zoglin, breeze, villager, allay, axolotl, frog, tadpole, goat, camel, sniffer,
+  armadillo), which ignore goals. Players and armor stands are not mobs.
+- **Flyers and climbers.** A mob with flying navigation, a flying body (ghast, phantom), a flying move control, no
+  gravity (vex) or a wall-climbing navigation (spider) always counts as able to reach its target, so it is never made to drop aggro as unreachable. The reach band is
+  still measured from its feet, so a hovering mob needs `movement.reach_depth` (or `range.below`) to start
+  abilities on targets under it. A blaze (ground navigation, rises on its own) is still judged by ground paths.
+- **Dimensions.** A host carried to another dimension (portal, `/tp`) keeps fighting and re-homes where it arrives;
+  only a mob loaded back from disk mid-fight resets.
 
 ## Debug commands (ops)
+All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).
 - `/mobs_ld ability <targets> <name>` - start an ability now.
 - `/mobs_ld reset <targets>` - run the boss reset.
-- `/mobs_ld play <targets> <clip>` / `/mobs_ld stop <targets>` - preview an animation clip.
+- `/mobs_ld play <targets> <clip>` / `/mobs_ld stop <targets>` - preview an animation clip (a host cue on vanilla mobs).

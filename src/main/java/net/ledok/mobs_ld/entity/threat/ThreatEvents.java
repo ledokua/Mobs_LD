@@ -3,6 +3,7 @@ package net.ledok.mobs_ld.entity.threat;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.config.ThreatConfig;
+import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -27,6 +28,8 @@ import java.util.UUID;
  */
 public final class ThreatEvents {
     private static final String MOD_PACKAGE = MobsLdMod.class.getPackageName();
+    /** Effect levels that count for buff and debuff threat. */
+    private static final int MAX_EFFECT_LEVELS = 5;
 
     private ThreatEvents() {
     }
@@ -80,7 +83,8 @@ public final class ThreatEvents {
             return; // self-buffs from the player's own gear or potions are not a play for aggro
         }
         ThreatConfig cfg = ThreatConfig.get();
-        double levels = effect.getAmplifier() + 1;
+        // Capped: a command-given amplifier 255 must not hand out hundreds of levels' worth of threat.
+        double levels = Math.min(Math.max(effect.getAmplifier(), 0) + 1, MAX_EFFECT_LEVELS);
         MobEffectCategory category = effect.getEffect().value().getCategory();
         if (category == MobEffectCategory.HARMFUL && cfg.threatPerDebuff > 0.0 && target instanceof Mob mob
                 && target instanceof ThreatHolder holder && shouldThreatTarget(mob)) {
@@ -106,12 +110,13 @@ public final class ThreatEvents {
     }
 
     /**
-     * Whether {@code mob} should run the threat-targeting goal. This mod's own mobs always do; vanilla and
-     * other mods' mobs are gated by config. Called once per mob at construction (see MobThreatMixin).
+     * Whether {@code mob} should run the threat-targeting goal. This mod's own mobs always do, and so does any mob
+     * whose type has a behaviour (the ability engine aims by threat); other vanilla and modded mobs are gated by
+     * config. Called once per mob at construction (see MobThreatMixin) and on every threat event.
      */
     public static boolean shouldThreatTarget(Mob mob) {
-        if (mob.getClass().getName().startsWith(MOD_PACKAGE)) {
-            return true; // our own mobs: always threat-aware
+        if (mob.getClass().getName().startsWith(MOD_PACKAGE) || MobBehaviours.get(mob.getType()) != null) {
+            return true; // our own mobs and behaviour hosts: always threat-aware
         }
         ThreatConfig cfg = ThreatConfig.get();
         if (!cfg.affectVanillaMobs) {

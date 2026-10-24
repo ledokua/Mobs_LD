@@ -4,10 +4,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AreaEffectCloudMixin",
+    "EntityCombatViewersMixin",
+    "EntityTransferMixin",
     "HealOrHarmMobEffectMixin",
+    "LivingEntityCombatMixin",
     "LivingEntityEffectThreatMixin",
+    "MobCombatHostMixin",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
+    "TargetingConditionsMixin",
     "WitherBossMixin",
     "compat.SpellEngineAggroMixin",
     "compat.SpellEngineHealMixin"

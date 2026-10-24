@@ -3,26 +3,35 @@ package net.ledok.mobs_ld.mob.combat;
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.host.HostAdapter;
+import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.FlyingMob;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
@@ -37,9 +46,10 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Server-side fight state of one data-driven mob: the ability in flight, cooldowns, boss phases, engagement, leash
- * and wipe resets, soft enrage, the boss bar and its summoned adds. {@link CombatGoal} decides <i>when</i> to move
- * or start an ability; everything else ticks here every server tick, even while no goal runs.
+ * Server-side fight state of one mob that runs a behaviour (a data-driven LdMob, or any vanilla mob a datapack gives
+ * one; see {@link CombatHost}): the ability in flight, cooldowns, boss phases, engagement, leash and wipe resets,
+ * soft enrage, the boss bar and its summoned adds. {@link CombatGoal} decides <i>when</i> to move or start an
+ * ability; everything else ticks here every server AI tick, even while no goal runs.
  */
 public final class MobCombat {
     private static final ResourceLocation SOFT_ENRAGE = ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "soft_enrage");
@@ -47,11 +57,19 @@ public final class MobCombat {
     private static final int FLASH_TICKS = 4;
     /** A boss walking home gives up and teleports after this long. */
     private static final int RETURN_TIMEOUT = 200;
+    /** Ticks without a target after which a mob without a boss block gives up the fight (bosses reset instead). */
+    private static final int DISENGAGE_AFTER = 200;
+    /** Saved fight state (see {@link #save}). */
+    private static final String SAVE_KEY = "mobs_ld_combat";
+    /** Home as saved before {@link #SAVE_KEY}; still written so a world can go back to an older build. */
+    private static final String LEGACY_HOME_KEY = "mobs_ld_home";
 
     /** {@code /mobs_ld debug}: narrate ability decisions to operators in chat. */
     private static boolean debug;
 
-    private final LdMob mob;
+    private final Mob mob;
+    private final CombatHost host;
+    private final HostAdapter adapter;
     private final Map<String, Long> readyAt = new HashMap<>();
     private final List<UUID> summons = new ArrayList<>();
     private final List<Fading> fading = new ArrayList<>();
@@ -70,13 +88,27 @@ public final class MobCombat {
     private long engagedAt;
     private int idleTicks;
     private boolean enraged;
+    /** Has ticked at least once (a load before that is the mob coming back from disk, not a live data edit). */
+    private boolean started;
+    /** Came back from disk in the middle of a fight; settled on the first tick (see {@link #load}). */
+    private boolean loadedMidFight;
+    /** The behaviour went away; the engine leftovers have been cleared once. */
+    private boolean inert;
     private Vec3 home;
     private boolean returning;
     private int returnTicks;
     private ServerBossEvent bar;
 
-    public MobCombat(LdMob mob) {
+    public MobCombat(Mob mob) {
         this.mob = mob;
+        this.host = (CombatHost) mob;
+        this.adapter = HostAdapters.get(mob.getType());
+    }
+
+    /** Leaves without dying: a puff of smoke, no drops, no {@code on_death}. */
+    public static void despawnWithPoof(Mob mob) {
+        mob.level().broadcastEntityEvent(mob, (byte) 60);
+        mob.discard();
     }
 
     public static boolean isDebug() {
@@ -107,6 +139,11 @@ public final class MobCombat {
         return MobBehaviours.get(mob.getType());
     }
 
+    /** How this mob's entity type hosts the engine (cues, readiness, its own boss bar). */
+    public HostAdapter adapter() {
+        return adapter;
+    }
+
     // --- Ticking ---
 
     public void tick() {
@@ -118,12 +155,18 @@ public final class MobCombat {
         }
         MobBehaviour behaviour = behaviour();
         if (behaviour == null) {
-            if (current != null) {
-                current.cancel();
-                current = null;
-                mob.stopAction();
+            if (!inert) {
+                goInert();
             }
             return;
+        }
+        inert = false;
+        if (!started) {
+            started = true;
+            if (loadedMidFight) {
+                loadedMidFight = false;
+                settleLoadedFight(behaviour);
+            }
         }
         updateBar(behaviour);
         if (returning) {
@@ -146,7 +189,7 @@ public final class MobCombat {
         }
         if (staggerUntil >= 0 && now >= staggerUntil) {
             staggerUntil = -1;
-            mob.stopAction();
+            host.mobs_ld$stopAction();
         }
     }
 
@@ -160,15 +203,21 @@ public final class MobCombat {
         }
         MobBehaviour.Boss boss = behaviour.boss().orElse(null);
         idleTicks = target == null || !target.isAlive() ? idleTicks + 1 : 0;
-        if (boss != null && idleTicks > boss.resetAfter() * 20.0) {
+        if (boss == null) {
+            if (idleTicks > DISENGAGE_AFTER) {
+                disengage(); // its own AI (wander, sun shelter, vanilla attacks) takes over again
+            }
+            return;
+        }
+        if (idleTicks > boss.resetAfter() * 20.0) {
             reset(); // everyone died or left: a wipe
             return;
         }
-        if (boss != null && boss.leash() > 0.0 && mob.position().distanceTo(home) > boss.leash()) {
+        if (boss.leash() > 0.0 && mob.position().distanceTo(home) > boss.leash()) {
             reset(); // pulled out of its arena
             return;
         }
-        if (boss != null && !enraged) {
+        if (!enraged) {
             boss.softEnrage().ifPresent(rule -> {
                 if (now - engagedAt >= rule.after() * 20.0) {
                     enrage(rule);
@@ -189,6 +238,53 @@ public final class MobCombat {
         behaviour.intro().ifPresent(intro -> start("intro", intro, target));
     }
 
+    /** A mob without a boss block lost everyone: it stops fighting as it is (no heal; phase and cooldowns stay). */
+    private void disengage() {
+        trace("disengage");
+        if (current != null) {
+            current.cancel();
+            current = null;
+        }
+        staggerUntil = -1;
+        host.mobs_ld$stopAction();
+        engaged = false;
+        idleTicks = 0;
+    }
+
+    /**
+     * First tick after coming back from disk mid-fight. A chunk only unloads once every player has left it, so a boss
+     * that resumed would let a group chip it, leave to recover and come back: it resets instead. Other mobs simply
+     * start their next fight fresh (they already load at phase 1, not engaged).
+     */
+    private void settleLoadedFight(MobBehaviour behaviour) {
+        if (behaviour.boss().isPresent()) {
+            reset();
+        } else {
+            clearEnrage();
+        }
+    }
+
+    /**
+     * The behaviour was removed by a reload: the mob goes back to its own AI and keeps no engine leftovers (its
+     * combat stays, so the fight can start over if the file comes back).
+     */
+    private void goInert() {
+        inert = true;
+        if (current != null) {
+            current.cancel();
+            current = null;
+        }
+        host.mobs_ld$stopAction();
+        staggerUntil = -1;
+        returning = false;
+        engaged = false;
+        idleTicks = 0;
+        clearEnrage();
+        removeBar();
+        unreachable.clear(); // nothing re-checks them now, and targeting would keep skipping those players
+        unreachableSince.clear();
+    }
+
     private void enterPhase(MobBehaviour behaviour, int index) {
         trace("phase " + (index + 1));
         if (current != null) {
@@ -198,12 +294,12 @@ public final class MobCombat {
         staggerUntil = -1;
         phase = index;
         MobBehaviour.Phase entered = behaviour.phases().get(index);
-        mob.setTextureVariant(entered.texture().orElse(""));
+        host.mobs_ld$setVariant(entered.texture().orElse(""));
         long now = mob.level().getGameTime();
         entered.readyIn().forEach((name, seconds) -> readyAt.put(name, now + Math.round(seconds * 20.0)));
         entered.transition().ifPresentOrElse(
                 transition -> start("transition", transition, mob.getTarget()),
-                mob::stopAction);
+                host::mobs_ld$stopAction);
     }
 
     private void enrage(MobBehaviour.SoftEnrage rule) {
@@ -215,7 +311,7 @@ public final class MobCombat {
         }
         rule.clip().ifPresent(clip -> {
             if (current == null) {
-                mob.playAction(clip, 1.0);
+                host.mobs_ld$playAction(clip, 1.0);
             }
         });
     }
@@ -302,7 +398,7 @@ public final class MobCombat {
         current = new AbilityRun(mob, this, name, ability, aim, speed);
         trace("start " + name + (aim != null ? " -> " + aim.getName().getString() + String.format(" (%.1f blocks)",
                 CombatTargets.distance(mob, aim)) : "") + (speed != 1.0 ? " x" + speed : ""));
-        mob.playAction(ability.clipOr(name), speed);
+        host.mobs_ld$playAction(ability.clipOr(name), speed);
         long now = mob.level().getGameTime();
         readyAt.put(name, now + Math.round(cooldownOf(name, ability) * 20.0));
     }
@@ -321,9 +417,9 @@ public final class MobCombat {
         if (staggered && behaviour.stagger().isPresent()) {
             MobBehaviour.Stagger stagger = behaviour.stagger().get();
             staggerUntil = now + Math.round(stagger.duration() * 20.0);
-            mob.playAction(stagger.clip(), 1.0);
+            host.mobs_ld$playAction(stagger.clip(), 1.0);
         } else {
-            mob.stopAction();
+            host.mobs_ld$stopAction();
         }
     }
 
@@ -357,6 +453,11 @@ public final class MobCombat {
         return unreachable.contains(entity.getUUID());
     }
 
+    /** Whether target selection must skip {@code entity}: given up on as unreachable, or anyone while walking home. */
+    public boolean refusesTarget(LivingEntity entity) {
+        return returning || unreachable.contains(entity.getUUID());
+    }
+
     private void tickReachability(MobBehaviour behaviour, long now) {
         if (--reachCheckIn > 0) {
             return;
@@ -388,8 +489,12 @@ public final class MobCombat {
             return;
         }
         long since = unreachableSince.computeIfAbsent(id, key -> now);
-        if (now - since >= UNREACHABLE_AFTER && unreachable.add(id)) {
-            trace(entity.getName().getString() + " is unreachable; switching targets");
+        if (now - since >= UNREACHABLE_AFTER) {
+            if (unreachable.add(id)) {
+                trace(entity.getName().getString() + " is unreachable; switching targets");
+            }
+            // Every check, not only the first: some vanilla code sets targets directly, past the targeting filter
+            // (HurtByTargetGoal alerting others, a target goal restoring its target, Spell Engine aggro).
             if (mob.getTarget() == entity) {
                 mob.setTarget(null); // threat targeting picks the next reachable holder, if any
             }
@@ -412,7 +517,7 @@ public final class MobCombat {
         if (dy <= reachUp() && dy >= -reachDown()) {
             return true;
         }
-        if (mob.getNavigation() instanceof FlyingPathNavigation) {
+        if (flies()) {
             return true; // flyers get up there
         }
         // Judge the path by where it actually ends: vanilla createPath may hand back the mob's current path to some
@@ -428,10 +533,21 @@ public final class MobCombat {
         return dx * dx + dz * dz <= 4.0 && rise <= reachUp() && rise >= -reachDown();
     }
 
+    /**
+     * Flying navigation, a flying body (ghast, phantom), a flying move control, no gravity at all (vex) or a wall
+     * climber (spider): such a mob gets up to a target its ground pathfinding would call unreachable. Climbers are
+     * also kept away from createPath, which would overwrite the spot their navigation is climbing toward.
+     */
+    private boolean flies() {
+        PathNavigation navigation = mob.getNavigation();
+        return navigation instanceof FlyingPathNavigation || navigation instanceof WallClimberNavigation
+                || mob instanceof FlyingMob || mob.getMoveControl() instanceof FlyingMoveControl || mob.isNoGravity();
+    }
+
     // --- Damage ---
 
     public boolean invulnerable() {
-        return returning || (current != null && current.ability().invulnerable());
+        return (returning || (current != null && current.ability().invulnerable())) && behaviour() != null;
     }
 
     public float adjustDamage(DamageSource source, float amount) {
@@ -450,12 +566,12 @@ public final class MobCombat {
             current = null;
         }
         staggerUntil = -1;
-        mob.stopAction();
+        host.mobs_ld$stopAction();
         ((ThreatHolder) mob).getThreatTable().clear();
         mob.setTarget(null);
         mob.setHealth(mob.getMaxHealth());
         phase = 0;
-        mob.setTextureVariant("");
+        host.mobs_ld$setVariant("");
         readyAt.clear();
         // Unreachable marks survive a reset: otherwise a cheeser on a tower is re-targeted at once and the boss
         // loops intro -> unreachable -> reset. They clear themselves when the player is reachable again.
@@ -471,10 +587,27 @@ public final class MobCombat {
 
     private void clearEnrage() {
         enraged = false;
+        stripEnrage(mob);
+    }
+
+    /**
+     * Removes a saved soft-enrage bonus from {@code mob} (the modifier is permanent, so it is saved with the mob's
+     * attributes): for a mob that loads after its type lost the behaviour, or attaches to a fresh combat.
+     */
+    public static void stripEnrage(Mob mob) {
         AttributeInstance damage = mob.getAttribute(Attributes.ATTACK_DAMAGE);
         if (damage != null) {
             damage.removeModifier(SOFT_ENRAGE);
         }
+    }
+
+    /**
+     * The mob was moved to another dimension: the copy there was loaded from the original's save, which is not a
+     * fight abandoned on disk, so it neither resets nor walks back to coordinates from the old dimension.
+     */
+    public void onTransferred() {
+        loadedMidFight = false;
+        home = null; // re-homes where it arrived, on its first tick
     }
 
     private void tickReturn() {
@@ -501,9 +634,7 @@ public final class MobCombat {
             current = null;
         }
         discardSummons();
-        if (bar != null) {
-            bar.removeAllPlayers();
-        }
+        removeBar();
         MobBehaviour behaviour = behaviour();
         if (behaviour != null && behaviour.onDeath().isPresent()) {
             // Its clip is the death animation; only the timeline runs.
@@ -520,22 +651,36 @@ public final class MobCombat {
         }
     }
 
-    /** Entity removed (killed, despawned, unloaded): nothing it spawned for the fight may linger. */
+    /** Entity destroyed (killed, discarded, despawned): nothing it spawned for the fight may linger. */
     public void onRemoved() {
+        // Same deferred cleanup as an unload: whoever discarded the mob may still be iterating the level's entities.
+        onUnloaded();
+    }
+
+    /**
+     * Entity leaving the level without being destroyed (chunk unload, dimension change). This runs while the level is
+     * still iterating the chunk's entities, so nothing is discarded now: the telegraphs it drew are removed on the next
+     * server task pass (they are not saved, but unsaved entities stay behind in a hidden chunk and would return with
+     * it). Summoned adds are kept, and stay tracked by UUID through the save.
+     */
+    public void onUnloaded() {
+        List<AttackZoneDisplay> leftovers = new ArrayList<>();
         if (current != null) {
-            current.cancel();
+            leftovers.addAll(current.abandon());
             current = null;
         }
         if (deathRun != null) {
-            deathRun.cancel();
+            leftovers.addAll(deathRun.abandon());
             deathRun = null;
         }
         for (Fading fade : fading) {
-            fade.display.remove();
+            leftovers.add(fade.display);
         }
         fading.clear();
-        if (bar != null) {
-            bar.removeAllPlayers();
+        removeBar();
+        if (!leftovers.isEmpty() && mob.level() instanceof ServerLevel level) {
+            MinecraftServer server = level.getServer();
+            server.tell(new TickTask(server.getTickCount(), () -> leftovers.forEach(AttackZoneDisplay::remove)));
         }
     }
 
@@ -588,10 +733,13 @@ public final class MobCombat {
 
     private void updateBar(MobBehaviour behaviour) {
         MobBehaviour.BossBar style = behaviour.boss().flatMap(MobBehaviour.Boss::bar).orElse(null);
-        if (style == null) {
-            if (bar != null) {
-                bar.removeAllPlayers();
-                bar = null;
+        ServerBossEvent hostBar = adapter.bossBar(mob);
+        if (style == null || hostBar != null) {
+            removeBar();
+            if (style != null) {
+                // The host shows and fills its own bar; the behaviour only picks its look.
+                hostBar.setColor(style.color());
+                hostBar.setOverlay(style.overlay());
             }
             return;
         }
@@ -609,6 +757,13 @@ public final class MobCombat {
         bar.setProgress(mob.getHealth() / mob.getMaxHealth());
     }
 
+    private void removeBar() {
+        if (bar != null) {
+            bar.removeAllPlayers();
+            bar = null;
+        }
+    }
+
     public void startSeenBy(ServerPlayer player) {
         if (bar != null) {
             bar.addPlayer(player);
@@ -623,23 +778,70 @@ public final class MobCombat {
 
     // --- Save ---
 
+    /**
+     * Writes the fight state that must survive a chunk unload or restart: home, the adds it summoned (so a reset or
+     * death still clears them) and whether a fight was on (phase, enrage, how long it had run), which decides what
+     * the mob does when it comes back (see {@link #load}). The ability in flight and cooldowns are not kept.
+     */
     public void save(CompoundTag tag) {
+        CompoundTag state = new CompoundTag();
         if (home != null) {
-            ListTag pos = new ListTag();
-            pos.add(DoubleTag.valueOf(home.x));
-            pos.add(DoubleTag.valueOf(home.y));
-            pos.add(DoubleTag.valueOf(home.z));
-            tag.put("mobs_ld_home", pos);
+            ListTag pos = homeTag();
+            state.put("home", pos);
+            tag.put(LEGACY_HOME_KEY, pos.copy());
+        }
+        state.putInt("phase", phase);
+        state.putBoolean("enraged", enraged);
+        state.putLong("fight_ticks", engaged ? Math.max(1L, mob.level().getGameTime() - engagedAt) : 0L);
+        ListTag ids = new ListTag();
+        for (UUID id : summons) {
+            ids.add(NbtUtils.createUUID(id));
+        }
+        state.put("summons", ids);
+        tag.put(SAVE_KEY, state);
+    }
+
+    /** Whether {@code tag} holds fight state written by {@link #save} (or the older home-only format). */
+    public static boolean hasSavedState(CompoundTag tag) {
+        return tag.contains(SAVE_KEY, Tag.TAG_COMPOUND) || tag.contains(LEGACY_HOME_KEY, Tag.TAG_LIST);
+    }
+
+    /**
+     * Restores {@link #save}. The mob comes back at phase 1 and not engaged; if it was saved mid-fight (a phase past
+     * the first, a running fight or live adds), its first tick resets a boss or starts others fresh.
+     */
+    public void load(CompoundTag tag) {
+        CompoundTag state = tag.getCompound(SAVE_KEY);
+        Vec3 savedHome = readHome(state.getList("home", Tag.TAG_DOUBLE));
+        if (savedHome == null) {
+            savedHome = readHome(tag.getList(LEGACY_HOME_KEY, Tag.TAG_DOUBLE));
+        }
+        if (savedHome != null) {
+            home = savedHome;
+        }
+        if (!state.isEmpty()) {
+            summons.clear();
+            for (Tag id : state.getList("summons", Tag.TAG_INT_ARRAY)) {
+                summons.add(NbtUtils.loadUUID(id));
+            }
+            if (!started) {
+                // Not for a live mob whose data is merged by a command: that must not end its fight.
+                loadedMidFight = state.getInt("phase") > 0 || state.getLong("fight_ticks") > 0
+                        || state.getBoolean("enraged") || !summons.isEmpty();
+            }
         }
     }
 
-    public void load(CompoundTag tag) {
-        if (tag.contains("mobs_ld_home", Tag.TAG_LIST)) {
-            ListTag pos = tag.getList("mobs_ld_home", Tag.TAG_DOUBLE);
-            if (pos.size() == 3) {
-                home = new Vec3(pos.getDouble(0), pos.getDouble(1), pos.getDouble(2));
-            }
-        }
+    private ListTag homeTag() {
+        ListTag pos = new ListTag();
+        pos.add(DoubleTag.valueOf(home.x));
+        pos.add(DoubleTag.valueOf(home.y));
+        pos.add(DoubleTag.valueOf(home.z));
+        return pos;
+    }
+
+    private static Vec3 readHome(ListTag pos) {
+        return pos.size() == 3 ? new Vec3(pos.getDouble(0), pos.getDouble(1), pos.getDouble(2)) : null;
     }
 
     private record Candidate(String name, MobBehaviour.Ability ability, LivingEntity aim) {

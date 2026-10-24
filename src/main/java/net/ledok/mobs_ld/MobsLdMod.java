@@ -6,6 +6,7 @@ import net.ledok.mobs_ld.entity.threat.ThreatEvents;
 import net.ledok.mobs_ld.mob.MobDeclarations;
 import net.ledok.mobs_ld.mob.behaviour.HitTracks;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.combat.CombatEvents;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -26,6 +27,7 @@ public class MobsLdMod implements ModInitializer {
         ModPotions.register();
         ModCreativeTabs.register();
         ThreatEvents.register();
+        CombatEvents.register();
         MobsLdCommands.register();
     }
 }

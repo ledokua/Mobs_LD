@@ -12,6 +12,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
@@ -72,9 +73,20 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
 
     @Override
     public Instance start(AbilityRun run) {
-        LdMob mob = run.mob();
+        Mob mob = run.mob();
         ResourceLocation mobId = BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType());
         String track = clip.orElse(run.ability().clipOr(run.name()));
+        if (!(mob instanceof LdMob)) {
+            // Hit tracks are baked from a Mobs_LD GeckoLib model; a vanilla model has no bones to bake.
+            synchronized (WARNED) {
+                if (WARNED.add(mobId.toString())) {
+                    LOGGER.warn("trace event on {} does nothing: only Mobs_LD's own mobs have hit tracks", mobId);
+                }
+            }
+            run.combat().trace("trace: no hit tracks on a non-Mobs_LD mob");
+            return new Instance() {
+            };
+        }
         if (!HitTracks.has(mobId, track)) {
             String key = mobId + "/" + track;
             synchronized (WARNED) {
@@ -133,7 +145,7 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
                     AABB body = victim.getBoundingBox().inflate(radius);
                     if (body.contains(a) || body.contains(b) || body.clip(a, b).isPresent()) {
                         struck.add(victim.getUUID());
-                        hit.apply(mob, victim, mob.position());
+                        hit.apply(run, victim, mob.position());
                     }
                 }
             }
@@ -141,7 +153,7 @@ public record TraceEvent(double from, double to, List<String> path, double radiu
     }
 
     /** Mob-local (forward, up, right) to world, using the ability's locked facing. */
-    private static Vec3 toWorld(LdMob mob, float yawDegrees, Vec3 local) {
+    private static Vec3 toWorld(Mob mob, float yawDegrees, Vec3 local) {
         return mob.position().add(AbilityRun.forward(yawDegrees).scale(local.x)).add(0.0, local.y, 0.0)
                 .add(AbilityRun.right(yawDegrees).scale(local.z));
     }

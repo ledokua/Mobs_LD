@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -51,13 +50,13 @@ public record SummonEvent(double at, ResourceLocation entity, int count, double 
             LOGGER.warn("Mob behaviour summons unknown entity {}", entity);
             return;
         }
-        LdMob mob = run.mob();
+        Mob mob = run.mob();
         ServerLevel level = run.level();
         float yaw = run.yaw();
         Vec3 ahead = AbilityRun.forward(yaw);
         Vec3 side = new Vec3(-ahead.z, 0.0, ahead.x);
         Vec3 anchor = mob.position().add(ahead.scale(forward)).add(side.scale(right)).add(0.0, up, 0.0);
-        for (int n = 0; n < count && mob.combat().aliveSummons() < maxAlive; n++) {
+        for (int n = 0; n < count && run.combat().aliveSummons() < maxAlive; n++) {
             Entity spawned = type.create(level);
             if (spawned == null) {
                 return;
@@ -74,7 +73,7 @@ public record SummonEvent(double at, ResourceLocation entity, int count, double 
                 }
             }
             level.addFreshEntity(spawned);
-            mob.combat().trackSummon(spawned);
+            run.combat().trackSummon(spawned);
         }
     }
 }

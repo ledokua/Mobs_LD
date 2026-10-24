@@ -87,7 +87,7 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
                 double up = height.orElse(run.combat().reachUp());
                 double down = depth.orElse(run.combat().reachDown());
                 for (LivingEntity victim : run.enemiesIn(shape, point, yaw, up, down)) {
-                    hit.apply(run.mob(), victim, point);
+                    hit.apply(run, victim, point);
                 }
                 run.flash(marker);
             }

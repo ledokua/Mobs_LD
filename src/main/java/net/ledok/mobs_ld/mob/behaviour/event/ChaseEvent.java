@@ -3,11 +3,12 @@ package net.ledok.mobs_ld.mob.behaviour.event;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -71,9 +72,9 @@ public record ChaseEvent(double at, String clip, double maxTime, double speed, d
 
     @Override
     public Instance start(AbilityRun run) {
-        LdMob mob = run.mob();
+        Mob mob = run.mob();
         if (!clip.isEmpty()) {
-            mob.playAction(clip, 1.0);
+            ((CombatHost) mob).mobs_ld$playAction(clip, 1.0);
         }
         Set<UUID> struck = new HashSet<>();
         return new Instance() {
@@ -114,7 +115,7 @@ public record ChaseEvent(double at, String clip, double maxTime, double speed, d
                 hit.ifPresent(spec -> {
                     for (LivingEntity victim : run.enemiesNear(mob.getBoundingBox().inflate(width / 2.0, 0.5, width / 2.0))) {
                         if (struck.add(victim.getUUID())) {
-                            spec.apply(mob, victim, mob.position());
+                            spec.apply(run, victim, mob.position());
                         }
                     }
                 });

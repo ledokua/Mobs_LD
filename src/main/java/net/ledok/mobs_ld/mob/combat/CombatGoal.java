@@ -1,36 +1,40 @@
 package net.ledok.mobs_ld.mob.combat;
 
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
 
 /**
- * The one AI goal of a data-driven mob in a fight: holds still while an ability or stagger runs, otherwise tries to
+ * The one AI goal of a mob in a behaviour fight: holds still while an ability or stagger runs, otherwise tries to
  * start an ability and, failing that, moves according to the behaviour's movement style. Targeting itself stays
- * with the threat system; the ability timeline is ticked by {@link MobCombat}.
+ * with the threat system; the ability timeline is ticked by {@link MobCombat}. While a boss walks home after a reset
+ * it only holds the movement and look flags, so no vanilla goal takes over the path {@link MobCombat} set.
+ *
+ * <p>The combat is looked up on every use, never held: LdMob adds this goal from inside its constructor, before its
+ * combat exists, and a vanilla mob only gets a combat once its type has a behaviour.
  */
 public class CombatGoal extends Goal {
     private static final int REPATH_TICKS = 10;
     /** Degrees per tick the mob turns to face its target while standing. */
     private static final float TURN_RATE = 10.0F;
 
-    private final LdMob mob;
+    private final Mob mob;
     private int repath;
 
-    public CombatGoal(LdMob mob) {
+    public CombatGoal(Mob mob) {
         this.mob = mob;
         setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     @Override
     public boolean canUse() {
-        MobCombat combat = mob.combat();
-        return combat.behaviour() != null && !combat.returning() && (combat.busy() || combat.engaged());
+        MobCombat combat = CombatHost.of(mob);
+        return combat != null && combat.behaviour() != null && (combat.returning() || combat.busy() || combat.engaged());
     }
 
     @Override
@@ -50,7 +54,10 @@ public class CombatGoal extends Goal {
 
     @Override
     public void tick() {
-        MobCombat combat = mob.combat();
+        MobCombat combat = CombatHost.of(mob);
+        if (combat == null || combat.returning()) {
+            return;
+        }
         if (combat.busy()) {
             mob.getNavigation().stop();
             return;

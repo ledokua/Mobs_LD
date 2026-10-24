@@ -1,17 +1,12 @@
 package net.ledok.mobs_ld.mob;
 
-import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.combat.CombatGoal;
+import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -49,8 +44,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * server last started through {@link #playAction} (an ability clip, a transition) plus the death clip. The action
  * controller runs second, so it overrides every bone its clip keys. The server only syncs <i>which</i> clip and a
  * sequence number; the client never needs animation timing from the server.
+ *
+ * <p>Its fight runs on the shared ability engine hooks (MobCombatHostMixin and friends), like any vanilla host; the
+ * {@link CombatHost} members here only differ in that the combat exists from construction and its cues drive the
+ * action layer and texture variant.
  */
-public class LdMob extends Monster implements GeoEntity {
+public class LdMob extends Monster implements GeoEntity, CombatHost {
     private static final EntityDataAccessor<String> DATA_ACTION =
             SynchedEntityData.defineId(LdMob.class, EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_ACTION_SEQ =
@@ -106,6 +105,31 @@ public class LdMob extends Monster implements GeoEntity {
     }
 
     @Override
+    public MobCombat mobs_ld$combat() {
+        return combat;
+    }
+
+    @Override
+    public MobCombat mobs_ld$combatOrCreate() {
+        return combat;
+    }
+
+    @Override
+    public void mobs_ld$playAction(String clip, double speed) {
+        playAction(clip, speed);
+    }
+
+    @Override
+    public void mobs_ld$stopAction() {
+        stopAction();
+    }
+
+    @Override
+    public void mobs_ld$setVariant(String variant) {
+        setTextureVariant(variant);
+    }
+
+    @Override
     protected PathNavigation createNavigation(Level level) {
         // Called from the Mob constructor, before our fields are set — read the declaration from the type.
         if (MobDeclarations.of(getType()).body() == MobDeclaration.Body.FLYING) {
@@ -125,85 +149,15 @@ public class LdMob extends Monster implements GeoEntity {
         goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8));
         goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0F));
         goalSelector.addGoal(7, new RandomLookAroundGoal(this));
-        // Initial aggro; once anyone builds threat, the ThreatTargetGoal added by MobThreatMixin takes over.
-        targetSelector.addGoal(1, new HurtByTargetGoal(this) {
-            @Override
-            public boolean canUse() {
-                LivingEntity attacker = getLastHurtByMob();
-                return super.canUse() && (attacker == null || !combat.isUnreachable(attacker));
-            }
-        });
-        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
-                player -> !combat.isUnreachable(player)));
-    }
-
-    @Override
-    protected void customServerAiStep() {
-        super.customServerAiStep();
-        combat.tick();
-    }
-
-    @Override
-    public boolean hurt(DamageSource source, float amount) {
-        if (!level().isClientSide() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-            if (combat.invulnerable()) {
-                return false;
-            }
-            amount = combat.adjustDamage(source, amount);
-        }
-        return super.hurt(source, amount);
-    }
-
-    @Override
-    public void die(DamageSource source) {
-        super.die(source);
-        if (!level().isClientSide()) {
-            combat.onDeath();
-        }
-    }
-
-    @Override
-    public void remove(RemovalReason reason) {
-        if (!level().isClientSide()) {
-            combat.onRemoved();
-        }
-        super.remove(reason);
+        // Initial aggro; once anyone builds threat, the ThreatTargetGoal added by MobThreatMixin takes over. Players
+        // the engine gave up on (unreachable, or anyone while walking home) are skipped by TargetingConditionsMixin.
+        targetSelector.addGoal(1, new HurtByTargetGoal(this));
+        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
     }
 
     /** Leaves without dying: a puff of smoke, no drops, no {@code on_death}. */
     public void despawnWithPoof() {
-        level().broadcastEntityEvent(this, (byte) 60);
-        discard();
-    }
-
-    @Override
-    public boolean removeWhenFarAway(double distanceToClosestPlayer) {
-        MobBehaviour behaviour = combat.behaviour();
-        return (behaviour == null || behaviour.boss().isEmpty()) && super.removeWhenFarAway(distanceToClosestPlayer);
-    }
-
-    @Override
-    public void startSeenByPlayer(ServerPlayer player) {
-        super.startSeenByPlayer(player);
-        combat.startSeenBy(player);
-    }
-
-    @Override
-    public void stopSeenByPlayer(ServerPlayer player) {
-        super.stopSeenByPlayer(player);
-        combat.stopSeenBy(player);
-    }
-
-    @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
-        combat.save(tag);
-    }
-
-    @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        combat.load(tag);
+        MobCombat.despawnWithPoof(this);
     }
 
     @Override
@@ -250,9 +204,7 @@ public class LdMob extends Monster implements GeoEntity {
 
     @Override
     protected void tickDeath() {
-        if (!level().isClientSide()) {
-            combat.tickDeath(); // on_death timeline (e.g. a bursting add) plays out while the body falls
-        }
+        // The on_death timeline (e.g. a bursting add) is ticked just before this by LivingEntityCombatMixin.
         // Vanilla removes the body after 20 ticks; data-driven mobs hold it for their death clip.
         ++deathTime;
         if (deathTime >= declaration.deathTicks() && !level().isClientSide() && !isRemoved()) {

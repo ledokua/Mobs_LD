@@ -5,8 +5,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.entity.threat.ThreatTable;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
+import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,12 +20,13 @@ import net.minecraft.world.entity.Mob;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
- * Debug commands for data-driven mobs (ops only): {@code play <targets> <clip>} / {@code stop <targets>} preview an
- * animation clip, {@code ability <targets> <name>} forces a behaviour ability now (telegraphs, hits and all), and
- * {@code reset <targets>} runs the boss reset (full heal, phases and adds cleared).
+ * Debug commands for mobs running a behaviour (ops only; LdMobs and vanilla hosts alike): {@code play <targets> <clip>}
+ * / {@code stop <targets>} preview an animation clip (a host cue on vanilla mobs), {@code ability <targets> <name>}
+ * forces a behaviour ability now (telegraphs, hits and all), and {@code reset <targets>} runs the boss reset (full
+ * heal, phases and adds cleared).
  */
 public final class MobsLdCommands {
     private MobsLdCommands() {
@@ -42,16 +44,18 @@ public final class MobsLdCommands {
                                 .then(Commands.argument("clip", StringArgumentType.word())
                                         .executes(ctx -> {
                                             String clip = StringArgumentType.getString(ctx, "clip");
-                                            return apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
-                                                    mob -> mob.playAction(clip), "Playing '" + clip + "' on");
+                                            return apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
+                                                    (mob, combat) -> ((CombatHost) mob).mobs_ld$playAction(clip, 1.0),
+                                                    "Playing '" + clip + "' on");
                                         }))))
                 .then(Commands.literal("ability")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .then(Commands.argument("name", StringArgumentType.word())
                                         .executes(ctx -> {
                                             String name = StringArgumentType.getString(ctx, "name");
-                                            return apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
-                                                    mob -> forceAbility(ctx.getSource(), mob, name), "Forced '" + name + "' on");
+                                            return apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), true,
+                                                    (mob, combat) -> forceAbility(ctx.getSource(), mob, combat, name),
+                                                    "Forced '" + name + "' on");
                                         }))))
                 .then(Commands.literal("debug")
                         .executes(ctx -> {
@@ -64,12 +68,12 @@ public final class MobsLdCommands {
                                 .executes(ctx -> showThreat(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
                 .then(Commands.literal("reset")
                         .then(Commands.argument("targets", EntityArgument.entities())
-                                .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
-                                        mob -> mob.combat().reset(), "Reset"))))
+                                .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
+                                        (mob, combat) -> combat.reset(), "Reset"))))
                 .then(Commands.literal("stop")
                         .then(Commands.argument("targets", EntityArgument.entities())
-                                .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"),
-                                        LdMob::stopAction, "Stopped the action on")))));
+                                .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
+                                        (mob, combat) -> ((CombatHost) mob).mobs_ld$stopAction(), "Stopped the action on")))));
     }
 
     /** Prints each mob's threat table, highest first, with its current target. */
@@ -102,8 +106,8 @@ public final class MobsLdCommands {
     }
 
     /** Starts an ability now, aimed at the mob's target or else the command's runner. */
-    private static void forceAbility(CommandSourceStack source, LdMob mob, String name) {
-        MobBehaviour behaviour = mob.combat().behaviour();
+    private static void forceAbility(CommandSourceStack source, Mob mob, MobCombat combat, String name) {
+        MobBehaviour behaviour = combat.behaviour();
         MobBehaviour.Ability ability = behaviour == null ? null : behaviour.abilities().get(name);
         if (ability == null) {
             source.sendFailure(Component.literal(mob.getType().getDescription().getString() + " has no ability '" + name + "'"));
@@ -111,20 +115,31 @@ public final class MobsLdCommands {
         }
         LivingEntity aim = mob.getTarget() != null ? mob.getTarget()
                 : source.getEntity() instanceof LivingEntity living ? living : null;
-        mob.combat().start(name, ability, aim);
+        combat.start(name, ability, aim);
     }
 
-    private static int apply(CommandSourceStack source, Collection<? extends Entity> targets, Consumer<LdMob> action,
-                             String verb) {
+    /**
+     * Runs {@code action} on every target that runs the ability engine. With {@code attach}, a mob whose type has a
+     * behaviour but that has not ticked since it got one is attached on the spot.
+     */
+    private static int apply(CommandSourceStack source, Collection<? extends Entity> targets, boolean attach,
+                             BiConsumer<Mob, MobCombat> action, String verb) {
         int count = 0;
         for (Entity entity : targets) {
-            if (entity instanceof LdMob mob) {
-                action.accept(mob);
+            if (!(entity instanceof Mob mob)) {
+                continue;
+            }
+            MobCombat combat = CombatHost.of(mob);
+            if (combat == null && attach && MobBehaviours.get(mob.getType()) != null && MobBehaviours.canHost(mob)) {
+                combat = ((CombatHost) mob).mobs_ld$combatOrCreate();
+            }
+            if (combat != null) {
+                action.accept(mob, combat);
                 count++;
             }
         }
         if (count == 0) {
-            source.sendFailure(Component.literal("No data-driven Mobs_LD mob among the targets"));
+            source.sendFailure(Component.literal("No mob running a Mobs_LD behaviour among the targets"));
             return 0;
         }
         int done = count;

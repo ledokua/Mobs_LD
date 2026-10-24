@@ -1,9 +1,9 @@
 package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.entity.threat.StealthCompat;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/** Who a data-driven mob may hurt and aim at. */
+/** Who a mob running a behaviour may hurt and aim at. */
 public final class CombatTargets {
     private CombatTargets() {
     }
@@ -21,7 +21,7 @@ public final class CombatTargets {
      * Hostile to the mob: players and player-owned summons it is allowed to attack, plus whatever it is currently
      * targeting. Other monsters, its own adds and teammates are never hit by its areas.
      */
-    public static boolean isEnemy(LdMob mob, LivingEntity candidate) {
+    public static boolean isEnemy(Mob mob, LivingEntity candidate) {
         if (candidate == mob || !candidate.isAlive() || mob.isAlliedTo(candidate) || !mob.canAttack(candidate)) {
             return false;
         }
@@ -32,12 +32,13 @@ public final class CombatTargets {
     }
 
     /** Players the mob could aim at right now: alive, attackable, not stealthed, within its follow range. */
-    public static List<LivingEntity> candidates(LdMob mob) {
+    public static List<LivingEntity> candidates(Mob mob) {
         double range = mob.getAttributeValue(Attributes.FOLLOW_RANGE);
+        MobCombat combat = CombatHost.of(mob);
         List<LivingEntity> result = new ArrayList<>();
         for (Player player : mob.level().players()) {
             if (isEnemy(mob, player) && !StealthCompat.isHidden(player) && mob.distanceToSqr(player) <= range * range
-                    && !mob.combat().isUnreachable(player)) {
+                    && (combat == null || !combat.isUnreachable(player))) {
                 result.add(player);
             }
         }
@@ -49,7 +50,7 @@ public final class CombatTargets {
     }
 
     /** Applies a target rule; null when nobody qualifies. */
-    public static LivingEntity pick(LdMob mob, MobBehaviour.TargetRule rule) {
+    public static LivingEntity pick(Mob mob, MobBehaviour.TargetRule rule) {
         if (rule == MobBehaviour.TargetRule.CURRENT) {
             LivingEntity target = mob.getTarget();
             return target != null && isEnemy(mob, target) ? target : null;

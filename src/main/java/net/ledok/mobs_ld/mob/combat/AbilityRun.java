@@ -2,7 +2,6 @@ package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
-import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
@@ -12,6 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -30,7 +30,7 @@ public final class AbilityRun {
     /** Seconds before a beat with its own {@code aim_side} lands that the body starts turning for it. */
     public static final double AIM_LEAD = 0.3;
 
-    private final LdMob mob;
+    private final Mob mob;
     private final MobCombat combat;
     private final String name;
     private final MobBehaviour.Ability ability;
@@ -49,7 +49,7 @@ public final class AbilityRun {
     /** Facing an event asked to turn to (re-aim between beats); approached at the tracking turn rate. */
     private Float steerYaw;
 
-    AbilityRun(LdMob mob, MobCombat combat, String name, MobBehaviour.Ability ability, LivingEntity aim, double speed) {
+    AbilityRun(Mob mob, MobCombat combat, String name, MobBehaviour.Ability ability, LivingEntity aim, double speed) {
         this.mob = mob;
         this.combat = combat;
         this.name = name;
@@ -116,9 +116,23 @@ public final class AbilityRun {
         }
     }
 
+    /**
+     * Drops the run without touching the world (the mob is leaving with its chunk): no event cleanup, nothing
+     * discarded. Returns the telegraphs still drawn, for the caller to remove once that is safe.
+     */
+    List<AttackZoneDisplay> abandon() {
+        cancelled = true;
+        List<AttackZoneDisplay> displays = new ArrayList<>();
+        for (Marker marker : markers) {
+            displays.add(marker.display);
+        }
+        markers.clear();
+        return displays;
+    }
+
     // --- For events ---
 
-    public LdMob mob() {
+    public Mob mob() {
         return mob;
     }
 

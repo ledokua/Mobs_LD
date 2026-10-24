@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.MobCombat;
 
 /** Removes the mob in a puff of smoke: no death, no drops, no {@code on_death} (e.g. a bomb that has gone off). */
 public record DespawnEvent(double at) implements AbilityEvent.Instant {
@@ -18,6 +19,6 @@ public record DespawnEvent(double at) implements AbilityEvent.Instant {
 
     @Override
     public void fire(AbilityRun run) {
-        run.mob().despawnWithPoof();
+        MobCombat.despawnWithPoof(run.mob());
     }
 }
