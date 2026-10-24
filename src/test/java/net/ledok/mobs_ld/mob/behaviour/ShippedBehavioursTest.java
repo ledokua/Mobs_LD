@@ -204,8 +204,8 @@ class ShippedBehavioursTest {
         assertEquals(0.2, summon.begin(), 1.0e-9);
         assertEquals(1.6, summon.end(), 1.0e-9);
         SummonEvent.Scale scale = summon.scale().orElseThrow();
-        assertEquals(java.util.Optional.of(1.0), scale.maxHealth());
-        assertEquals(java.util.Optional.of(1.0), scale.attackDamage());
+        assertEquals(java.util.Optional.of(new SummonEvent.StatScale(0.025, true)), scale.maxHealth(), "a fortieth of its HP");
+        assertEquals(java.util.Optional.of(new SummonEvent.StatScale(1.0, false)), scale.attackDamage());
         assertTrue(scale.armor().orElseThrow().summonerBonus());
         assertTrue(scale.copiesDamageDealt());
         assertFalse(summon.loot());

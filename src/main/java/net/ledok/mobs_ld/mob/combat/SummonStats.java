@@ -29,7 +29,8 @@ import java.util.UUID;
  * as strong as that boss's level, not its own spot's. Each stat gets a target:
  * <ul>
  *   <li>{@code max_health} / {@code attack_damage}: the add's own value x factor x (the summoner's live value / the base
- *       its behaviour declares in {@code base_attributes}, else its own base value);</li>
+ *       its behaviour declares in {@code base_attributes}, else its own base value), or with {@code of_summoner} the
+ *       summoner's live value x that fraction;</li>
  *   <li>{@code armor}: the add's own value + the summoner's armor above its base ({@code summoner_bonus}) or a fixed
  *       bonus;</li>
  *   <li>{@code damage_dealt: copy}: the summoner's {@code loot_stage:damage_dealt} (DD Loot Stage), looked up by id, so
@@ -107,13 +108,18 @@ public final class SummonStats {
         return own * factor * (declared > EPSILON ? live / declared : 1.0);
     }
 
+    /** The target {@code rule} gives a stat: the summoner's live value x the fraction, else {@link #scaled}. */
+    public static double target(SummonEvent.StatScale rule, double own, double live, double declared) {
+        return rule.ofSummoner() ? live * rule.factor() : scaled(own, rule.factor(), live, declared);
+    }
+
     // --- Planning (before the add enters the level) ---
 
     /** The targets {@code scale} gives {@code add}, read from it and its summoner now (call before adding it). */
     public static Targets plan(SummonEvent.Scale scale, Mob summoner, LivingEntity add) {
-        double maxHealth = scale.maxHealth().map(factor -> scaledFrom(summoner, add, Attributes.MAX_HEALTH, factor))
+        double maxHealth = scale.maxHealth().map(rule -> scaledFrom(summoner, add, Attributes.MAX_HEALTH, rule))
                 .orElse(Double.NaN);
-        double attackDamage = scale.attackDamage().map(factor -> scaledFrom(summoner, add, Attributes.ATTACK_DAMAGE, factor))
+        double attackDamage = scale.attackDamage().map(rule -> scaledFrom(summoner, add, Attributes.ATTACK_DAMAGE, rule))
                 .orElse(Double.NaN);
         double armor = scale.armor().map(rule -> ownValue(add, Attributes.ARMOR) + rule.bonus(summoner))
                 .orElse(Double.NaN);
@@ -130,10 +136,10 @@ public final class SummonStats {
         return new Targets(add.getUUID(), maxHealth, attackDamage, armor, damageDealt);
     }
 
-    private static double scaledFrom(Mob summoner, LivingEntity add, Holder<Attribute> attribute, double factor) {
+    private static double scaledFrom(Mob summoner, LivingEntity add, Holder<Attribute> attribute, SummonEvent.StatScale rule) {
         AttributeInstance live = summoner.getAttribute(attribute);
         return live == null ? Double.NaN
-                : scaled(ownValue(add, attribute), factor, live.getValue(), declaredBase(summoner, attribute));
+                : target(rule, ownValue(add, attribute), live.getValue(), declaredBase(summoner, attribute));
     }
 
     /**

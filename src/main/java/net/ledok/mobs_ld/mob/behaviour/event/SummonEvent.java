@@ -494,16 +494,16 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     /**
      * The adds' stats from the summoner's (see {@link SummonStats}); each part left out stays the add's own.
      *
-     * @param maxHealth    factor on the add's own max health, times the summoner's max health over its declared base
-     * @param attackDamage factor on the add's own attack damage, times the summoner's over its declared base
+     * @param maxHealth    the add's max health from the summoner's (see {@link StatScale})
+     * @param attackDamage the add's attack damage from the summoner's (see {@link StatScale})
      * @param armor        added to the add's own armor
      * @param damageDealt  {@code copy}: the summoner's {@code loot_stage:damage_dealt} (if that mod is installed)
      */
-    public record Scale(Optional<Double> maxHealth, Optional<Double> attackDamage, Optional<ArmorBonus> armor,
+    public record Scale(Optional<StatScale> maxHealth, Optional<StatScale> attackDamage, Optional<ArmorBonus> armor,
                         Optional<DamageDealt> damageDealt) {
         public static final Codec<Scale> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.doubleRange(0.0, 1000.0).optionalFieldOf("max_health").forGetter(Scale::maxHealth),
-                Codec.doubleRange(0.0, 1000.0).optionalFieldOf("attack_damage").forGetter(Scale::attackDamage),
+                StatScale.CODEC.optionalFieldOf("max_health").forGetter(Scale::maxHealth),
+                StatScale.CODEC.optionalFieldOf("attack_damage").forGetter(Scale::attackDamage),
                 ArmorBonus.CODEC.optionalFieldOf("armor").forGetter(Scale::armor),
                 DamageDealt.CODEC.optionalFieldOf("damage_dealt").forGetter(Scale::damageDealt)
         ).apply(i, Scale::new));
@@ -511,6 +511,18 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         public boolean copiesDamageDealt() {
             return damageDealt.isPresent();
         }
+    }
+
+    /**
+     * How one stat of an add follows its summoner's: a number is a factor on the add's own value, times the summoner's
+     * live value over the base its behaviour declares (the ratio form); {@code {"of_summoner": f}} is the summoner's live
+     * value times {@code f}, whatever the add's own value is (e.g. {@code 0.025}: a fortieth of the boss's max health).
+     */
+    public record StatScale(double factor, boolean ofSummoner) {
+        private static final Codec<Double> AMOUNT = Codec.doubleRange(0.0, 1000.0);
+        public static final Codec<StatScale> CODEC = Codec.either(AMOUNT, AMOUNT.fieldOf("of_summoner").codec()).xmap(
+                either -> either.map(factor -> new StatScale(factor, false), fraction -> new StatScale(fraction, true)),
+                scale -> scale.ofSummoner ? Either.right(scale.factor) : Either.left(scale.factor));
     }
 
     /**

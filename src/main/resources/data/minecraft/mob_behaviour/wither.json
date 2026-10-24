@@ -105,7 +105,7 @@
           "max_alive": { "base": 6, "per_extra_player": 3, "cap": 16 },
           "placement": { "around": "fighters", "radius": [3, 6], "min_gap": 2, "clearance": 3, "ground": true },
           "telegraph": { "from": 0.2, "radius": 0.9, "color": "#3A1F5C" },
-          "scale": { "max_health": 1.0, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
+          "scale": { "max_health": { "of_summoner": 0.025 }, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
           "loot": false, "xp": false, "bound": true, "target": "rune_player" }
       ]
     }

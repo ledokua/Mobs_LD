@@ -235,7 +235,7 @@ there it keeps the old aim). A stagger, phase change or reset before `at` ends t
   "max_alive": { "base": 6, "per_extra_player": 3, "cap": 16 },
   "placement": { "around": "fighters", "radius": [3, 6], "min_gap": 2, "clearance": 3, "ground": true },
   "telegraph": { "from": 0.2, "radius": 0.9, "color": "#3A1F5C" },
-  "scale": { "max_health": 1.0, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
+  "scale": { "max_health": { "of_summoner": 0.025 }, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
   "loot": false, "xp": false, "bound": true, "target": "rune_player" }
 ```
 Only `at` and `entity` are required; every other field is optional, and left out the summon works as it always did
@@ -290,8 +290,8 @@ stay the add's own.
 
 | field | target |
 |---|---|
-| `max_health` | the add's own max health x this factor x (the summoner's max health / the base its behaviour declares in `base_attributes`, else its own base value) |
-| `attack_damage` | the add's own attack damage x this factor x (the summoner's attack damage / its declared base), i.e. R; a soft enrage carries over to adds raised after it |
+| `max_health` | a number: the add's own max health x this factor x (the summoner's max health / the base its behaviour declares in `base_attributes`, else its own base value); or `{ "of_summoner": f }`: the summoner's max health x `f`, whatever the add's own is |
+| `attack_damage` | the same two forms; as a number, the add's own attack damage x this factor x (the summoner's attack damage / its declared base), i.e. R; a soft enrage carries over to adds raised after it |
 | `armor` | the add's own armor + `summoner_bonus` (the summoner's armor above its declared base, never negative), or + a fixed number |
 | `damage_dealt` | `copy`: the add's `loot_stage:damage_dealt` (DD Loot Stage) is set to the summoner's current value. Looked up by id: skipped if that attribute is not installed or either mob lacks it |
 
@@ -303,8 +303,8 @@ to the target (`target / current - 1` on the total; a flat bonus for an armor of
 the add is healed to its new maximum. This happens once, at the spawn: the equipment's modifiers (which vanilla only
 applies on the add's first tick) are counted in up front, and later changes (Weakness, Health Boost and other effects)
 stay temporary. The modifiers are permanent: they are saved with the add. Example, a Wither skeleton of the shipped Wither
-(base 1711 HP, attack 2.0, armor 4): at 4791 HP and armor 13 it gets 56 HP and 9 armor; at attack 2.0 (R = 1) its swing
-stays 8.
+(`max_health` `{ "of_summoner": 0.025 }`, base attack 2.0, armor 4): at 4986 HP and armor 13 it gets 124.65 HP and
+9 armor; at attack 2.0 (R = 1) its swing stays 8.
 
 **`bound`**: once every second the add checks on its summoner (only bound adds pay for this). It leaves in a puff of
 smoke, without dying or dropping anything, when the summoner is dead or removed, no longer counts it among its adds (a
@@ -656,7 +656,7 @@ ends the combo.
 - Count: 2-4, +2 for each fighting player beyond the first, at most 12 per wave; at most 6 alive, +3 per extra player,
   at most 16 (a wave only fills the free room). Fighting = threat on the Wither's table, alive, not spectating or in
   creative, within 48 blocks.
-- Stats from the Wither's: HP 20 x (its max health / 1711), attack 8 x R, armor + its armor above 4, and its
+- Stats from the Wither's: HP 1/40 of its max health (55 / 80 / 125 at Eden Loot's 2,201 / 3,187 / 4,986), attack 8 x R, armor + its armor above 4, and its
   `loot_stage:damage_dealt` copied (Eden Loot carries the Wither's level there and keeps R at 1). Vanilla wither
   skeleton swing otherwise (stone sword, Wither I for 10 s).
 - No loot, equipment or experience (no farmable skulls); removed when the Wither dies or resets, and (`bound`) gone in

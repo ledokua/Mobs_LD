@@ -77,7 +77,7 @@ Add count and stats:
 - **Max alive:** 6 + 3 per extra player, at most 16. A wave only fills the free room.
 - **Runes** are dealt 2 per player in turn; extras go to random players.
 - **Stats** are set after spawning, from the Wither's own stats:
-  - HP = 20 x (Wither max_health / 1711);
+  - HP = 20 x (Wither max_health / 1711); **changed 2026-10-25 (owner): HP = Wither max_health / 40** (`"max_health": {"of_summoner": 0.025}`), because 26-HP adds next to a 2,201 HP Wither felt too weak. With the Eden Loot boss type: 55 / 80 / 125 HP (OW L12 / Nether L25 / End L45), about 15% of the Wither's HP per wave of 6;
   - attack_damage = 8.0 x (Wither attack_damage / 2.0);
   - armor = the Wither's armor above its base 4.
   So the Wither's fixed dimension level carries over, not the add's own location level.
@@ -405,7 +405,7 @@ Hand-off in hits_brief format: reference "Soul Rush (contact)", base 20.0, kind 
 | End | 45 | 4,791 | 56 |
 
 - Wither armor at L45 is 13.
-- One trio wave = 6-8 adds = 336-448 HP, about 7-9% of the bar.
+- One trio wave = 6-8 adds = 336-448 HP, about 7-9% of the bar. (Superseded 2026-10-25: adds have max_health / 40, so a wave of 6 is 15% of the bar.)
 
 **Fight length at L45** (about 29 DPS per player, 60% uptime, boss armor about x0.70):
 - trio about 130 s, duo about 195 s, solo about 6.5 min;

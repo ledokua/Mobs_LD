@@ -105,6 +105,11 @@ class SummonWaveTest {
                 "{\"max_health\": 1.0, \"attack_damage\": 1.0, \"armor\": \"summoner_bonus\", \"damage_dealt\": \"copy\"}");
         assertTrue(scale.armor().orElseThrow().summonerBonus());
         assertTrue(scale.copiesDamageDealt());
+        assertEquals(new SummonEvent.StatScale(1.0, false), scale.maxHealth().orElseThrow());
+        assertEquals(new SummonEvent.StatScale(0.025, true),
+                parse(SummonEvent.Scale.CODEC, "{\"max_health\": {\"of_summoner\": 0.025}}").maxHealth().orElseThrow());
+        assertTrue(rejects(SummonEvent.Scale.CODEC, "{\"max_health\": {\"of_summoner\": -1}}"));
+        assertTrue(rejects(SummonEvent.Scale.CODEC, "{\"max_health\": {\"share\": 0.025}}"));
         assertEquals(4.0, parse(SummonEvent.Scale.CODEC, "{\"armor\": 4}").armor().orElseThrow().flat());
         assertTrue(rejects(SummonEvent.Scale.CODEC, "{\"armor\": \"lots\"}"));
         assertTrue(rejects(SummonEvent.Scale.CODEC, "{\"damage_dealt\": \"double\"}"));
