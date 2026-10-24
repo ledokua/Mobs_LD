@@ -5,7 +5,10 @@ import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.behaviour.Seconds;
 import net.ledok.mobs_ld.mob.behaviour.SkullSpec;
+import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
@@ -296,8 +299,8 @@ public final class MobCombat {
         engagedAt = now;
         idleTicks = 0;
         behaviour.abilities().forEach((name, ability) -> {
-            if (ability.initialCooldown() > 0.0) {
-                readyAt.put(name, now + Math.round(ability.initialCooldown() * 20.0));
+            if (ability.initialCooldown().max() > 0.0) {
+                readyAt.put(name, now + ticks(ability.initialCooldown()));
             }
         });
         behaviour.intro().ifPresent(intro -> start("intro", intro, target));
@@ -472,7 +475,8 @@ public final class MobCombat {
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
-            if ((active != null && !active.allows(name)) || now < readyAt.getOrDefault(name, 0L)) {
+            if ((active != null && !active.allows(name)) || now < readyAt.getOrDefault(name, 0L)
+                    || (ability.skipWhenFull() && summonsFull(ability))) {
                 continue;
             }
             LivingEntity aim = CombatTargets.pick(mob, ability.target());
@@ -516,7 +520,29 @@ public final class MobCombat {
                 CombatTargets.distance(mob, aim)) : "") + (speed != 1.0 ? " x" + speed : ""));
         host.mobs_ld$playAction(ability.clipOr(name), speed);
         long now = mob.level().getGameTime();
-        readyAt.put(name, now + Math.round(cooldownOf(name, ability) * 20.0));
+        readyAt.put(name, now + ticks(cooldownOf(name, ability)));
+    }
+
+    /** A time rolled now (a range gives a fresh value each use), in whole ticks. */
+    private long ticks(Seconds seconds) {
+        return Math.round(seconds.roll(mob.getRandom()::nextDouble) * 20.0);
+    }
+
+    /**
+     * Whether none of the ability's {@code summon} events has room for another add now ({@code skip_when_full});
+     * false for an ability that summons nothing.
+     */
+    private boolean summonsFull(MobBehaviour.Ability ability) {
+        boolean summons = false;
+        for (AbilityEvent event : ability.events()) {
+            if (event instanceof SummonEvent summon) {
+                summons = true;
+                if (summon.room(mob, this) > 0) {
+                    return false;
+                }
+            }
+        }
+        return summons;
     }
 
     private void finishCurrent(MobBehaviour behaviour, long now) {
@@ -553,7 +579,7 @@ public final class MobCombat {
         return picked != null ? picked : previous;
     }
 
-    private double cooldownOf(String name, MobBehaviour.Ability ability) {
+    private Seconds cooldownOf(String name, MobBehaviour.Ability ability) {
         MobBehaviour behaviour = behaviour();
         MobBehaviour.Phase active = behaviour == null ? null : activePhase(behaviour);
         if (active != null && active.cooldowns().containsKey(name)) {

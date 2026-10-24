@@ -81,8 +81,8 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 |---|---|---|
 | `clip` | the ability name | animation clip on the action layer |
 | `duration` | required | how long the mob is committed (normally the clip length) |
-| `cooldown` | 0 | before it can be used again |
-| `initial_cooldown` | 0 | after engaging, before first use |
+| `cooldown` | 0 | *time range*: before it can be used again (a range is rolled at each use) |
+| `initial_cooldown` | 0 | *time range*: after engaging, before first use (rolled at each engage) |
 | `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
 | `range` | any | `{ "min", "max", "above", "below" }` horizontal distance; `above`/`below` default to the reach band |
 | `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player, `lowest_threat` (the player with the least threat, 0 counts; a tie goes to someone other than the tank), `slot:<name>` (whoever that [target slot](#target-slots) holds; no holder = the ability is not usable) |
@@ -90,10 +90,13 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |
 | `aim_side` | 0 | blocks to the mob's right where its weapon strikes (one-handed weapon); it turns so that line meets the target |
 | `invulnerable` | false | takes no damage while it runs (transitions, intros) |
+| `skip_when_full` | false | not picked (nor forced by `force_after`) while none of its `summon` events has room under its `max_alive`; it stays ready and goes as soon as an add dies (no effect on an ability that summons nothing) |
 | `events` | `[]` | timeline (below) |
 
 Choosing: every tick out of an ability, the mob picks at random (by `weight`) among abilities that are allowed by
-the phase, off cooldown, have an aim and are in range; if none is, it moves per `movement`.
+the phase, off cooldown, have an aim and are in range; if none is, it moves per `movement`. An ability with
+`"weight": 0, "force_after": 0` is never picked by chance but goes as soon as it is ready, at any range (the Wither's
+Grave Call).
 
 ## Events
 
@@ -225,10 +228,88 @@ one of the file's abilities). The follow-up keeps this ability's aim if its `tar
 any other rule picks again, so `"target": "slot:left_head"` turns it on whoever the left head holds now (with nobody
 there it keeps the old aim). A stagger, phase change or reset before `at` ends the ability without the hand-over.
 
-### `summon`
-`at`, `entity`, `count` (1), `forward` / `up` / `right` offset from the mob, `spread` (1.0), `max_alive` (8).
-Adds start on the summoner's aim, are removed when the summoner dies or resets, and are spawned inside the
-summoner's tick (Arenas_LD treats them as minions of a run boss).
+### `summon` - adds
+```json
+{ "type": "summon", "at": 1.6, "entity": "minecraft:wither_skeleton",
+  "count": { "min": 2, "max": 4, "per_extra_player": 2, "cap": 12 },
+  "max_alive": { "base": 6, "per_extra_player": 3, "cap": 16 },
+  "placement": { "around": "fighters", "radius": [3, 6], "min_gap": 2, "clearance": 3, "ground": true },
+  "telegraph": { "from": 0.2, "radius": 0.9, "color": "#3A1F5C" },
+  "scale": { "max_health": 1.0, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
+  "loot": false, "xp": false, "bound": true, "target": "rune_player" }
+```
+Only `at` and `entity` are required; every other field is optional, and left out the summon works as it always did
+(Gorefist's Rot Warts): `count` adds scattered up to `spread` blocks around the offset point, at `at`, while fewer than
+`max_alive` of the mob's adds live, each on the summoner's aim, dropping their usual loot.
+
+| field | default | meaning |
+|---|---|---|
+| `at` | required | the adds rise |
+| `entity` | required | entity id (any mod's) |
+| `count` | 1 | a number, or `{ "min", "max", "per_extra_player", "cap" }`: a random count in [min, max] (max defaults to min), plus `per_extra_player` for each [fighting player](#fighting-players) beyond the first, at most `cap` |
+| `max_alive` | 8 | no more spawn while this many of the mob's adds (of any summon) live: a number, or `{ "base", "per_extra_player", "cap" }`. A wave only fills the free room |
+| `forward` / `up` / `right` | 0 | offset of the spawn point from the mob, along its facing |
+| `spread` | 1.0 | random scatter around that point (without a `placement`) |
+| `telegraph` | none | runes: `{ "from", "radius": 0.9, "color", "style", "show" }` (the telegraph block, plus the circle's `radius`). The wave (how many, where) is decided when the runes appear at `from` (default 1 s before `at`), one circle per add on its spot; the adds rise on them at `at`. Without it nothing is drawn and the wave is decided at `at` |
+| `placement` | none | where the adds rise instead of the scatter (below) |
+| `scale` | none | the adds' stats from the summoner's (below) |
+| `loot` | true | false: the adds drop nothing when killed: their whole death drop step is skipped (no loot table drops such as a wither skeleton's skull, no custom death drops, so a charged creeper's one skull is not spent on them, no equipment), any other item they would drop while dying is held back too (mods' death hooks), and they never pick items up (those would vanish with them) |
+| `xp` | true | false: the adds drop no experience |
+| `bound` | false | true: the adds also leave (a puff of smoke, no drops) once the summoner is dead or gone, even where it cannot reach them (below) |
+| `target` | `aim` | whom each add goes for first: `aim` (the ability's aim) or `rune_player` (the player its rune was placed for; the aim when there is none). A `rune_player` add that runs threat targeting (vanilla monsters do under the default threat config) starts with 1 threat on its player, so it stays on them instead of turning to whoever is nearest, until someone builds more threat on it (one hit, a taunt) |
+
+Adds are spawned inside the summoner's tick (Arenas_LD treats them as minions of a run boss), counted as its adds for
+`max_alive` and `skip_when_full`, and removed when the summoner dies or resets, for every summon. The drop and bond
+marks are entity tags (`mobs_ld_no_loot`, `mobs_ld_no_xp`, `mobs_ld_summon` + `mobs_ld_summoner:<uuid>`), set before
+the add enters the level, so they survive restarts.
+
+**Fighting players.** Players with threat on the summoner's table (they hit, healed against or debuffed it), alive,
+not spectating or in creative, within 48 blocks. Bystanders do not count. With nobody fighting, `per_extra_player`
+adds nothing (a solo count).
+
+**`placement`**
+
+| field | default | meaning |
+|---|---|---|
+| `around` | `self` | `self` (the floor under the offset point), `aim`, or `fighters`: each rune is placed for one fighting player, one each in turn for two rounds (so a short wave reaches as many players as it can), the rest to random players; the order is shuffled per wave |
+| `radius` | [2, 4] | blocks from that centre: a number or `[min, max]`, rolled per spot |
+| `min_gap` | 1.5 | least distance between two runes of a wave |
+| `clearance` | 2 | open blocks needed above the floor (a wither skeleton is 2.4 tall: 3) |
+| `ground` | true | spots on the floor; false: at the centre's height in open air (flyers) |
+
+A spot is valid with a solid floor, `clearance` blocks above it free of collision and fluid, no fluid on the way down
+or in the floor (lakes, lava seas, waterlogged blocks), at least `min_gap` from the wave's other runes, in a loaded
+chunk inside the world border. The floor is scanned from one block above the centre's feet (a step up is fine, a
+tunnel's roof is never taken for the floor) at most 6 blocks down, so adds do not rise at the foot of a cliff; spots
+are centred on their block. Each rune gets 8 random tries around its centre; then it goes next to the summoner's
+ground shadow (1.5-3 blocks from the floor under it, keeping the gap if it can); over the void (or a lava sea) with
+nothing valid there either, that rune is skipped.
+
+**`scale`**: each part set brings that stat of the add to a target, from the summoner's live stats; parts left out
+stay the add's own.
+
+| field | target |
+|---|---|
+| `max_health` | the add's own max health x this factor x (the summoner's max health / the base its behaviour declares in `base_attributes`, else its own base value) |
+| `attack_damage` | the add's own attack damage x this factor x (the summoner's attack damage / its declared base), i.e. R; a soft enrage carries over to adds raised after it |
+| `armor` | the add's own armor + `summoner_bonus` (the summoner's armor above its declared base, never negative), or + a fixed number |
+| `damage_dealt` | `copy`: the add's `loot_stage:damage_dealt` (DD Loot Stage) is set to the summoner's current value. Looked up by id: skipped if that attribute is not installed or either mob lacks it |
+
+"Own" is the add as vanilla made it, read before it enters the level: its base values and modifiers plus its
+equipment's (a wither skeleton: 20 HP, attack 4 + its stone sword's 4 = 8, armor 0). So the summoner's level carries
+over, not the add's own spot's. Once the add is in the level (where Dungeon Difficulty and Arenas_LD's minion scaling
+change new mobs, both inside the spawn), one modifier per stat, `mobs_ld:summoner_scale`, brings the live value exactly
+to the target (`target / current - 1` on the total; a flat bonus for an armor of 0), so nothing scales it twice, and
+the add is healed to its new maximum. This happens once, at the spawn: the equipment's modifiers (which vanilla only
+applies on the add's first tick) are counted in up front, and later changes (Weakness, Health Boost and other effects)
+stay temporary. The modifiers are permanent: they are saved with the add. Example, a Wither skeleton of the shipped Wither
+(base 1711 HP, attack 2.0, armor 4): at 4791 HP and armor 13 it gets 56 HP and 9 armor; at attack 2.0 (R = 1) its swing
+stays 8.
+
+**`bound`**: once every second the add checks on its summoner (only bound adds pay for this). It leaves in a puff of
+smoke, without dying or dropping anything, when the summoner is dead or removed, no longer counts it among its adds (a
+reset while the add was unloaded), or has not been loaded in the add's level for 5 s while the add ticks (a restart or
+chunk unload that kept only the add, the summoner gone through a portal or discarded).
 
 ### `cloud`
 `at`, `origin`, `radius`, `duration`, `effects` - a lingering area-effect cloud.
@@ -281,7 +362,8 @@ All parts are optional and sent from the server (no client mod code).
   pack defines it.
 - `particles`: a particle type that needs no extra settings; `at` = `self` (middle of the body), `heads` (every head:
   the Wither's three mouths, a one-headed mob's eyes), `aim` (middle of the aim's body) or `ground` (the floor under
-  the mob); `count` 8, `spread` 0.3 blocks, `speed` 0.02.
+  the mob); `count` 8, `spread` 0.3 blocks, `speed` 0.02; `column` (0) = instead of a puff, a column this many blocks
+  tall rising from the point, the `count` spread over its height (`spread` then only sideways).
 - `message`: a translation key (`assets/<namespace>/lang/*.json`) shown in the action bar of every player within 64
   blocks or on the mob's threat table. The action bar, because Arenas_LD's timed runs hide boss bars.
 
@@ -377,7 +459,7 @@ disengage). Results for the Wither's heads (middle head = the main target):
 | `abilities` | names usable in this phase (empty = all) |
 | `transition` | ability played once on entering (cancels whatever was running) |
 | `ready_in` | on entering, these abilities become usable after N seconds |
-| `cooldowns` | per-ability cooldown overrides |
+| `cooldowns` | per-ability cooldown overrides (*time range*s) |
 | `attack_speed` | timelines and clips run this much faster |
 | `damage_taken` | `kind`: `melee`, `projectile`, `other` (spells, fire, ...), `all` |
 | `texture` | uses `<mob>_<texture>.png` if it exists |
@@ -532,17 +614,14 @@ A skull spec:
 Per phase, e.g. `"host": { "skulls": { "center": { "every": 3.5 } } }` tightens one cadence and keeps the rest.
 
 - **Still vanilla:** the summoning charge itself, and every part of a Wither whose file leaves an option out.
-- **The shipped kit** (incomplete until milestone M5): base stats 1711 HP / 2.0 attack (so R = its attack damage / 2), players
+- **The shipped kit** (first release, R1): base stats 1711 HP / 2.0 attack (so R = its attack damage / 2), players
   only, line-of-sight reach (hide 3 s and aggro passes on; 15 s with nobody visible and it resets), leash 64 (both off
   inside Arenas_LD runs), soft enrage at 8 min, phases at 50 % (blue, projectiles x0.6, player height) and 20 % (red).
   Heads: right = `lowest_threat`, left = `spread`, both within 30 blocks and in sight, the right one re-picked every
   9-11 s and the left one 5 s after each of its picks, replaced after 2 s out of sight. Skulls at level 0 / Normal: middle 2.4 direct + 0.6 splash
   every 4.0 / 3.5 / 3.0 s (by phase), sides 2.0 + 0.5 splash and Wither I for 3 s on a direct hit every 4-5 / 3.5-4.5 /
-  3-4 s, all at 1.6 blocks per tick; `volley` 4.0 + 1.0. A wall stagger lasts 2 s. Abilities (milestone M5 of
-  `docs/design/wither-rework.md` adds Grave Call): **Soul Rush** in phase 1, **Soul Rush x2** in
-  phases 2 and 3 (below), and `test_volley` (weight 0: only through `/mobs_ld ability`; all heads lock onto the
-  right head's player with a sound, soul flames at the mouths and an action-bar line, then three waves of three
-  `volley` skulls 0.5 s apart).
+  3-4 s, all at 1.6 blocks per tick; `volley` 4.0 + 1.0 (for events; R1 has none yet). A wall stagger lasts 2 s.
+  Abilities: **Soul Rush** in phase 1, **Soul Rush x2** in phases 2 and 3, and **Grave Call** in all phases (below).
 
 **Soul Rush** (`soul_rush`; cooldown 12 s, first use 8 s into the fight; target the tank within 22 blocks):
 - 0.0-0.8 s: it backs off to 12 blocks from its target, 4 above it (`hover` with `retreat_to`); all three heads snap
@@ -564,6 +643,24 @@ above with a 0.85 s strip (it locks at 0.95 s), then at 2.9 s a `chain` into `so
 the second rush has no strip, locks its direction 0.4 s after the snap (0.3 s before it starts) and starts 0.7 s after
 the snap, at 1.8 blocks per tick, for 12.0 x R (same contact, side push and wall rules). A stagger on the first rush
 ends the combo.
+
+**Grave Call** (`grave_call`; every 30-60 s, rolled per use, first 20 s into the fight; `weight` 0 with `force_after`
+0, so it goes the moment it is ready, at any range; skipped while the adds are at their limit, `skip_when_full`):
+- 0.0 s: it rises or sinks to 3 blocks above the ground and holds still until 3.0 s (a window for ranged attacks and
+  spells); action-bar line "The Wither calls up its dead" (`mobs_ld.cue.wither.grave_call`), its ambient sound at
+  pitch 0.6, a column of soul particles under it. Its skulls hold fire, as during every ability.
+- 0.2 s: one dark purple rune (a circle, r 0.9) per add, 3-6 blocks from the player it is placed for, on valid ground
+  (solid floor, 3 open blocks, no fluid, 2 blocks apart; else next to the Wither's ground shadow; skipped over the
+  void). Runes are dealt one per fighting player in turn for two rounds, the rest at random.
+- 1.6 s: wither skeletons rise on the runes, each going first for the player its rune was placed for.
+- Count: 2-4, +2 for each fighting player beyond the first, at most 12 per wave; at most 6 alive, +3 per extra player,
+  at most 16 (a wave only fills the free room). Fighting = threat on the Wither's table, alive, not spectating or in
+  creative, within 48 blocks.
+- Stats from the Wither's: HP 20 x (its max health / 1711), attack 8 x R, armor + its armor above 4, and its
+  `loot_stage:damage_dealt` copied (Eden Loot carries the Wither's level there and keeps R at 1). Vanilla wither
+  skeleton swing otherwise (stone sword, Wither I for 10 s).
+- No loot, equipment or experience (no farmable skulls); removed when the Wither dies or resets, and (`bound`) gone in
+  a puff of smoke within seconds of the Wither being gone or unloaded, also after a restart.
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).

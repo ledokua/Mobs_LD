@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.mob.behaviour.event;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.minecraft.util.StringRepresentable;
@@ -31,13 +32,15 @@ public record Telegraph(boolean show, Optional<Double> from, int color, Style st
         }
     }, value -> String.format("#%06X", value));
 
-    public static final Codec<Telegraph> CODEC = RecordCodecBuilder.create(i -> i.group(
+    /** The fields on their own, for blocks that add their own next to them (a summon's runes add a radius). */
+    public static final MapCodec<Telegraph> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.BOOL.optionalFieldOf("show", true).forGetter(Telegraph::show),
             Codec.DOUBLE.optionalFieldOf("from").forGetter(Telegraph::from),
             HEX.optionalFieldOf("color", DEFAULT_COLOR).forGetter(Telegraph::color),
             Style.CODEC.optionalFieldOf("style", Style.GROW).forGetter(Telegraph::style),
             Codec.BOOL.optionalFieldOf("arrow", false).forGetter(Telegraph::arrow)
     ).apply(i, Telegraph::new));
+    public static final Codec<Telegraph> CODEC = MAP_CODEC.codec();
 
     /** How a telegraph fills between appearing and the impact. */
     public enum Style implements StringRepresentable {

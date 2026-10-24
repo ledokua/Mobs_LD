@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.combat.CombatGoal;
 import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
+import net.ledok.mobs_ld.mob.combat.SummonBond;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.minecraft.nbt.CompoundTag;
@@ -44,6 +45,11 @@ public class MobCombatHostMixin implements CombatHost {
     /** {@link MobBehaviours#generation()} this mob last looked its behaviour up at; 0 = never. */
     @Unique
     private int mobs_ld$behaviourGeneration;
+    /** Its tie to a summoner if it is a {@code bound} add (read from its tags on its first AI tick), else null. */
+    @Unique
+    private SummonBond mobs_ld$bond;
+    @Unique
+    private boolean mobs_ld$bondRead;
 
     @Unique
     private Mob mobs_ld$self() {
@@ -125,6 +131,25 @@ public class MobCombatHostMixin implements CombatHost {
         }
         MobCombat combat = mobs_ld$combat();
         if (combat != null && !combat.mayTarget(target)) {
+            ci.cancel();
+        }
+    }
+
+    /**
+     * A {@code bound} add whose summoner is gone leaves in a puff of smoke before it acts (see {@link SummonBond}).
+     * Every other mob pays one boolean and one null check per tick; its tags are read once, on its first AI tick.
+     */
+    @Inject(method = "serverAiStep", at = @At("HEAD"), cancellable = true)
+    private void mobs_ld$checkBond(CallbackInfo ci) {
+        Mob self = mobs_ld$self();
+        if (!mobs_ld$bondRead) {
+            mobs_ld$bondRead = true;
+            if (!self.level().isClientSide()) {
+                mobs_ld$bond = SummonBond.of(self);
+            }
+        }
+        if (mobs_ld$bond != null && mobs_ld$bond.orphaned(self)) {
+            MobCombat.despawnWithPoof(self);
             ci.cancel();
         }
     }

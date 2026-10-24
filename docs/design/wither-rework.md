@@ -240,7 +240,7 @@ Changed:
   - Order: create, then finalizeSpawn, then tags `mobs_ld_summon` and `mobs_ld_summoner:<uuid>`, then trackSummon, then addFreshEntity. After that, stats are normalized:
     - `mobs_ld:summoner_scale` as an ADD_MULTIPLIED_TOTAL modifier = target / current - 1 for HP and damage;
     - an ADD_VALUE modifier for armor;
-    - then setHealth(max), and one re-check at age 1.
+    - then setHealth(max). As built (M5) there is no re-check at age 1: DD and Arenas scale synchronously inside addFreshEntity, the add's equipment modifiers are counted up front, and a later check would bake temporary effects into the permanent modifier.
   - This works whatever DD or Arenas did inside addFreshEntity, needs no reflection into DD, and avoids double scaling.
   - The ratio uses the summoner's base values declared in wither.json, not the instance's base, so adds follow a raid Wither's stats too.
 - `trace` on a vanilla host logs one warning and does nothing (vanilla models have no hit tracks).
@@ -496,3 +496,22 @@ Full plan: about 15-19 working days.
    - adds drop no loot or XP, so wither skeleton skulls cannot be farmed during the fight.
 
 The repo is unchanged; the files referenced are under `/home/ledok/Projects/Mods/LeDok/Fabric/Mobs_LD/src/main/java/net/ledok/mobs_ld/` (`mob/combat/`, `mob/behaviour/`, `mixin/WitherBossMixin.java`), `/home/ledok/Projects/Mods/LeDok/Fabric/Mobs_LD/src/main/resources/data/mobs_ld/mob_behaviour/` (gorefist.json, rot_wart.json), `/home/ledok/Projects/Mods/LeDok/Fabric/Mobs_LD/src/main/resources/assets/mobs_ld/lang/en_us.json` and `/home/ledok/Projects/Mods/LeDok/Fabric/Mobs_LD/docs/behaviour.md`.
+
+---
+
+## 9. Deploy checklist
+
+Ops items from section 6 and M0, to tick off when R1 goes to the servers:
+
+- [ ] **Same jar everywhere:** the server and the client modpack get the same Mobs_LD version.
+- [ ] **DD Loot Stage 1.1.0** is deployed together with this Mobs_LD (it has `#loot_stage:unscaled` and knows the
+  mobs_ld damage types).
+- [ ] **Immersive Optimization:** add `"minecraft:wither": false` and `"mobs_ld": false` to its exemptions.
+- [ ] **EntityCulling (client):** whitelist `mobs_ld:attack_zone_visual` if the strips or runes flicker.
+- [ ] **Combat Roll:** `invulnerable_ticks_upon_roll: 8` (already set on live and on the Prism Server instance by
+  Eden_LD; check it is still there).
+- [ ] **Arenas_LD raid Wither spawner** (`raid_nether_wither`): "Scale minions: Off" (Mobs_LD scales the adds from the
+  Wither) and the attack_damage override back to 2.
+- [ ] **Soulslike Weaponry:** `disable_use_withered_wabbajack: true`.
+- [ ] **Paladins (optional):** add `mobs_ld:wither_spawn_blast` to `#paladins:barrier_protects` for parity with other
+  explosions.

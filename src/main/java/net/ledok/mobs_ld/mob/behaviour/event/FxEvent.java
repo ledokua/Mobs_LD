@@ -55,8 +55,7 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
                 cue.volume(), cue.pitch()));
         particles.ifPresent(cue -> {
             for (Vec3 point : cue.at().points(run)) {
-                level.sendParticles(cue.type(), point.x, point.y, point.z, cue.count(), cue.spread(), cue.spread(),
-                        cue.spread(), cue.speed());
+                cue.send(level, point);
             }
         });
         message.ifPresent(cue -> {
@@ -99,8 +98,13 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
      *
      * @param spread how far around the point they scatter (blocks, each axis)
      * @param speed  their speed
+     * @param column 0 = a puff at the point; else a column this many blocks tall rising from the point, the
+     *               {@code count} spread over its height ({@code spread} only sideways)
      */
-    public record Particles(SimpleParticleType type, Where at, int count, double spread, double speed) {
+    public record Particles(SimpleParticleType type, Where at, int count, double spread, double speed, double column) {
+        /** Height of one layer of a column. */
+        private static final double LAYER = 0.5;
+
         private static final Codec<SimpleParticleType> TYPE = ResourceLocation.CODEC.comapFlatMap(id -> {
             ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
             if (type == null) {
@@ -115,8 +119,23 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
                 Where.CODEC.optionalFieldOf("at", Where.SELF).forGetter(Particles::at),
                 Codec.intRange(1, 512).optionalFieldOf("count", 8).forGetter(Particles::count),
                 Codec.doubleRange(0.0, 16.0).optionalFieldOf("spread", 0.3).forGetter(Particles::spread),
-                Codec.doubleRange(0.0, 4.0).optionalFieldOf("speed", 0.02).forGetter(Particles::speed)
+                Codec.doubleRange(0.0, 4.0).optionalFieldOf("speed", 0.02).forGetter(Particles::speed),
+                Codec.doubleRange(0.0, 64.0).optionalFieldOf("column", 0.0).forGetter(Particles::column)
         ).apply(i, Particles::new));
+
+        void send(ServerLevel level, Vec3 point) {
+            if (column <= 0.0) {
+                level.sendParticles(type, point.x, point.y, point.z, count, spread, spread, spread, speed);
+                return;
+            }
+            int layers = Math.max(1, (int) Math.ceil(column / LAYER));
+            int perLayer = Math.max(1, Math.round((float) count / layers));
+            double step = column / layers;
+            for (int layer = 0; layer < layers; layer++) {
+                level.sendParticles(type, point.x, point.y + (layer + 0.5) * step, point.z, perLayer, spread,
+                        step / 2.0, spread, speed);
+            }
+        }
     }
 
     /** Where particles appear. */

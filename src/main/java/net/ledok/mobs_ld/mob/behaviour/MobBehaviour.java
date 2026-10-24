@@ -325,7 +325,8 @@ public record MobBehaviour(
      *
      * @param clip       action clip to play; empty = the ability's key
      * @param duration   how long the mob is committed to it (usually the clip length)
-     * @param cooldown   time before it can be used again
+     * @param cooldown   time before it can be used again (a range is rolled at each use)
+     * @param initialCooldown after engaging, time before its first use (a range is rolled at each engage)
      * @param weight     relative chance among the abilities usable right now; 0 = never picked on its own (only
      *                   reached by chaining from another ability's event)
      * @param range      distance to the aim target that allows starting it
@@ -335,12 +336,14 @@ public record MobBehaviour(
      *                   ignoring range (a fuse)
      * @param aimSide    blocks to the mob's right where its weapon strikes (a right-handed blade); the mob turns so
      *                   that line, not its body centre, meets the target. Events may re-aim per beat.
+     * @param skipWhenFull not picked (nor forced) while none of its {@code summon} events has room under its
+     *                   {@code max_alive}; it stays ready and goes as soon as an add dies
      */
     public record Ability(
             String clip,
             double duration,
-            double cooldown,
-            double initialCooldown,
+            Seconds cooldown,
+            Seconds initialCooldown,
             int weight,
             Range range,
             TargetRule target,
@@ -348,13 +351,14 @@ public record MobBehaviour(
             Optional<Double> forceAfter,
             double aimSide,
             boolean invulnerable,
+            boolean skipWhenFull,
             List<AbilityEvent> events
     ) {
         public static final Codec<Ability> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.STRING.optionalFieldOf("clip", "").forGetter(Ability::clip),
                 Codec.DOUBLE.fieldOf("duration").forGetter(Ability::duration),
-                Codec.DOUBLE.optionalFieldOf("cooldown", 0.0).forGetter(Ability::cooldown),
-                Codec.DOUBLE.optionalFieldOf("initial_cooldown", 0.0).forGetter(Ability::initialCooldown),
+                Seconds.CODEC.optionalFieldOf("cooldown", Seconds.of(0.0)).forGetter(Ability::cooldown),
+                Seconds.CODEC.optionalFieldOf("initial_cooldown", Seconds.of(0.0)).forGetter(Ability::initialCooldown),
                 Codec.INT.optionalFieldOf("weight", 1).forGetter(Ability::weight),
                 Range.CODEC.optionalFieldOf("range", Range.ANY).forGetter(Ability::range),
                 TargetRule.CODEC.optionalFieldOf("target", TargetRule.CURRENT).forGetter(Ability::target),
@@ -362,6 +366,7 @@ public record MobBehaviour(
                 Codec.DOUBLE.optionalFieldOf("force_after").forGetter(Ability::forceAfter),
                 Codec.DOUBLE.optionalFieldOf("aim_side", 0.0).forGetter(Ability::aimSide),
                 Codec.BOOL.optionalFieldOf("invulnerable", false).forGetter(Ability::invulnerable),
+                Codec.BOOL.optionalFieldOf("skip_when_full", false).forGetter(Ability::skipWhenFull),
                 AbilityEvent.CODEC.listOf().optionalFieldOf("events", List.of()).forGetter(Ability::events)
         ).apply(i, Ability::new));
 
@@ -498,7 +503,7 @@ public record MobBehaviour(
      *
      * @param abilities   names usable in this phase; empty = every ability
      * @param transition  played once on entering the phase (not for the first phase)
-     * @param cooldowns   per-ability cooldown overrides (seconds)
+     * @param cooldowns   per-ability cooldown overrides (seconds; a range is rolled at each use)
      * @param readyIn     on entering the phase, these abilities become usable after the given seconds
      *                    (e.g. a second wave of adds 5 s into the phase)
      * @param attackSpeed multiplier on ability timelines and their clips (1.15 = 15 % faster)
@@ -513,7 +518,7 @@ public record MobBehaviour(
             double belowHealth,
             List<String> abilities,
             Optional<Ability> transition,
-            Map<String, Double> cooldowns,
+            Map<String, Seconds> cooldowns,
             Map<String, Double> readyIn,
             double attackSpeed,
             List<DamageTaken> damageTaken,
@@ -527,7 +532,7 @@ public record MobBehaviour(
                 Codec.doubleRange(0.0, 1.0).fieldOf("below_health").forGetter(Phase::belowHealth),
                 Codec.STRING.listOf().optionalFieldOf("abilities", List.of()).forGetter(Phase::abilities),
                 Ability.CODEC.optionalFieldOf("transition").forGetter(Phase::transition),
-                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("cooldowns", Map.of()).forGetter(Phase::cooldowns),
+                Codec.unboundedMap(Codec.STRING, Seconds.CODEC).optionalFieldOf("cooldowns", Map.of()).forGetter(Phase::cooldowns),
                 Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("ready_in", Map.of()).forGetter(Phase::readyIn),
                 Codec.DOUBLE.optionalFieldOf("attack_speed", 1.0).forGetter(Phase::attackSpeed),
                 DamageTaken.CODEC.listOf().optionalFieldOf("damage_taken", List.of()).forGetter(Phase::damageTaken),
