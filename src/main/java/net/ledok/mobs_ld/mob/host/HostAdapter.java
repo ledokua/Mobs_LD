@@ -45,6 +45,14 @@ public interface HostAdapter {
     default void onStopAction(Mob mob) {
     }
 
+    /**
+     * An ability is starting (picked, chained, a phase transition, a command), possibly cutting off one that never got
+     * its {@link #onStopAction}: clear what the previous action left on the body (a held pose). Its own clip follows
+     * through {@link #onAction} on the run's first tick.
+     */
+    default void onAbilityStart(Mob mob) {
+    }
+
     /** A phase switched the texture variant ("phase2"; empty = base); also while a saved mob loads back in. */
     default void onVariant(Mob mob, String variant) {
     }

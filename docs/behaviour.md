@@ -92,10 +92,14 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `aim_side` | 0 | blocks to the mob's right where its weapon strikes (one-handed weapon); it turns so that line meets the target |
 | `invulnerable` | false | takes no damage while it runs (transitions, intros) |
 | `skip_when_full` | false | not picked (nor forced by `force_after`) while none of its `summon` events has room under its `max_alive`; it stays ready and goes as soon as an add dies (no effect on an ability that summons nothing) |
+| `fixed_speed` | false | its timeline and clip ignore the phase's `attack_speed` (run at 1): for an ability timed to a host clip that cannot play faster (the Warden's `sonic_boom`: at 1.2 the wave would land 0.28 s before the chest burst) |
+| `cooldown_group` | none | a name; abilities with the same group share one cooldown: using one puts every ability of the group on the cooldown it rolled (its own `cooldown`, or the phase's `cooldowns` entry for it), never shortening a group cooldown that already runs longer. Their own initial cooldowns still count separately. A phase's `ready_in` wins over the group: the ability named there is usable at that time even while its group is on cooldown (once; its next use puts the group on cooldown as usual) |
+| `no_repeat` | false | never picked right after itself (the ability started last, by name) while another ability can be picked; alone it may repeat. A `force_after` fuse ignores it |
 | `events` | `[]` | timeline (below) |
 
 Choosing: every tick out of an ability, the mob picks at random (by `weight`) among abilities that are allowed by
-the phase, off cooldown, have an aim and are in range; if none is, it moves per `movement`. An ability with
+the phase, off cooldown (their own and their `cooldown_group`'s), have an aim and are in range, leaving out a
+`no_repeat` ability that went last while there is another; if none is, it moves per `movement`. An ability with
 `"weight": 0, "force_after": 0` is never picked by chance but goes as soon as it is ready, at any range (the Wither's
 Grave Call).
 
@@ -114,6 +118,8 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
 | `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
 | `height` / `depth` | reach band | how far above / below the origin a victim's feet may be |
+| `rotate` | - | degrees added to the facing the ability locked when its `track_until` ended (positive = clockwise seen from above, toward the mob's right); the zone and its hit test are turned by it. Measured from the locked facing, not the body, so a later beat with `rotate: 0` goes back to the first angle. With `aim_side`, added to that beat's re-aim. Unset = the current facing, as before |
+| `turn_body` | false | when the telegraph appears, the body turns to the zone's facing evenly over 0.3 s (of the ability's clock) |
 | `telegraph` | shown | `{ "show": true, "from": 0.4, "color": "#B01818", "style": "grow", "arrow": false }` (below) |
 | `hit` | damage 1.0 | `{ "damage": x attack_damage, "effects": [...], "knockback": 0.4, "knock_up": 0 }` (see below) |
 
@@ -142,6 +148,24 @@ slash right after a trample all count. Mod dodges that cancel damage (Combat Rol
 `knockback` / `knock_up` are the whole push: vanilla's own 0.4 shove on every melee hit is removed, so 0 means the
 victim does not budge. Keep knockback low on a combo's opening beats, or the first hit pushes the target out of the
 next one's reach.
+
+### `clip` - play a clip mid-timeline
+```json
+{ "type": "clip", "at": 1.7, "clip": "sonic_boom" }
+```
+At `at` the action clip `clip` starts, as the ability's own `clip` does at its start: on an LdMob the GeckoLib action
+layer (restarted if it is already playing), on a vanilla host its cue (the Warden's, see
+[The Warden](#the-warden-dataminecraftmob_behaviourwardenjson)); names a host does not know do nothing. It plays at
+the ability's speed and replaces the ability's clip; the ability's end stops it as usual. The ability's own clip goes
+out on the tick its timeline reads 0, so a `clip` at 1.7 and a hit at 1.7 both land 34 ticks after it (at speed 1).
+
+### `vulnerable` - damage taken window
+```json
+{ "type": "vulnerable", "at": 3.4, "until": 5.0, "multiplier": 1.25 }
+```
+From `at` to `until` the mob takes `multiplier` times the damage (an opening after a big attack). It stacks with the
+phase's `damage_taken` and with other windows open at the same time, and closes early if the ability is cut off
+(phase change, stagger, reset). The ability lasts at least until `until`. `until` before `at` is an error.
 
 ### `trace` - weapon hitbox that follows the animation
 `from`, `to` (active window, seconds), `path` (bones, e.g. `["blade_right", "hit_blade_right"]` = wrist to blade
@@ -353,6 +377,7 @@ On a mob with one head, `center` turns its head (the body still faces the abilit
 
 ### `fx` - sound, particles, text
 ```json
+{ "type": "fx", "at": 1.7, "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } }
 { "type": "fx", "at": 0.0,
   "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.7, "volume": 2 },
   "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 },
@@ -363,8 +388,14 @@ All parts are optional and sent from the server (no client mod code).
   pack defines it.
 - `particles`: a particle type that needs no extra settings; `at` = `self` (middle of the body), `heads` (every head:
   the Wither's three mouths, a one-headed mob's eyes), `aim` (middle of the aim's body) or `ground` (the floor under
-  the mob); `count` 8, `spread` 0.3 blocks, `speed` 0.02; `column` (0) = instead of a puff, a column this many blocks
-  tall rising from the point, the `count` spread over its height (`spread` then only sideways).
+  the mob) or `along` (below); `count` 8, `spread` 0.3 blocks, `speed` 0.02; `column` (0) = instead of a puff, a
+  column this many blocks tall rising from the point, the `count` spread over its height (`spread` then only
+  sideways).
+- `particles.at: along`: along the zones of the ability's `hit` events that land at the same `at` as this fx, one
+  point every `every` blocks (default 1) on each zone's centre line (every ray of `rays`, a rectangle's or cone's
+  middle line, a circle's rim), at the height of the mob's chest (its center muzzle: the Warden's chest, else its
+  eyes) above the zone's floor; `count` is per point, so `"count": 1, "spread": 0` gives a clean line. Sent once the
+  beat's hits have run, whatever the event order. An `along` fx with no `hit` landing at its `at` is an error.
 - `message`: a translation key (`assets/<namespace>/lang/*.json`) shown in the action bar of every player within 64
   blocks or on the mob's threat table. The action bar, because Arenas_LD's timed runs hide boss bars.
 
@@ -437,7 +468,7 @@ disengage). Results for the Wither's heads (middle head = the main target):
 | `rectangle` | `width`, `length`, `offset` (start distance ahead, 0) |
 | `cone` | `radius`, `angle` (degrees, total width) |
 | `circle` | `radius` |
-| `rays` | `count` (even), `length`, `width` |
+| `rays` | `count` (even; lines through the origin, the first on the facing), `length` (each way), `width`, `widen` (0: blocks of extra lane width per block along the lane, so a lane is `width + widen x distance` wide there; drawn and tested as trapezoids; widening lanes are at most 48 long) |
 
 ## Phases
 
@@ -681,8 +712,9 @@ ends the combo.
 Mobs_LD ships a behaviour for the vanilla Warden with `host.only_tagged: ["arenas_ld_run_mob"]`: only Wardens an
 Arenas_LD run spawns are hosted. Every other Warden (ancient cities, structures, shriekers, `/summon` without the tag)
 is fully vanilla: its swing, sonic boom, Darkness pulse, dig-away and loot. The file declares no `base_attributes`
-(Arenas sets the stats) and `reference_attributes` `attack_damage` 30, so R is 1 at vanilla attack damage. This first
-version is a test kit (one telegraphed swing); the full fight comes later.
+(Arenas sets the stats) and `reference_attributes` `attack_damage` 30, so R is 1 at vanilla attack damage. The file
+holds the first part of the kit (Crushing Blow, Sonic Boom Circle, Resonant Pulse, Sonic Lance; placeholder numbers,
+no phases yet); the full fight comes later.
 
 A hosted Warden keeps its entity, model, sounds, pathing, anger and a real death with its vanilla loot table. Its AI
 is a Brain, not goals; the engine works with it:
@@ -704,6 +736,26 @@ is a Brain, not goals; the engine works with it:
   walk, disturbance and projectile memories cleared, so it does not roar straight back. Inside a run Arenas owns the
   wipe, as for every boss.
 - **No Mobs_LD boss bar** (no `boss.bar`): the Arenas run HUD shows the boss's health.
+- **Clips.** An ability's `clip`, a [`clip`](#clip---play-a-clip-mid-timeline) event and the stagger play its vanilla
+  animations (no new animation, nothing on the client):
+
+  | cue | what the server does | clip |
+  |---|---|---|
+  | `attack` | entity event 4 | 0.33 s impact flash (not a wind-up); also ends a roar clip |
+  | `sonic_boom` | entity event 62 | 3.0 s chest crouch, burst at 1.7 s; sending it again restarts it |
+  | `tendrils` | entity event 61 | 0.5 s tendril twitch, lights the tendrils |
+  | `roar` | pose ROARING, STANDING after 84 ticks | 4.2 s (play `entity.warden.roar` from an `fx` at 1.25 s) |
+  | `sniff` | pose SNIFFING, STANDING after 84 ticks | 4.16 s |
+
+  The end of the ability (or the stagger) puts a roar or sniff pose back to STANDING. Playing a pose cue while the
+  Warden already holds that pose takes one tick in STANDING first, so the clip restarts. Its clients play every clip
+  at speed 1, so an ability timed to a clip sets `fixed_speed` (a phase's `attack_speed` would move its hits off the
+  clip). Other names do nothing (`dig` and `emerge` come with the burrow).
+- **Damage.** Sonic attacks deal `mobs_ld:warden_sonic` (`"damage_type": "mobs_ld:warden_sonic"`): death message as
+  vanilla's sonic boom, armour and Protection reduce it, shields do not block it (`#minecraft:bypasses_shield`),
+  Spell Engine evasion can dodge it (`#spell_engine:evadable`); difficulty-scaled (Hard x1.5) because the Warden is
+  the attacker, and `loot_stage:damage_dealt` scales it. Physical swings stay `minecraft:mob_attack`: a shield blocks
+  them and is never disabled. Every engine hit names the Warden as the attacker (Arenas' dungeon damage filter).
 
 Host options (`"type": "mobs_ld:warden"`; these defaults are the boss's, not vanilla's):
 
@@ -712,9 +764,9 @@ Host options (`"type": "mobs_ld:warden"`; these defaults are the boss's, not van
 | `darkness_pulse` | `off` | `vanilla`: its Darkness every 6 s within 20 blocks; `off`: none (Darkness only from the behaviour's own effects) |
 | `disable_shields` | false | true: a shield that blocks its hit is disabled, as by vanilla's swing |
 | `follow_range` | 48 | its base `generic.follow_range` once hosted (vanilla 16: threat targeting and abilities only reach players within it), with its path search sized to match; a phase or a reload that changes it applies within a second |
+| `heartbeat` | vanilla | 0-150: while it fights, the anger level its clients' heartbeat and heart glow show instead of its real anger (0 = one beat every 2 s; 80 or more = the fastest, two a second); set per phase for the fight's tempo (the file: 20). Synced once a second |
 
-Not yet: its clips (`attack`, `sonic_boom`, `roar`, ...) as ability cues, its burrow, and its emerge when a run spawns
-it.
+Not yet: its burrow (the `dig` and `emerge` cues), and its emerge when a run spawns it.
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).
@@ -727,6 +779,7 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
   with its rule, the head it shows on, its holder, the time to its next re-pick (and the slot it follows) and how
   long the holder has been out of sight.
 - `/mobs_ld brain <targets>` - a Warden's Brain: hosted or not, held by the engine or running, its activity, its
-  attack target and its anger at it, its dig cooldown (and when it expires), its pose and whether it is burrowed.
+  attack target and its anger at it, its dig cooldown (and when it expires), its pose (and the clip cue holding it)
+  and whether it is burrowed.
 - `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks (abilities, hits, slot picks,
   skull hits and splashes with their amounts).

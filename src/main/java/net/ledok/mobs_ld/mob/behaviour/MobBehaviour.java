@@ -3,8 +3,11 @@ package net.ledok.mobs_ld.mob.behaviour;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.HostSpec;
@@ -99,6 +102,10 @@ public record MobBehaviour(
             if (slotError != null) {
                 return DataResult.error(() -> slotError);
             }
+            String alongError = unmatchedAlong(ability);
+            if (alongError != null) {
+                return DataResult.error(() -> alongError);
+            }
             for (AbilityEvent event : ability.events()) {
                 for (String chained : event.chains()) {
                     if (!behaviour.abilities().containsKey(chained)) {
@@ -172,6 +179,22 @@ public record MobBehaviour(
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * An error message if one of the ability's {@code fx} events sends particles {@code along} the hit zones of its
+     * beat but no {@code hit} event lands at that time (nothing to draw along), else null.
+     */
+    private static String unmatchedAlong(Ability ability) {
+        for (AbilityEvent event : ability.events()) {
+            if (event instanceof FxEvent fx && fx.particles().filter(p -> p.at() == FxEvent.Where.ALONG).isPresent()
+                    && ability.events().stream().noneMatch(other -> other instanceof HitEvent hit
+                    && FxEvent.sameMoment(hit.at(), fx.at()))) {
+                return "An fx event at " + fx.at() + " sends particles along the hit zones of its beat, but no hit "
+                        + "event lands at " + fx.at();
+            }
+        }
+        return null;
     }
 
     /** An error message if {@code rule} names a target slot the behaviour does not define, else null. */
@@ -360,6 +383,11 @@ public record MobBehaviour(
      *                   that line, not its body centre, meets the target. Events may re-aim per beat.
      * @param skipWhenFull not picked (nor forced) while none of its {@code summon} events has room under its
      *                   {@code max_alive}; it stays ready and goes as soon as an add dies
+     * @param fixedSpeed   its timeline (and clip) ignores the phase's {@code attack_speed}: for an ability timed to a
+     *                     host clip that cannot play faster (the Warden's)
+     * @param cooldownGroup abilities naming the same group share one cooldown: using one puts all of them on the
+     *                     cooldown it rolled (its own, or the phase's override for it)
+     * @param noRepeat     not picked right after itself while another ability can be picked
      */
     public record Ability(
             String clip,
@@ -374,23 +402,62 @@ public record MobBehaviour(
             double aimSide,
             boolean invulnerable,
             boolean skipWhenFull,
+            boolean fixedSpeed,
+            Optional<String> cooldownGroup,
+            boolean noRepeat,
             List<AbilityEvent> events
     ) {
+        /**
+         * The Warden rework's fields and later ones, decoded from the same JSON object as the rest (the format stays
+         * flat): a separate group because one RecordCodecBuilder takes at most 16 fields. New optional ability fields
+         * go here (or into a third group like it).
+         */
+        private record Scheduling(boolean fixedSpeed, Optional<String> cooldownGroup, boolean noRepeat) {
+            static final MapCodec<Scheduling> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                    Codec.BOOL.optionalFieldOf("fixed_speed", false).forGetter(Scheduling::fixedSpeed),
+                    Codec.STRING.optionalFieldOf("cooldown_group").forGetter(Scheduling::cooldownGroup),
+                    Codec.BOOL.optionalFieldOf("no_repeat", false).forGetter(Scheduling::noRepeat)
+            ).apply(i, Scheduling::new));
+
+            static Scheduling of(Ability ability) {
+                return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat());
+            }
+        }
+
+        /** The fields the format had before the Warden rework. */
+        private record Core(String clip, double duration, Seconds cooldown, Seconds initialCooldown, int weight,
+                            Range range, TargetRule target, Optional<Double> trackUntil, Optional<Double> forceAfter,
+                            double aimSide, boolean invulnerable, boolean skipWhenFull, List<AbilityEvent> events) {
+            static final MapCodec<Core> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.STRING.optionalFieldOf("clip", "").forGetter(Core::clip),
+                Codec.DOUBLE.fieldOf("duration").forGetter(Core::duration),
+                Seconds.CODEC.optionalFieldOf("cooldown", Seconds.of(0.0)).forGetter(Core::cooldown),
+                Seconds.CODEC.optionalFieldOf("initial_cooldown", Seconds.of(0.0)).forGetter(Core::initialCooldown),
+                Codec.INT.optionalFieldOf("weight", 1).forGetter(Core::weight),
+                Range.CODEC.optionalFieldOf("range", Range.ANY).forGetter(Core::range),
+                TargetRule.CODEC.optionalFieldOf("target", TargetRule.CURRENT).forGetter(Core::target),
+                Codec.DOUBLE.optionalFieldOf("track_until").forGetter(Core::trackUntil),
+                Codec.DOUBLE.optionalFieldOf("force_after").forGetter(Core::forceAfter),
+                Codec.DOUBLE.optionalFieldOf("aim_side", 0.0).forGetter(Core::aimSide),
+                Codec.BOOL.optionalFieldOf("invulnerable", false).forGetter(Core::invulnerable),
+                Codec.BOOL.optionalFieldOf("skip_when_full", false).forGetter(Core::skipWhenFull),
+                AbilityEvent.CODEC.listOf().optionalFieldOf("events", List.of()).forGetter(Core::events)
+            ).apply(i, Core::new));
+
+            static Core of(Ability a) {
+                return new Core(a.clip(), a.duration(), a.cooldown(), a.initialCooldown(), a.weight(), a.range(),
+                        a.target(), a.trackUntil(), a.forceAfter(), a.aimSide(), a.invulnerable(), a.skipWhenFull(),
+                        a.events());
+            }
+        }
+
         public static final Codec<Ability> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.STRING.optionalFieldOf("clip", "").forGetter(Ability::clip),
-                Codec.DOUBLE.fieldOf("duration").forGetter(Ability::duration),
-                Seconds.CODEC.optionalFieldOf("cooldown", Seconds.of(0.0)).forGetter(Ability::cooldown),
-                Seconds.CODEC.optionalFieldOf("initial_cooldown", Seconds.of(0.0)).forGetter(Ability::initialCooldown),
-                Codec.INT.optionalFieldOf("weight", 1).forGetter(Ability::weight),
-                Range.CODEC.optionalFieldOf("range", Range.ANY).forGetter(Ability::range),
-                TargetRule.CODEC.optionalFieldOf("target", TargetRule.CURRENT).forGetter(Ability::target),
-                Codec.DOUBLE.optionalFieldOf("track_until").forGetter(Ability::trackUntil),
-                Codec.DOUBLE.optionalFieldOf("force_after").forGetter(Ability::forceAfter),
-                Codec.DOUBLE.optionalFieldOf("aim_side", 0.0).forGetter(Ability::aimSide),
-                Codec.BOOL.optionalFieldOf("invulnerable", false).forGetter(Ability::invulnerable),
-                Codec.BOOL.optionalFieldOf("skip_when_full", false).forGetter(Ability::skipWhenFull),
-                AbilityEvent.CODEC.listOf().optionalFieldOf("events", List.of()).forGetter(Ability::events)
-        ).apply(i, Ability::new));
+                Core.CODEC.forGetter(Core::of),
+                Scheduling.CODEC.forGetter(Scheduling::of)
+        ).apply(i, (core, scheduling) -> new Ability(core.clip(), core.duration(), core.cooldown(),
+                core.initialCooldown(), core.weight(), core.range(), core.target(), core.trackUntil(),
+                core.forceAfter(), core.aimSide(), core.invulnerable(), core.skipWhenFull(), scheduling.fixedSpeed(),
+                scheduling.cooldownGroup(), scheduling.noRepeat(), core.events())));
 
         public String clipOr(String key) {
             return clip.isEmpty() ? key : clip;

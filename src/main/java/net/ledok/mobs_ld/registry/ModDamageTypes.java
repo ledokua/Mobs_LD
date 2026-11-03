@@ -14,6 +14,15 @@ public final class ModDamageTypes {
      * set piece, not the boss's damage output.
      */
     public static final ResourceKey<DamageType> WITHER_SPAWN_BLAST = key("wither_spawn_blast");
+    /**
+     * The hosted Warden's sonic attacks (Circle, Lance, Pulse, ...; its physical swings stay
+     * {@code minecraft:mob_attack}). Unlike vanilla's {@code minecraft:sonic_boom}, armour and Protection reduce it;
+     * shields do not block it ({@code #minecraft:bypasses_shield}); Spell Engine evasion can dodge it
+     * ({@code #spell_engine:evadable}, a tag file that is harmless without Spell Engine); it is not
+     * {@code #loot_stage:unscaled}, so the Warden's {@code damage_dealt} scales it. Difficulty-scaled only when a
+     * living non-player deals it, and every engine hit names the Warden as the attacker.
+     */
+    public static final ResourceKey<DamageType> WARDEN_SONIC = key("warden_sonic");
 
     private ModDamageTypes() {
     }

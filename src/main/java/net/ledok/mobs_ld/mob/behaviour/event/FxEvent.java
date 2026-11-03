@@ -54,6 +54,16 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
         sound.ifPresent(cue -> level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), cue.event(), SoundSource.HOSTILE,
                 cue.volume(), cue.pitch()));
         particles.ifPresent(cue -> {
+            if (cue.at() == Where.ALONG) {
+                // At the end of the tick: the hits landing on this beat have locked their zones by then, whatever
+                // order the events are listed in.
+                run.afterEvents(() -> {
+                    for (Vec3 point : alongPoints(run, at, cue.every())) {
+                        cue.send(level, point);
+                    }
+                });
+                return;
+            }
             for (Vec3 point : cue.at().points(run)) {
                 cue.send(level, point);
             }
@@ -64,6 +74,37 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
                 player.displayClientMessage(text, true);
             }
         });
+    }
+
+    /** Whether two event times are the same beat. */
+    public static boolean sameMoment(double a, double b) {
+        return Math.abs(a - b) < 1.0e-6;
+    }
+
+    /**
+     * Points every {@code every} blocks along the zones of the ability's {@code hit} events that land at {@code at}
+     * (their centre lines: every ray, a strip's middle), at the height of the mob's chest (its center muzzle) above
+     * each zone's floor.
+     */
+    private static List<Vec3> alongPoints(AbilityRun run, double at, double every) {
+        Mob mob = run.mob();
+        double height = run.combat().adapter().muzzle(mob, Head.CENTER).map(muzzle -> muzzle.y - mob.getY())
+                .orElse((double) mob.getEyeHeight());
+        List<Vec3> points = new ArrayList<>();
+        for (AbilityEvent event : run.ability().events()) {
+            if (!(event instanceof HitEvent hit) || !sameMoment(hit.at(), at)) {
+                continue;
+            }
+            AbilityRun.HitZone zone = run.lockedZone(hit);
+            if (zone == null) {
+                continue;
+            }
+            Vec3 raised = zone.origin().add(0.0, height, 0.0);
+            for (double[] local : zone.shape().centreLine(every)) {
+                points.add(AbilityRun.local(raised, zone.yaw(), local[0], local[1]));
+            }
+        }
+        return points;
     }
 
     /** Players near the mob, plus those on its threat table further away in the same level. */
@@ -100,8 +141,10 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
      * @param speed  their speed
      * @param column 0 = a puff at the point; else a column this many blocks tall rising from the point, the
      *               {@code count} spread over its height ({@code spread} only sideways)
+     * @param every  with {@code at: along}: blocks between two points along the zones ({@code count} at each)
      */
-    public record Particles(SimpleParticleType type, Where at, int count, double spread, double speed, double column) {
+    public record Particles(SimpleParticleType type, Where at, int count, double spread, double speed, double column,
+                            double every) {
         /** Height of one layer of a column. */
         private static final double LAYER = 0.5;
 
@@ -120,7 +163,8 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
                 Codec.intRange(1, 512).optionalFieldOf("count", 8).forGetter(Particles::count),
                 Codec.doubleRange(0.0, 16.0).optionalFieldOf("spread", 0.3).forGetter(Particles::spread),
                 Codec.doubleRange(0.0, 4.0).optionalFieldOf("speed", 0.02).forGetter(Particles::speed),
-                Codec.doubleRange(0.0, 64.0).optionalFieldOf("column", 0.0).forGetter(Particles::column)
+                Codec.doubleRange(0.0, 64.0).optionalFieldOf("column", 0.0).forGetter(Particles::column),
+                Codec.doubleRange(0.25, 64.0).optionalFieldOf("every", 1.0).forGetter(Particles::every)
         ).apply(i, Particles::new));
 
         void send(ServerLevel level, Vec3 point) {
@@ -147,7 +191,12 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
         /** Around the middle of the aim's body (where it stood when tracking ended, if it is gone). */
         AIM("aim"),
         /** On the floor under the mob. */
-        GROUND("ground");
+        GROUND("ground"),
+        /**
+         * Along the zones of the ability's {@code hit} events that land at the same {@code at} as this fx, every
+         * {@code every} blocks, at the mob's chest height (sonic lines along all eight Circle lanes).
+         */
+        ALONG("along");
 
         public static final Codec<Where> CODEC = StringRepresentable.fromEnum(Where::values);
         private final String name;
@@ -178,6 +227,7 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
                             : run.aimPosition().add(0.0, 1.0, 0.0));
                 }
                 case GROUND -> List.of(run.groundAt(mob.position()));
+                case ALONG -> List.of(); // sent by FxEvent.fire, once the beat's zones are locked
             };
         }
     }

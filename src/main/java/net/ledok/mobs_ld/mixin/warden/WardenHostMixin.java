@@ -1,5 +1,6 @@
 package net.ledok.mobs_ld.mixin.warden;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -141,6 +142,16 @@ public class WardenHostMixin {
         }
         MobCombat combat = WardenAdapter.hosted(mobs_ld$self());
         return combat == null || WardenAdapter.options(combat).disableShields();
+    }
+
+    /**
+     * The anger level synced to clients (every second), which only drives their heartbeat and heart glow: while a
+     * hosted Warden fights, its phase's {@code heartbeat} if set. Vanilla's anger itself is untouched.
+     */
+    @ModifyExpressionValue(method = "syncClientAngerLevel()V", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/world/entity/monster/warden/Warden;getActiveAnger()I"))
+    private int mobs_ld$heartbeat(int anger) {
+        return WardenAdapter.heartbeat(mobs_ld$self(), anger);
     }
 
     // TODO(M4): wrap isDiggingOrEmerging() inside isInvulnerableTo, so a hosted Warden is invulnerable only while the

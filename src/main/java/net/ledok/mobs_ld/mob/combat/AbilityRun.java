@@ -6,7 +6,9 @@ import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
+import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -19,7 +21,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -42,15 +46,25 @@ public final class AbilityRun {
     private final LivingEntity aim;
     private final List<Slot> slots = new ArrayList<>();
     private final List<Marker> markers = new ArrayList<>();
+    /** Where each {@code hit} event's zone locked (when its telegraph appeared), for particles drawn along it. */
+    private final Map<HitEvent, HitZone> hitZones = new IdentityHashMap<>();
+    /** Work left for the end of this tick, once every event due now has run (see {@link #afterEvents}). */
+    private final List<Runnable> afterEvents = new ArrayList<>();
 
-    private double ticks;
+    private final AbilityClock clock;
     private float yaw;
+    /** The facing when tracking ended (while it still tracks: now); {@code hit.rotate} turns zones from it. */
+    private float lockedYaw;
     private Vec3 aimPosition;
     private boolean cancelled;
     private boolean staggered;
     private String chainTo;
-    /** Facing an event asked to turn to (re-aim between beats); approached at the tracking turn rate. */
+    /** Facing an event asked to turn to (re-aim between beats); approached at {@link #steerRate}. */
     private Float steerYaw;
+    /** Degrees per tick toward {@link #steerYaw}: the tracking rate, or a timed turn's ({@link #turnBody}). */
+    private float steerRate = TRACK_TURN_RATE;
+    /** The ability's own clip, sent on the run's first tick (see {@link #openWith}); null once sent, or none. */
+    private String openingClip;
 
     AbilityRun(Mob mob, MobCombat combat, String name, MobBehaviour.Ability ability, LivingEntity aim, double speed) {
         this.mob = mob;
@@ -59,6 +73,7 @@ public final class AbilityRun {
         this.ability = ability;
         this.aim = aim;
         this.speed = speed;
+        this.clock = new AbilityClock(speed);
         this.yaw = mob.getYRot();
         this.aimPosition = aim != null ? aim.position() : mob.position();
         double firstBegin = ability.duration();
@@ -70,6 +85,7 @@ public final class AbilityRun {
         if (aim != null) {
             yaw = aimedYaw(aim.position(), ability.aimSide());
         }
+        lockedYaw = yaw;
     }
 
     /** Advances one server tick; returns false once the ability is over. */
@@ -77,12 +93,18 @@ public final class AbilityRun {
         if (cancelled) {
             return false;
         }
+        if (openingClip != null) {
+            String clip = openingClip;
+            openingClip = null;
+            ((CombatHost) mob).mobs_ld$playAction(clip, speed);
+        }
         double seconds = seconds();
         if (seconds < trackUntil && aim != null && aim.isAlive()) {
             aimPosition = aim.position();
             yaw = Mth.approachDegrees(yaw, aimedYaw(aimPosition, ability.aimSide()), TRACK_TURN_RATE);
+            lockedYaw = yaw;
         } else if (steerYaw != null) {
-            yaw = Mth.approachDegrees(yaw, steerYaw, TRACK_TURN_RATE);
+            yaw = Mth.approachDegrees(yaw, steerYaw, steerRate);
         }
         face(yaw);
         if (!mob.isDeadOrDying()) {
@@ -91,16 +113,31 @@ public final class AbilityRun {
         for (Slot slot : slots) {
             slot.tick(this, seconds);
             if (cancelled) {
+                afterEvents.clear();
                 return false;
             }
+        }
+        if (!afterEvents.isEmpty()) {
+            List<Runnable> due = List.copyOf(afterEvents);
+            afterEvents.clear();
+            due.forEach(Runnable::run);
         }
         for (Marker marker : markers) {
             marker.update(this);
         }
-        ticks += speed;
+        clock.advance();
         // Over only once the clip time has passed AND every event has run: an event may start at (or after) the
         // ability's duration, e.g. a chase that begins right as the wind-up clip ends.
         return seconds() < ability.duration() || slots.stream().anyMatch(slot -> slot.state != State.DONE);
+    }
+
+    /**
+     * Sends {@code clip} (the ability's own) on the run's first tick, the tick its timeline reads 0, wherever the run
+     * was started from (a goal, the fight tick, a chain, a command): a clip-timed hit at 1.7 s then lands exactly
+     * 34 ticks after its clip began.
+     */
+    void openWith(String clip) {
+        openingClip = clip;
     }
 
     /** Interrupts the ability: active events clean up (telegraphs vanish, dashes stop). */
@@ -157,7 +194,7 @@ public final class AbilityRun {
 
     /** Seconds since the ability started, on its own clock (faster when the phase speeds attacks up). */
     public double seconds() {
-        return ticks / 20.0;
+        return clock.seconds();
     }
 
     public double speed() {
@@ -167,6 +204,14 @@ public final class AbilityRun {
     /** Current facing in degrees; fixed after the tracking window. */
     public float yaw() {
         return yaw;
+    }
+
+    /**
+     * The facing the ability locked when its tracking window ended (the current one while it still tracks); later
+     * turns (re-aims, {@code turn_body}) do not move it. {@code hit.rotate} is measured from it.
+     */
+    public float lockedYaw() {
+        return lockedYaw;
     }
 
     /** Who the ability aims at; may be null (e.g. a transition with nobody around). */
@@ -211,6 +256,7 @@ public final class AbilityRun {
             return yaw;
         }
         steerYaw = aimFor(side);
+        steerRate = TRACK_TURN_RATE;
         return steerYaw;
     }
 
@@ -229,6 +275,54 @@ public final class AbilityRun {
     /** Turns toward {@code degrees} at the tracking rate (not a snap), e.g. into a telegraph drawn earlier. */
     public void steer(float degrees) {
         steerYaw = degrees;
+        steerRate = TRACK_TURN_RATE;
+    }
+
+    /**
+     * Turns the body to {@code degrees} evenly over {@code seconds} of the ability's clock (a {@code turn_body} hit:
+     * the Warden turning 22.5 degrees to its second wave). No turn left = nothing to do.
+     */
+    public void turnBody(float degrees, double seconds) {
+        float left = Math.abs(Mth.wrapDegrees(degrees - yaw));
+        if (left < 1.0e-3F) {
+            return;
+        }
+        double ticks = Math.max(1.0, seconds * 20.0 / speed);
+        steerYaw = degrees;
+        steerRate = (float) (left / ticks);
+    }
+
+    /**
+     * Runs {@code work} at the end of this tick, after every event due now has started and fired (e.g. particles
+     * along the zones of hits that land on the same beat, whatever order the events are listed in). Dropped if the
+     * ability is cancelled first.
+     */
+    public void afterEvents(Runnable work) {
+        afterEvents.add(work);
+    }
+
+    /** A {@code hit} event locked its zone: kept for {@link #lockedZone}. */
+    public void noteZone(HitEvent event, HitZone zone) {
+        hitZones.put(event, zone);
+    }
+
+    /** Where {@code event}'s zone locked, or null if it has not started (yet) in this run. */
+    public HitZone lockedZone(HitEvent event) {
+        return hitZones.get(event);
+    }
+
+    /**
+     * Damage taken multiplier from the {@code vulnerable} windows open now (1 = none): every such event between its
+     * {@code at} and {@code until}.
+     */
+    public double damageTakenMultiplier() {
+        double multiplier = 1.0;
+        for (Slot slot : slots) {
+            if (slot.state == State.ACTIVE && slot.event instanceof VulnerableEvent window) {
+                multiplier *= window.multiplier();
+            }
+        }
+        return multiplier;
     }
 
     /** Lets an event steer the mob (e.g. a homing chase); the run keeps facing this way. */
@@ -241,7 +335,6 @@ public final class AbilityRun {
      * origin, i.e. within the mob's reach band unless the event says otherwise.
      */
     public List<LivingEntity> enemiesIn(Shape shape, Vec3 origin, float yawDegrees, double height, double depth) {
-        Vec3 ahead = forward(yawDegrees);
         double reach = shape.reach() + 1.0;
         AABB box = new AABB(origin.x - reach, origin.y - depth - 2.0, origin.z - reach,
                 origin.x + reach, origin.y + height + 0.5, origin.z + reach);
@@ -251,11 +344,7 @@ public final class AbilityRun {
             if (dy > height || dy < -depth) {
                 continue;
             }
-            double dx = candidate.getX() - origin.x;
-            double dz = candidate.getZ() - origin.z;
-            double along = dx * ahead.x + dz * ahead.z;
-            double across = dx * -ahead.z + dz * ahead.x;
-            if (shape.contains(along, across)) {
+            if (inside(shape, candidate.getX() - origin.x, candidate.getZ() - origin.z, yawDegrees)) {
                 inside.add(candidate);
             }
         }
@@ -407,6 +496,22 @@ public final class AbilityRun {
 
     // --- Geometry helpers ---
 
+    /**
+     * Whether a point {@code dx}/{@code dz} blocks (world axes) from a zone's origin is inside {@code shape} laid
+     * along facing {@code yawDegrees}: the hit test of every zone.
+     */
+    public static boolean inside(Shape shape, double dx, double dz, float yawDegrees) {
+        Vec3 ahead = forward(yawDegrees);
+        double along = dx * ahead.x + dz * ahead.z;
+        double across = dx * -ahead.z + dz * ahead.x;
+        return shape.contains(along, across);
+    }
+
+    /** A point {@code forward}/{@code right} blocks from {@code origin} along facing {@code yawDegrees}. */
+    public static Vec3 local(Vec3 origin, float yawDegrees, double forward, double right) {
+        return origin.add(forward(yawDegrees).scale(forward)).add(right(yawDegrees).scale(right));
+    }
+
     public static Vec3 forward(float yawDegrees) {
         double rad = Math.toRadians(yawDegrees);
         return new Vec3(-Math.sin(rad), 0.0, Math.cos(rad));
@@ -449,6 +554,10 @@ public final class AbilityRun {
 
     /** One zone of a telegraph: where it is drawn (on the ground), its facing and its shape. */
     public record Zone(Vec3 origin, float yaw, AttackZone zone) {
+    }
+
+    /** Where a {@code hit} event's area locked: its origin on the ground, its facing and its shape. */
+    public record HitZone(Shape shape, Vec3 origin, float yaw) {
     }
 
     /** A live telegraph on the ground (one or more zones). */

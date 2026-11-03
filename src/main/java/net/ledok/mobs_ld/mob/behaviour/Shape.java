@@ -7,6 +7,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,6 +43,13 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
     /** Furthest distance from the origin the shape reaches; used for cheap entity searches. */
     double reach();
 
+    /**
+     * Points every {@code every} blocks along the shape's centre line(s), as {@code {forward, right}} from the origin
+     * (an {@code fx} with particles {@code at: along}): a rectangle's or cone's middle line, every ray of {@code rays},
+     * a circle's rim.
+     */
+    List<double[]> centreLine(double every);
+
     /** A strip {@code width} wide, from {@code offset} to {@code offset + length} ahead of the origin. */
     record Rectangle(double width, double length, double offset) implements Shape {
         static final MapCodec<Rectangle> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -67,6 +76,15 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
         @Override
         public double reach() {
             return Math.hypot(offset + length, width / 2.0);
+        }
+
+        @Override
+        public List<double[]> centreLine(double every) {
+            List<double[]> points = new ArrayList<>();
+            for (double s = offset + every; s <= offset + length + 1.0e-6; s += every) {
+                points.add(new double[]{s, 0.0});
+            }
+            return points;
         }
     }
 
@@ -103,6 +121,15 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
         public double reach() {
             return radius;
         }
+
+        @Override
+        public List<double[]> centreLine(double every) {
+            List<double[]> points = new ArrayList<>();
+            for (double s = every; s <= radius + 1.0e-6; s += every) {
+                points.add(new double[]{s, 0.0});
+            }
+            return points;
+        }
     }
 
     record Circle(double radius) implements Shape {
@@ -129,15 +156,41 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
         public double reach() {
             return radius;
         }
+
+        @Override
+        public List<double[]> centreLine(double every) {
+            int count = Math.max(6, (int) Math.ceil(2.0 * Math.PI * radius / every));
+            List<double[]> points = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                double angle = 2.0 * Math.PI * i / count;
+                points.add(new double[]{radius * Math.cos(angle), radius * Math.sin(angle)});
+            }
+            return points;
+        }
     }
 
-    /** {@code count} lines radiating from the origin (an even count; opposite rays form one line). */
-    record Rays(int count, double length, double width) implements Shape {
-        static final MapCodec<Rays> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+    /**
+     * {@code count} lines radiating from the origin (an even count; opposite rays form one line), the first on the
+     * facing. A lane is {@code width} wide at the origin and {@code widen} blocks wider per block along it (0 = straight
+     * lanes; drawn and tested as trapezoids).
+     */
+    record Rays(int count, double length, double width, double widen) implements Shape {
+        /** Longest widening lane (each way), so its telegraph stays cheap to draw. */
+        public static final double MAX_WIDENED_LENGTH = 48.0;
+        static final MapCodec<Rays> CODEC = RecordCodecBuilder.<Rays>mapCodec(i -> i.group(
                 Codec.INT.fieldOf("count").forGetter(Rays::count),
                 Codec.DOUBLE.fieldOf("length").forGetter(Rays::length),
-                Codec.DOUBLE.fieldOf("width").forGetter(Rays::width)
-        ).apply(i, Rays::new));
+                Codec.DOUBLE.fieldOf("width").forGetter(Rays::width),
+                Codec.doubleRange(0.0, 16.0).optionalFieldOf("widen", 0.0).forGetter(Rays::widen)
+        ).apply(i, Rays::new)).validate(rays -> rays.widen() > 0.0 && rays.length() > MAX_WIDENED_LENGTH
+                ? DataResult.error(() -> "Widening rays reach at most " + MAX_WIDENED_LENGTH + " blocks each way, got "
+                + rays.length())
+                : DataResult.success(rays));
+
+        /** Straight lanes (no {@code widen}). */
+        public Rays(int count, double length, double width) {
+            this(count, length, width, 0.0);
+        }
 
         @Override
         public String type() {
@@ -146,19 +199,23 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
 
         @Override
         public AttackZone zone() {
-            return new AttackZone.CircleRays(count, (float) length, (float) width);
+            return new AttackZone.CircleRays(count, (float) length, (float) width, (float) widen);
+        }
+
+        /** The lane's full width {@code distance} blocks along it from the origin. */
+        public double widthAt(double distance) {
+            return width + widen * Math.abs(distance);
         }
 
         @Override
         public boolean contains(double forward, double right) {
-            AttackZone.CircleRays rays = (AttackZone.CircleRays) zone(); // normalised (even) count
-            int lines = Math.max(1, rays.rayCount() / 2);
+            int lines = lines();
             for (int i = 0; i < lines; i++) {
                 double yaw = Math.toRadians(i * (180.0 / lines));
                 Vec3 along = new Vec3(Math.cos(yaw), 0.0, Math.sin(yaw));
                 double alongRay = Math.abs(forward * along.x + right * along.z);
                 double acrossRay = Math.abs(-forward * along.z + right * along.x);
-                if (alongRay <= length && acrossRay <= width / 2.0) {
+                if (alongRay <= length && acrossRay <= widthAt(alongRay) / 2.0) {
                     return true;
                 }
             }
@@ -167,7 +224,25 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
 
         @Override
         public double reach() {
-            return Math.hypot(length, width / 2.0);
+            return Math.hypot(length, widthAt(length) / 2.0);
+        }
+
+        /** Lines through the origin (half the normalised, even ray count). */
+        private int lines() {
+            return Math.max(1, ((AttackZone.CircleRays) zone()).rayCount() / 2);
+        }
+
+        @Override
+        public List<double[]> centreLine(double every) {
+            int rays = lines() * 2;
+            List<double[]> points = new ArrayList<>();
+            for (int i = 0; i < rays; i++) {
+                double angle = Math.toRadians(i * (360.0 / rays));
+                for (double s = every; s <= length + 1.0e-6; s += every) {
+                    points.add(new double[]{s * Math.cos(angle), s * Math.sin(angle)});
+                }
+            }
+            return points;
         }
     }
 }

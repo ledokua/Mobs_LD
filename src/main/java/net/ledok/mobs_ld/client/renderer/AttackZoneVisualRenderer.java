@@ -19,6 +19,8 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
     /** Edge length of a single "pixel" cell, in blocks — shapes are rasterized onto this grid for a blocky look. */
     private static final float PIXEL_SIZE = 0.25F;
+    /** Widening {@code rays} lanes are drawn at most this far each way (the format caps them at 48 too). */
+    private static final float MAX_WIDENED_LENGTH = 48.0F;
 
     /** Inside-test for a zone, evaluated in the zone's local frame (+Z forward, +X right). */
     private interface ZoneTest {
@@ -210,6 +212,19 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float effectiveLength = length * sweepProgress * scaleMult;
         float effectiveHalfWidth = halfWidth * scaleMult;
         float baseYawRad = (float) Math.toRadians(entity.getYawDegrees());
+        float widen = entity.getParamD();
+        if (widen > 0.0F) {
+            // Widening lanes: each line is a pair of trapezoids, half its width at the origin plus half the widening
+            // per block along it (the same rule as the hit test; the grow style scales the base width and the
+            // length, never the widening rate), out to where the sweep has reached. Lengths are capped for drawing.
+            float halfWiden = widen * 0.5F;
+            float drawnLength = Math.min(effectiveLength, MAX_WIDENED_LENGTH);
+            for (int i = 0; i < rectCount; i++) {
+                float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
+                fillTrapezoidRows(matrix, buffer, color, yawRad, drawnLength, effectiveHalfWidth, halfWiden);
+            }
+            return;
+        }
 
         for (int i = 0; i < rectCount; i++) {
             float yawRad = baseYawRad + (float) Math.toRadians(i * (180.0 / rectCount));
@@ -259,6 +274,47 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         }
     }
 
+    /**
+     * A lane through the origin, {@code length} each way, whose half-width is {@code halfWidth + halfWiden x |z|}:
+     * the same blocky {@link #PIXEL_SIZE} grid as {@link #fillPixelated}, but each row of cells is one quad and its
+     * run of inside cells is found from the half-width directly, so the cost is one quad per row whatever the width.
+     */
+    private void fillTrapezoidRows(
+            Matrix4f matrix,
+            VertexConsumer buffer,
+            int color,
+            float yaw,
+            float length,
+            float halfWidth,
+            float halfWiden
+    ) {
+        float maxX = halfWidth + halfWiden * length;
+        if (length <= 0.0F || maxX <= 0.0F) {
+            return;
+        }
+        float minX = -maxX;
+        int cellsX = Math.max(1, Mth.ceil((maxX - minX) / PIXEL_SIZE));
+        int cellsZ = Math.max(1, Mth.ceil(2.0F * length / PIXEL_SIZE));
+        for (int iz = 0; iz < cellsZ; iz++) {
+            float z0 = -length + iz * PIXEL_SIZE;
+            float z1 = Math.min(z0 + PIXEL_SIZE, length);
+            float half = halfWidth + halfWiden * Math.abs((z0 + z1) * 0.5F);
+            // Cells whose centre (minX + (i + 0.5) x PIXEL_SIZE) lies within [-half, half].
+            int first = Math.max(0, Mth.ceil((-half - minX) / PIXEL_SIZE - 0.5F));
+            int last = Math.min(cellsX - 1, Mth.floor((half - minX) / PIXEL_SIZE - 0.5F));
+            if (last < first) {
+                continue;
+            }
+            float x0 = minX + first * PIXEL_SIZE;
+            float x1 = Math.min(minX + (last + 1) * PIXEL_SIZE, maxX);
+            addQuad(matrix, buffer, color,
+                    rotateX(x0, z0, yaw), rotateZ(x0, z0, yaw),
+                    rotateX(x1, z0, yaw), rotateZ(x1, z0, yaw),
+                    rotateX(x1, z1, yaw), rotateZ(x1, z1, yaw),
+                    rotateX(x0, z1, yaw), rotateZ(x0, z1, yaw));
+        }
+    }
+
     private void addQuad(
             Matrix4f matrix,
             VertexConsumer buffer,
@@ -293,7 +349,21 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         double dx = entity.getX() - x;
         double dy = entity.getY() - y;
         double dz = entity.getZ() - z;
-        return (dx * dx + dy * dy + dz * dz) < (32.0 * 32.0);
+        // 32 blocks around the origin, or further for a zone long enough that its far end is past that (a 40-block
+        // lance strip must show for the player it is aimed at): never less than before for the small zones.
+        double range = Math.max(32.0, reach(entity) + 16.0);
+        return (dx * dx + dy * dy + dz * dz) < range * range;
+    }
+
+    /** How far from its origin a zone reaches, from its synced parameters. */
+    private static double reach(AttackZoneVisualEntity entity) {
+        return switch (entity.getZoneKind()) {
+            case 0 -> entity.getParamC() + entity.getParamB();
+            case 1, 2, 3 -> entity.getParamA();
+            case 4 -> entity.getParamB();
+            case 5 -> entity.getParamB() + entity.getParamC();
+            default -> 0.0;
+        };
     }
 
     /** Circle and target-circle zones (kinds 2 and 3). */

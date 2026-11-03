@@ -5,11 +5,14 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 import net.ledok.mobs_ld.mob.behaviour.event.ChainEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.ClipEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HoverEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
+import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
@@ -138,7 +141,150 @@ class ShippedBehavioursTest {
                 .filter(net.ledok.mobs_ld.mob.behaviour.event.HitEvent.class::isInstance)
                 .map(net.ledok.mobs_ld.mob.behaviour.event.HitEvent.class::cast).findFirst().orElseThrow();
         assertEquals(12.0, hit.hit().amount().orElseThrow());
-        assertEquals(0.8, hit.at() - hit.telegraph().from().orElseThrow(), 1.0e-9, "telegraphed 0.8 s ahead");
+        assertEquals(1.0, hit.at() - hit.telegraph().from().orElseThrow(), 1.0e-9, "telegraphed 1.0 s ahead");
+        assertEquals(java.util.Optional.of(20), options.heartbeat());
+    }
+
+    /** M2's P1 kit: the Circle's two waves, the Lance, the Pulse; clip cues, widening lanes, sonic damage. */
+    @Test
+    void wardenFirstKitLoads() throws Exception {
+        MobBehaviour warden = load("/data/minecraft/mob_behaviour/warden.json");
+        assertEquals(java.util.Set.of("crushing_blow", "sonic_circle", "resonant_pulse", "sonic_lance"),
+                warden.abilities().keySet());
+        ResourceLocation sonic = ResourceLocation.fromNamespaceAndPath("mobs_ld", "warden_sonic");
+        MobBehaviour.Ability blow = warden.abilities().get("crushing_blow");
+        assertFalse(blow.fixedSpeed(), "a physical swing follows the phase's attack speed");
+        assertTrue(blow.events().stream().anyMatch(event -> event instanceof ClipEvent clip && clip.clip().equals("attack")
+                && clip.at() == 1.0));
+        assertEquals(ResourceLocation.withDefaultNamespace("mob_attack"), hits(blow).get(0).hit().damageType().orElseThrow());
+
+        MobBehaviour.Ability circle = warden.abilities().get("sonic_circle");
+        assertTrue(circle.fixedSpeed() && circle.noRepeat());
+        assertEquals("sonic_boom", circle.clip());
+        List<HitEvent> waves = hits(circle);
+        assertEquals(2, waves.size());
+        assertEquals(1.7, waves.get(0).at(), 1.0e-9);
+        assertEquals(3.4, waves.get(1).at(), 1.0e-9);
+        assertTrue(waves.get(0).rotate().isEmpty());
+        assertEquals(java.util.Optional.of(22.5), waves.get(1).rotate());
+        assertTrue(waves.get(1).turnBody());
+        for (HitEvent wave : waves) {
+            Shape.Rays rays = (Shape.Rays) wave.shape();
+            assertEquals(new Shape.Rays(8, 26.0, 2.5, 0.3), rays);
+            assertEquals(sonic, wave.hit().damageType().orElseThrow());
+            assertEquals(10.0, wave.hit().amount().orElseThrow());
+        }
+        assertEquals(0.3, waves.get(0).begin(), 1.0e-9);
+        assertEquals(1.7, waves.get(1).begin(), 1.0e-9, "wave 2's lanes appear as wave 1 fires");
+        assertTrue(circle.events().stream().anyMatch(event -> event instanceof ClipEvent clip
+                && clip.clip().equals("sonic_boom") && clip.at() == 1.7), "the clip restarts as wave 1 fires");
+        assertEquals(2, circle.events().stream().filter(event -> event instanceof FxEvent fx && fx.particles()
+                .filter(p -> p.at() == FxEvent.Where.ALONG).isPresent()).count());
+        VulnerableEvent open = circle.events().stream().filter(VulnerableEvent.class::isInstance)
+                .map(VulnerableEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(new VulnerableEvent(3.4, 5.0, 1.25), open);
+
+        MobBehaviour.Ability lance = warden.abilities().get("sonic_lance");
+        assertEquals(java.util.Optional.of("lance"), lance.cooldownGroup());
+        assertTrue(lance.fixedSpeed() && lance.noRepeat());
+        assertEquals(MobBehaviour.TargetRule.FARTHEST, lance.target());
+        assertEquals(0.9, lance.trackUntil().orElseThrow(), 1.0e-9);
+        HitEvent strip = hits(lance).get(0);
+        assertTrue(strip.telegraph().arrow());
+        assertEquals(0.9, strip.begin(), 1.0e-9, "the strip locks at 0.9");
+        assertEquals(sonic, strip.hit().damageType().orElseThrow());
+
+        MobBehaviour.Ability pulse = warden.abilities().get("resonant_pulse");
+        assertTrue(pulse.fixedSpeed() && pulse.noRepeat());
+        assertEquals(new Shape.Circle(6.0), hits(pulse).get(0).shape());
+        assertEquals(0.5, hits(pulse).get(0).hit().knockUp());
+    }
+
+    private static List<HitEvent> hits(MobBehaviour.Ability ability) {
+        return ability.events().stream().filter(HitEvent.class::isInstance).map(HitEvent.class::cast).toList();
+    }
+
+    /** M2's fields are all optional: the earlier files use none of them, so they play as before. */
+    @Test
+    void earlierFilesUseNoWardenM2Fields() throws Exception {
+        for (String path : List.of("/data/mobs_ld/mob_behaviour/gorefist.json", "/data/mobs_ld/mob_behaviour/rot_wart.json",
+                "/data/minecraft/mob_behaviour/wither.json")) {
+            MobBehaviour behaviour = load(path);
+            List<MobBehaviour.Ability> abilities = new ArrayList<>(behaviour.abilities().values());
+            behaviour.phases().forEach(phase -> phase.transition().ifPresent(abilities::add));
+            behaviour.intro().ifPresent(abilities::add);
+            for (MobBehaviour.Ability ability : abilities) {
+                assertFalse(ability.fixedSpeed(), path);
+                assertFalse(ability.noRepeat(), path);
+                assertTrue(ability.cooldownGroup().isEmpty(), path);
+                for (var event : ability.events()) {
+                    assertFalse(event instanceof ClipEvent || event instanceof VulnerableEvent, path);
+                    if (event instanceof HitEvent hit) {
+                        assertTrue(hit.rotate().isEmpty() && !hit.turnBody(), path);
+                        assertFalse(hit.shape() instanceof Shape.Rays rays && rays.widen() != 0.0, path);
+                    }
+                    if (event instanceof FxEvent fx) {
+                        assertTrue(fx.particles().map(p -> p.at() != FxEvent.Where.ALONG).orElse(true), path);
+                    }
+                }
+            }
+        }
+    }
+
+    /** The sonic damage type and its tags ship in the jar (design 4.8). */
+    @Test
+    void wardenSonicDamageTypeShips() throws Exception {
+        com.google.gson.JsonObject type = json("/data/mobs_ld/damage_type/warden_sonic.json").getAsJsonObject();
+        assertEquals("sonic_boom", type.get("message_id").getAsString());
+        assertEquals("when_caused_by_living_non_player", type.get("scaling").getAsString());
+        assertEquals(0.0, type.get("exhaustion").getAsDouble());
+        for (String tag : List.of("/data/minecraft/tags/damage_type/bypasses_shield.json",
+                "/data/spell_engine/tags/damage_type/evadable.json")) {
+            com.google.gson.JsonObject file = json(tag).getAsJsonObject();
+            assertFalse(file.get("replace").getAsBoolean(), tag);
+            assertTrue(file.getAsJsonArray("values").contains(new com.google.gson.JsonPrimitive("mobs_ld:warden_sonic")), tag);
+        }
+        for (String tag : List.of("/data/loot_stage/tags/damage_type/unscaled.json",
+                "/data/minecraft/tags/damage_type/is_explosion.json", "/data/minecraft/tags/damage_type/no_knockback.json",
+                "/data/minecraft/tags/damage_type/panic_causes.json")) {
+            assertFalse(json(tag).toString().contains("warden_sonic"), tag);
+        }
+        assertEquals(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath("mobs_ld", "warden_sonic")),
+                net.ledok.mobs_ld.registry.ModDamageTypes.WARDEN_SONIC);
+    }
+
+    private static JsonElement json(String path) throws Exception {
+        try (Reader reader = new InputStreamReader(ShippedBehavioursTest.class.getResourceAsStream(path), StandardCharsets.UTF_8)) {
+            return JsonParser.parseReader(reader);
+        }
+    }
+
+    @Test
+    void wardenM2FieldsAreValidated() {
+        String base = "{\"abilities\": {\"a\": {\"duration\": 3, \"events\": [%s]}}}";
+        String hit = "{\"type\": \"hit\", \"at\": 1, \"shape\": {\"type\": \"rays\", \"count\": 8, "
+                + "\"length\": 10, \"width\": 2, \"widen\": 0.3}}";
+        String along = "{\"type\": \"fx\", \"at\": 1, \"particles\": {\"id\": \"minecraft:sonic_boom\", \"at\": \"along\", "
+                + "\"every\": 2}}";
+        assertEquals("", error(base.formatted(hit + ", " + along)));
+        assertTrue(error(base.formatted(along)).contains("along"), "nothing lands on its beat");
+        assertTrue(error(base.formatted(hit + ", " + along.replace("\"at\": 1,", "\"at\": 2,"))).contains("along"));
+        assertFalse(error(base.formatted(hit.replace("0.3", "-1"))).isEmpty(), "lanes do not narrow");
+        assertTrue(error(base.formatted(hit.replace("\"length\": 10", "\"length\": 60") + ", " + along))
+                .contains("at most"), "widening lanes are capped in length");
+        assertEquals("", error(base.formatted(hit.replace("\"length\": 10", "\"length\": 60").replace(", \"widen\": 0.3", ""))),
+                "straight rays keep any length");
+        assertEquals("", error(base.formatted("{\"type\": \"vulnerable\", \"at\": 1, \"until\": 2, \"multiplier\": 1.25}")));
+        assertTrue(error(base.formatted("{\"type\": \"vulnerable\", \"at\": 2, \"until\": 1, \"multiplier\": 1.25}"))
+                .contains("before it starts"));
+        assertEquals("", error(base.formatted("{\"type\": \"clip\", \"at\": 1, \"clip\": \"attack\"}")));
+        assertFalse(error(base.formatted("{\"type\": \"clip\", \"at\": 1}")).isEmpty());
+        assertFalse(error(base.formatted(hit.replace("}}", "}, \"rotate\": 400}"))).isEmpty());
+        String host = "{\"host\": {\"type\": \"mobs_ld:warden\", \"only_tagged\": [\"t\"], \"heartbeat\": %s}}";
+        assertEquals("", error(host.formatted("90")));
+        assertFalse(error(host.formatted("200")).isEmpty());
+        assertEquals("", error("{\"abilities\": {\"a\": {\"duration\": 1, \"cooldown_group\": \"g\", \"no_repeat\": true, "
+                + "\"fixed_speed\": true}}}"));
     }
 
     /** Default options while the Warden's file has no typed host block, and the option ranges. */

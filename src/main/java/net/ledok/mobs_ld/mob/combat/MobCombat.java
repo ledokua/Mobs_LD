@@ -85,6 +85,10 @@ public final class MobCombat {
     private final HostAdapter adapter;
     private final TargetSlots slots;
     private final Map<String, Long> readyAt = new HashMap<>();
+    /** When each {@code cooldown_group} is ready again (game time). */
+    private final Map<String, Long> groupReadyAt = new HashMap<>();
+    /** Abilities a phase's {@code ready_in} made ready regardless of their group's cooldown, until next used. */
+    private final Set<String> readyInWins = new HashSet<>();
     private final List<UUID> summons = new ArrayList<>();
     private final List<Fading> fading = new ArrayList<>();
     /** When each currently-unreachable candidate was first found unreachable (game time). */
@@ -100,6 +104,8 @@ public final class MobCombat {
     private long dashedAt = Long.MIN_VALUE;
 
     private AbilityRun current;
+    /** The ability started last (for {@code no_repeat}); null after a reset. */
+    private String lastStarted;
     private AbilityRun deathRun;
     private long globalReadyAt;
     private long staggerUntil = -1;
@@ -397,7 +403,8 @@ public final class MobCombat {
         MobBehaviour.Phase entered = behaviour.phases().get(index);
         host.mobs_ld$setVariant(entered.texture().orElse(""));
         long now = mob.level().getGameTime();
-        entered.readyIn().forEach((name, seconds) -> readyAt.put(name, now + Math.round(seconds * 20.0)));
+        entered.readyIn().forEach((name, seconds) -> AbilityChoice.readyIn(name, now + Math.round(seconds * 20.0), readyAt,
+                readyInWins));
         entered.transition().ifPresentOrElse(
                 transition -> start("transition", transition, mob.getTarget()),
                 host::mobs_ld$stopAction);
@@ -515,7 +522,7 @@ public final class MobCombat {
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
-            if ((active != null && !active.allows(name)) || now < readyAt.getOrDefault(name, 0L)
+            if ((active != null && !active.allows(name)) || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                     || (ability.skipWhenFull() && summonsFull(ability))) {
                 continue;
             }
@@ -531,11 +538,14 @@ public final class MobCombat {
             if (ability.range().contains(CombatTargets.distance(mob, aim), aim.getY() - mob.getY(), reachUp(), reachDown())
                     && ability.weight() > 0) {
                 options.add(new Candidate(name, ability, aim));
-                totalWeight += ability.weight();
             }
         }
+        options = AbilityChoice.withoutRepeat(options, Candidate::name, Candidate::ability, lastStarted);
         if (options.isEmpty()) {
             return false;
+        }
+        for (Candidate option : options) {
+            totalWeight += option.ability.weight();
         }
         int roll = mob.getRandom().nextInt(totalWeight);
         for (Candidate option : options) {
@@ -554,13 +564,17 @@ public final class MobCombat {
             current.cancel();
         }
         staggerUntil = -1;
-        double speed = attackSpeed();
+        double speed = AbilityChoice.speed(ability, attackSpeed());
+        // Whatever ran before may have been cut off here (a chain, a phase transition, a command) without its action
+        // being stopped: the host clears what it left on the body (a held pose) before the new clip.
+        adapter.onAbilityStart(mob);
         current = new AbilityRun(mob, this, name, ability, aim, speed);
+        lastStarted = name;
         trace("start " + name + (aim != null ? " -> " + aim.getName().getString() + String.format(" (%.1f blocks)",
                 CombatTargets.distance(mob, aim)) : "") + (speed != 1.0 ? " x" + speed : ""));
-        host.mobs_ld$playAction(ability.clipOr(name), speed);
+        current.openWith(ability.clipOr(name));
         long now = mob.level().getGameTime();
-        readyAt.put(name, now + ticks(cooldownOf(name, ability)));
+        AbilityChoice.used(name, ability, now + ticks(cooldownOf(name, ability)), readyAt, groupReadyAt, readyInWins);
         syncBody(); // also when forced by a command, outside the tick
     }
 
@@ -789,10 +803,21 @@ public final class MobCombat {
         return (returning || (current != null && current.ability().invulnerable())) && behaviour() != null;
     }
 
+    /**
+     * Damage the mob takes: times the phase's {@code damage_taken} rules and any {@code vulnerable} window of the
+     * ability running now.
+     */
     public float adjustDamage(DamageSource source, float amount) {
         MobBehaviour behaviour = behaviour();
-        MobBehaviour.Phase active = behaviour == null ? null : activePhase(behaviour);
-        return active == null ? amount : (float) (amount * active.damageMultiplier(source));
+        if (behaviour == null) {
+            return amount;
+        }
+        MobBehaviour.Phase active = activePhase(behaviour);
+        double multiplier = active == null ? 1.0 : active.damageMultiplier(source);
+        if (current != null) {
+            multiplier *= current.damageTakenMultiplier();
+        }
+        return multiplier == 1.0 ? amount : (float) (amount * multiplier);
     }
 
     // --- Reset / leash ---
@@ -813,6 +838,9 @@ public final class MobCombat {
         phase = 0;
         host.mobs_ld$setVariant("");
         readyAt.clear();
+        groupReadyAt.clear();
+        readyInWins.clear();
+        lastStarted = null;
         // Unreachable marks survive a reset: otherwise a cheeser on a tower is re-targeted at once and the boss
         // loops intro -> unreachable -> reset. They clear themselves when the player is reachable again.
         clearEnrage();

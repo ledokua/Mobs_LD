@@ -46,6 +46,12 @@ public class AttackZoneVisualEntity extends Entity {
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_ALWAYS_RENDER =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.BOOLEAN);
+    /**
+     * A fourth shape parameter: the widening of {@code rays} lanes (blocks per block); 0 for every other shape.
+     * Defined last, so the synced ids of every earlier field stay what they were.
+     */
+    private static final EntityDataAccessor<Float> DATA_PARAM_D =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
     private UUID trackedEntityId;
 
     public AttackZoneVisualEntity(EntityType<? extends AttackZoneVisualEntity> entityType, Level level) {
@@ -71,6 +77,7 @@ public class AttackZoneVisualEntity extends Entity {
         builder.define(DATA_FORCE_INVOKE, false);
         builder.define(DATA_IS_PREVIEW, false);
         builder.define(DATA_ALWAYS_RENDER, false);
+        builder.define(DATA_PARAM_D, 0.0F);
     }
 
     @Override
@@ -106,6 +113,7 @@ public class AttackZoneVisualEntity extends Entity {
     public void configure(AttackZone zone, float yawDegrees, AttackDisplayConfig config, int totalWindupTicks, boolean preview) {
         entityData.set(DATA_SWEEP_FROM, 0.0F);
         entityData.set(DATA_SWEEP_TO, 1.0F);
+        entityData.set(DATA_PARAM_D, 0.0F);
         switch (zone) {
             case AttackZone.Rectangle r -> {
                 entityData.set(DATA_ZONE_KIND, 0);
@@ -136,6 +144,7 @@ public class AttackZoneVisualEntity extends Entity {
                 entityData.set(DATA_PARAM_A, (float) r.rayCount());
                 entityData.set(DATA_PARAM_B, r.length());
                 entityData.set(DATA_PARAM_C, r.width());
+                entityData.set(DATA_PARAM_D, r.widen());
             }
             case AttackZone.Strip strip -> {
                 entityData.set(DATA_ZONE_KIND, 5);
@@ -179,6 +188,10 @@ public class AttackZoneVisualEntity extends Entity {
 
     public float getParamC() {
         return entityData.get(DATA_PARAM_C);
+    }
+
+    public float getParamD() {
+        return entityData.get(DATA_PARAM_D);
     }
 
     public float getSweepFrom() {

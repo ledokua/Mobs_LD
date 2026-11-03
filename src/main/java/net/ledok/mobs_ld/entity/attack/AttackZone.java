@@ -32,7 +32,11 @@ public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone
         }
     }
 
-    record CircleRays(int rayCount, float length, float width) implements AttackZone {
+    /**
+     * {@code rayCount} rays from the origin (lines through it), each lane {@code width} wide at the origin and
+     * {@code widen} blocks wider per block along it (0 = straight lanes; else trapezoids).
+     */
+    record CircleRays(int rayCount, float length, float width, float widen) implements AttackZone {
         public CircleRays {
             rayCount = Math.max(2, rayCount);
             if ((rayCount & 1) != 0) {
@@ -40,6 +44,11 @@ public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone
             }
             length = Math.max(0.0F, length);
             width = Math.max(0.0F, width);
+            widen = Math.max(0.0F, widen);
+        }
+
+        public CircleRays(int rayCount, float length, float width) {
+            this(rayCount, length, width, 0.0F);
         }
 
         @Override

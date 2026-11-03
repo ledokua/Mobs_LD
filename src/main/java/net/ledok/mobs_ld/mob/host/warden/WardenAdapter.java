@@ -49,10 +49,14 @@ import java.util.Optional;
  *   <li><b>Body.</b> Between abilities its Brain walks it at the target (it needs {@code movement.style: vanilla}).
  *       While the engine owns the body (an ability, a stagger, the walk home) the Brain is held: memories still
  *       expire and sensors still run, but no Brain behaviour starts or ticks ({@link #holdsBrain}).</li>
- *   <li><b>Options</b> ({@link WardenHostOptions}): no Darkness pulse, shields never disabled, follow range 48.</li>
+ *   <li><b>Clips</b>: an ability's clip, a {@code clip} event and the stagger play the vanilla Warden animations
+ *       through {@link WardenCues} ({@code attack}, {@code sonic_boom}, {@code tendrils}, {@code roar},
+ *       {@code sniff}).</li>
+ *   <li><b>Options</b> ({@link WardenHostOptions}): no Darkness pulse, shields never disabled, follow range 48, the
+ *       heartbeat per phase.</li>
  * </ul>
- * Not yet (later milestones): clip cues ({@link #onAction} is a no-op, so an ability's clip shows nothing), the
- * engine's own burrow and the emerge on spawn.
+ * Not yet (later milestones): the engine's own burrow (the {@code dig} and {@code emerge} cues) and the emerge on
+ * spawn.
  */
 public final class WardenAdapter implements HostAdapter {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -255,10 +259,48 @@ public final class WardenAdapter implements HostAdapter {
             return;
         }
         muzzle(warden, combat);
+        WardenCues.tick(warden, combat);
         if (warden.tickCount % 20 == 0) {
             keepAngry(warden, warden.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
             applyFollowRange(warden, options(combat).followRange(), false);
         }
+    }
+
+    /** An ability, a {@code clip} event or the stagger names a clip: its vanilla cue ({@link WardenCues}). */
+    @Override
+    public void onAction(Mob mob, String clip, double speed) {
+        if (mob instanceof Warden warden && hosted(warden) instanceof MobCombat combat) {
+            WardenCues.play(warden, combat, clip);
+        }
+    }
+
+    /**
+     * The action ended: a roar or sniff pose goes back to STANDING. Also when the behaviour has just gone away (the
+     * combat is inert then), so it never keeps a pose.
+     */
+    @Override
+    public void onStopAction(Mob mob) {
+        if (mob instanceof Warden warden && CombatHost.of(warden) instanceof MobCombat combat) {
+            WardenCues.stop(warden, combat);
+        }
+    }
+
+    /** A new ability cuts off whatever pose cue the previous one held (a roar or sniff), before its own clip. */
+    @Override
+    public void onAbilityStart(Mob mob) {
+        onStopAction(mob);
+    }
+
+    /**
+     * The heart rate its clients show while it fights: the phase's {@code heartbeat} instead of its anger (what the
+     * client's heartbeat reads); {@code vanilla} or not fighting = its anger, as vanilla.
+     */
+    public static int heartbeat(Warden warden, int anger) {
+        MobCombat combat = hosted(warden);
+        if (combat == null || !combat.engaged()) {
+            return anger;
+        }
+        return options(combat).heartbeat().orElse(anger);
     }
 
     /**
@@ -369,7 +411,8 @@ public final class WardenAdapter implements HostAdapter {
                 : target.getName().getString() + " (anger " + warden.getAngerManagement().getActiveAnger(target) + ")"));
         lines.add("DIG_COOLDOWN: " + (brain.hasMemoryValue(MemoryModuleType.DIG_COOLDOWN)
                 ? "set, " + expiry(brain.getTimeUntilExpiry(MemoryModuleType.DIG_COOLDOWN)) : "ABSENT (it may dig away)"));
-        lines.add("pose: " + warden.getPose().name().toLowerCase(Locale.ROOT) + ", burrowed: no");
+        lines.add("pose: " + warden.getPose().name().toLowerCase(Locale.ROOT)
+                + (combat == null ? "" : " (" + WardenCues.describe(combat) + ")") + ", burrowed: no");
         return lines;
     }
 
