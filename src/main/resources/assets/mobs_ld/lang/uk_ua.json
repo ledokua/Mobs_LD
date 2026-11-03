@@ -8,5 +8,9 @@
   "item.minecraft.potion.effect.provoke": "Зілля провокації",
   "item.minecraft.splash_potion.effect.provoke": "Вибухове зілля провокації",
   "item.minecraft.lingering_potion.effect.provoke": "Туманне зілля провокації",
-  "mobs_ld.cue.wither.grave_call": "Візер кличе своїх мерців"
+  "mobs_ld.cue.wither.grave_call": "Візер кличе своїх мерців",
+  "mobs_ld.cue.warden.scent": "Боронитель учув запах",
+  "mobs_ld.cue.warden.be_still": "Не рухайся...",
+  "mobs_ld.cue.warden.roar_of_the_deep": "Боронитель реве: глибина відповідає",
+  "mobs_ld.stacks.sculk_brand": "Скалкове тавро: %s"
 }

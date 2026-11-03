@@ -15,12 +15,13 @@ import java.util.Map;
  * Ground area an ability event affects, in blocks, relative to an origin and a facing. Doubles as the telegraph
  * drawn before the hit (via {@link #zone()}).
  */
-public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle, Shape.Rays {
+public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle, Shape.Rays, Shape.Ring {
     Map<String, MapCodec<? extends Shape>> TYPES = Map.of(
             "rectangle", Rectangle.CODEC,
             "cone", Cone.CODEC,
             "circle", Circle.CODEC,
-            "rays", Rays.CODEC
+            "rays", Rays.CODEC,
+            "ring", Ring.CODEC
     );
 
     /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */
@@ -46,7 +47,7 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
     /**
      * Points every {@code every} blocks along the shape's centre line(s), as {@code {forward, right}} from the origin
      * (an {@code fx} with particles {@code at: along}): a rectangle's or cone's middle line, every ray of {@code rays},
-     * a circle's rim.
+     * a circle's rim, the middle of a ring's band.
      */
     List<double[]> centreLine(double every);
 
@@ -241,6 +242,53 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
                 for (double s = every; s <= length + 1.0e-6; s += every) {
                     points.add(new double[]{s * Math.cos(angle), s * Math.sin(angle)});
                 }
+            }
+            return points;
+        }
+    }
+
+    /**
+     * A band around the origin: every point whose horizontal distance from it is between {@code inner} and
+     * {@code outer} (both edges included). Inside {@code inner} is safe (the Warden's Deafening Rings: hug it).
+     */
+    record Ring(double inner, double outer) implements Shape {
+        static final MapCodec<Ring> CODEC = RecordCodecBuilder.<Ring>mapCodec(i -> i.group(
+                Codec.doubleRange(0.0, 64.0).fieldOf("inner").forGetter(Ring::inner),
+                Codec.doubleRange(0.0, 64.0).fieldOf("outer").forGetter(Ring::outer)
+        ).apply(i, Ring::new)).validate(ring -> ring.outer() <= ring.inner()
+                ? DataResult.error(() -> "A ring's outer radius (" + ring.outer() + ") must be larger than its inner one ("
+                + ring.inner() + ")")
+                : DataResult.success(ring));
+
+        @Override
+        public String type() {
+            return "ring";
+        }
+
+        @Override
+        public AttackZone zone() {
+            return new AttackZone.Ring((float) inner, (float) outer);
+        }
+
+        @Override
+        public boolean contains(double forward, double right) {
+            double squared = forward * forward + right * right;
+            return squared >= inner * inner && squared <= outer * outer;
+        }
+
+        @Override
+        public double reach() {
+            return outer;
+        }
+
+        @Override
+        public List<double[]> centreLine(double every) {
+            double radius = (inner + outer) / 2.0;
+            int count = Math.max(6, (int) Math.ceil(2.0 * Math.PI * radius / every));
+            List<double[]> points = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                double angle = 2.0 * Math.PI * i / count;
+                points.add(new double[]{radius * Math.cos(angle), radius * Math.sin(angle)});
             }
             return points;
         }

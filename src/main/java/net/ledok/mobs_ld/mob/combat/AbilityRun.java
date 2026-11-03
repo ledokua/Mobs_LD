@@ -21,10 +21,13 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * One ability in flight: its clock (scaled by attack speed), aim, facing, and the state of each timeline event.
@@ -46,8 +49,13 @@ public final class AbilityRun {
     private final LivingEntity aim;
     private final List<Slot> slots = new ArrayList<>();
     private final List<Marker> markers = new ArrayList<>();
-    /** Where each {@code hit} event's zone locked (when its telegraph appeared), for particles drawn along it. */
-    private final Map<HitEvent, HitZone> hitZones = new IdentityHashMap<>();
+    /**
+     * Where each {@code hit} event's zones locked (when its telegraph appeared; one per fighter for
+     * {@code origin: each_fighter}), for particles drawn along them.
+     */
+    private final Map<HitEvent, List<HitZone>> hitZones = new IdentityHashMap<>();
+    /** Victims a {@code once} hit of this run has already struck (see {@link #strikeOnce}). */
+    private final Set<UUID> struckOnce = new HashSet<>();
     /** Work left for the end of this tick, once every event due now has run (see {@link #afterEvents}). */
     private final List<Runnable> afterEvents = new ArrayList<>();
 
@@ -59,6 +67,10 @@ public final class AbilityRun {
     private boolean cancelled;
     private boolean staggered;
     private String chainTo;
+    /** Whom the chained-into ability must aim at instead of the usual rule (a {@code listen}'s first offender). */
+    private LivingEntity chainAim;
+    /** A {@code chain} with {@code taunt_wins}: a taunt lock on the mob beats the kept aim. */
+    private boolean chainTauntWins;
     /** Facing an event asked to turn to (re-aim between beats); approached at {@link #steerRate}. */
     private Float steerYaw;
     /** Degrees per tick toward {@link #steerYaw}: the tracking rate, or a timed turn's ({@link #turnBody}). */
@@ -237,14 +249,48 @@ public final class AbilityRun {
 
     /** Ends this ability and starts the named one right away, with the same aim (e.g. a charge into its finisher). */
     public void chain(String abilityName) {
-        combat.trace(name + ": chaining into " + abilityName + (aim != null
-                ? String.format(" at %.1f blocks", CombatTargets.distance(mob, aim)) : " (no aim)"));
+        chain(abilityName, null, false);
+    }
+
+    /**
+     * Ends this ability and starts the named one right away. {@code aimAt} (if alive then) is its aim whatever its
+     * own rule says; else it aims as a plain chain does, except that with {@code tauntWins} a taunt lock on the mob
+     * beats a kept aim.
+     */
+    public void chain(String abilityName, LivingEntity aimAt, boolean tauntWins) {
+        LivingEntity next = aimAt != null ? aimAt : aim;
+        combat.trace(name + ": chaining into " + abilityName + (next != null
+                ? String.format(" at %.1f blocks", CombatTargets.distance(mob, next)) : " (no aim)"));
         chainTo = abilityName;
+        chainAim = aimAt;
+        chainTauntWins = tauntWins;
         cancel();
     }
 
     String chainTo() {
         return chainTo;
+    }
+
+    /** The aim a chain asked for explicitly (see {@link #chain(String, LivingEntity, boolean)}), else null. */
+    LivingEntity chainAim() {
+        return chainAim;
+    }
+
+    boolean chainTauntWins() {
+        return chainTauntWins;
+    }
+
+    /** Whether the run was cut off or dropped (a plain run that played out to its end reads false). */
+    public boolean cutOff() {
+        return cancelled;
+    }
+
+    /**
+     * For a {@code hit} with {@code once}: true the first time {@code victim} is struck by such a hit in this run,
+     * false after (the Tremor Line's circles overlap, but each player takes one).
+     */
+    public boolean strikeOnce(LivingEntity victim) {
+        return struckOnce.add(victim.getUUID());
     }
 
     /**
@@ -301,14 +347,14 @@ public final class AbilityRun {
         afterEvents.add(work);
     }
 
-    /** A {@code hit} event locked its zone: kept for {@link #lockedZone}. */
-    public void noteZone(HitEvent event, HitZone zone) {
-        hitZones.put(event, zone);
+    /** A {@code hit} event locked its zones: kept for {@link #lockedZones}. */
+    public void noteZones(HitEvent event, List<HitZone> zones) {
+        hitZones.put(event, List.copyOf(zones));
     }
 
-    /** Where {@code event}'s zone locked, or null if it has not started (yet) in this run. */
-    public HitZone lockedZone(HitEvent event) {
-        return hitZones.get(event);
+    /** Where {@code event}'s zones locked; empty if it has not started (yet) in this run. */
+    public List<HitZone> lockedZones(HitEvent event) {
+        return hitZones.getOrDefault(event, List.of());
     }
 
     /**
@@ -450,14 +496,22 @@ public final class AbilityRun {
      * {@code arrow} gets an arrowhead past its far end.
      */
     public Marker telegraph(Vec3 origin, float yawDegrees, Shape shape, Telegraph style, double impactSeconds) {
+        return telegraph(List.of(zoneOf(origin, yawDegrees, shape, style)), style, impactSeconds);
+    }
+
+    /**
+     * The telegraph zone drawn for {@code shape} at {@code origin}: its own zone, or for a rectangle whose telegraph
+     * has {@code arrow}, a strip with an arrowhead past its far end.
+     */
+    public static Zone zoneOf(Vec3 origin, float yawDegrees, Shape shape, Telegraph style) {
         if (style.arrow() && shape instanceof Shape.Rectangle rectangle) {
             float width = (float) rectangle.width();
             AttackZone strip = new AttackZone.Strip(width, (float) rectangle.length(),
                     (float) DashLane.headLength(width), 0.0F, 1.0F);
             Vec3 start = origin.add(forward(yawDegrees).scale(rectangle.offset()));
-            return telegraph(List.of(new Zone(start, yawDegrees, strip)), style, impactSeconds);
+            return new Zone(start, yawDegrees, strip);
         }
-        return telegraph(List.of(new Zone(origin, yawDegrees, shape.zone())), style, impactSeconds);
+        return new Zone(origin, yawDegrees, shape.zone());
     }
 
     /**

@@ -11,6 +11,9 @@
     "follow_range": 48,
     "heartbeat": 20
   },
+  "target_slots": {
+    "listener": { "rule": "spread", "range": 40, "line_of_sight": false, "repick": [8, 12], "lost_after": 4 }
+  },
   "movement": {
     "style": "vanilla",
     "reach_rule": "path"
@@ -32,6 +35,73 @@
         { "type": "hit", "at": 1.0, "shape": { "type": "rectangle", "width": 2.5, "length": 4.5 },
           "telegraph": { "from": 0.0, "color": "#B01818" },
           "hit": { "amount": 12.0, "damage_type": "minecraft:mob_attack", "knockback": 0.6 } }
+      ]
+    },
+    "crushing_blow_branded": {
+      "duration": 1.6, "cooldown": 6, "weight": 3, "clip": "tendrils",
+      "range": { "max": 4.5 },
+      "track_until": 0.0,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.angry", "volume": 3 } },
+        { "type": "fx", "at": 0.7, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "clip", "at": 1.0, "clip": "attack" },
+        { "type": "hit", "at": 1.0, "shape": { "type": "rectangle", "width": 2.5, "length": 4.5 },
+          "telegraph": { "from": 0.0, "color": "#B01818" },
+          "hit": { "amount": 12.0, "damage_type": "minecraft:mob_attack", "knockback": 0.6,
+                   "stacks": { "id": "sculk_brand", "per_stack": 0.12, "max": 4, "duration": 15, "min_players": 3 } } }
+      ]
+    },
+    "rending_combo": {
+      "duration": 2.6, "cooldown": 9, "weight": 2, "clip": "tendrils",
+      "range": { "max": 4 },
+      "track_until": 0.2,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.angry", "volume": 3 } },
+        { "type": "fx", "at": 0.7, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "clip", "at": 1.0, "clip": "attack" },
+        { "type": "hit", "at": 1.0, "shape": { "type": "cone", "radius": 3.5, "angle": 100 },
+          "telegraph": { "from": 0.2, "color": "#B01818" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.2 } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "clip", "at": 2.0, "clip": "attack" },
+        { "type": "hit", "at": 2.0, "aim_side": 0, "shape": { "type": "rectangle", "width": 2, "length": 6 },
+          "telegraph": { "from": 1.2, "color": "#B01818" },
+          "hit": { "amount": 11.0, "damage_type": "minecraft:mob_attack", "knockback": 0.6 } }
+      ]
+    },
+    "rending_combo_branded": {
+      "duration": 2.6, "cooldown": 9, "weight": 2, "clip": "tendrils",
+      "range": { "max": 4 },
+      "track_until": 0.2,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.angry", "volume": 3 } },
+        { "type": "fx", "at": 0.7, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "clip", "at": 1.0, "clip": "attack" },
+        { "type": "hit", "at": 1.0, "shape": { "type": "cone", "radius": 3.5, "angle": 100 },
+          "telegraph": { "from": 0.2, "color": "#B01818" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.2,
+                   "stacks": { "id": "sculk_brand", "per_stack": 0.12, "max": 4, "duration": 15, "min_players": 3 } } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "clip", "at": 2.0, "clip": "attack" },
+        { "type": "hit", "at": 2.0, "aim_side": 0, "shape": { "type": "rectangle", "width": 2, "length": 6 },
+          "telegraph": { "from": 1.2, "color": "#B01818" },
+          "hit": { "amount": 11.0, "damage_type": "minecraft:mob_attack", "knockback": 0.6,
+                   "stacks": { "id": "sculk_brand", "per_stack": 0.12, "max": 4, "duration": 15, "min_players": 3 } } }
+      ]
+    },
+    "sculk_backlash": {
+      "duration": 2.0, "cooldown": 12, "weight": 6,
+      "when": { "behind": { "players": 2, "for": 4, "range": 4.5, "angle": 140 } },
+      "track_until": 0.0,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.heartbeat", "volume": 3 },
+          "particles": { "id": "minecraft:sculk_soul", "at": "self", "count": 20, "spread": 0.6 } },
+        { "type": "hit", "at": 1.1, "rotate": 180, "shape": { "type": "cone", "radius": 4.5, "angle": 140 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.0, "color": "#0E8C8C" },
+          "hit": { "amount": 9.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.8 } },
+        { "type": "fx", "at": 1.1, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 2 },
+          "particles": { "id": "minecraft:sculk_soul", "at": "along", "every": 1, "count": 2, "spread": 0.3 } }
       ]
     },
     "sonic_circle": {
@@ -64,6 +134,74 @@
         { "type": "vulnerable", "at": 3.4, "until": 5.0, "multiplier": 1.25 }
       ]
     },
+    "sonic_circle_open": {
+      "duration": 5.0, "cooldown": 16, "initial_cooldown": 10, "weight": 3, "no_repeat": true, "fixed_speed": true,
+      "clip": "sonic_boom",
+      "track_until": 0.3,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.sonic_charge", "volume": 3 },
+          "particles": { "id": "minecraft:sculk_soul", "at": "self", "count": 16 } },
+        { "type": "hit", "at": 1.7, "shape": { "type": "rays", "count": 8, "length": 26, "width": 2.5, "widen": 0.3 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.3, "style": "sweep", "color": "#0E8C8C" },
+          "hit": { "amount": 10.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "clip", "at": 1.7, "clip": "sonic_boom" },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_charge", "pitch": 1.25, "volume": 3 } },
+        { "type": "hit", "at": 3.4, "rotate": 22.5, "turn_body": true,
+          "shape": { "type": "rays", "count": 8, "length": 26, "width": 2.5, "widen": 0.3 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 1.7, "style": "sweep", "color": "#29E0E0" },
+          "hit": { "amount": 10.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 3.1, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 3.4, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 3.4, "sound": { "id": "minecraft:entity.warden.heartbeat", "volume": 3 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "heads", "count": 12, "spread": 0.4 } },
+        { "type": "vulnerable", "at": 3.4, "until": 5.0, "multiplier": 1.25 }
+      ]
+    },
+    "sonic_circle_triple": {
+      "duration": 6.7, "cooldown": 16, "initial_cooldown": 10, "weight": 3, "no_repeat": true, "fixed_speed": true,
+      "clip": "sonic_boom",
+      "track_until": 0.3,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.sonic_charge", "volume": 3 },
+          "particles": { "id": "minecraft:sculk_soul", "at": "self", "count": 16 } },
+        { "type": "hit", "at": 1.7, "shape": { "type": "rays", "count": 8, "length": 26, "width": 2.5, "widen": 0.3 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.3, "style": "sweep", "color": "#0E8C8C" },
+          "hit": { "amount": 10.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "clip", "at": 1.7, "clip": "sonic_boom" },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_charge", "pitch": 1.25, "volume": 3 } },
+        { "type": "hit", "at": 3.4, "rotate": 22.5, "turn_body": true,
+          "shape": { "type": "rays", "count": 8, "length": 26, "width": 2.5, "widen": 0.3 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 1.7, "style": "sweep", "color": "#29E0E0" },
+          "hit": { "amount": 10.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 3.1, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 3.4, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "clip", "at": 3.4, "clip": "sonic_boom" },
+        { "type": "fx", "at": 3.4, "sound": { "id": "minecraft:entity.warden.sonic_charge", "pitch": 1.5, "volume": 3 } },
+        { "type": "hit", "at": 5.1, "rotate": 0, "turn_body": true,
+          "shape": { "type": "rays", "count": 8, "length": 26, "width": 2.5, "widen": 0.3 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 3.4, "style": "sweep", "color": "#0E8C8C" },
+          "hit": { "amount": 10.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 4.8, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 5.1, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 5.1, "sound": { "id": "minecraft:entity.warden.heartbeat", "volume": 3 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "heads", "count": 12, "spread": 0.4 } },
+        { "type": "vulnerable", "at": 5.1, "until": 6.7, "multiplier": 1.25 }
+      ]
+    },
     "resonant_pulse": {
       "duration": 3.0, "cooldown": 14, "weight": 3, "no_repeat": true, "fixed_speed": true,
       "clip": "sonic_boom",
@@ -80,9 +218,27 @@
           "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } }
       ]
     },
+    "resonant_pulse_pooled": {
+      "duration": 3.0, "cooldown": 14, "weight": 3, "no_repeat": true, "fixed_speed": true,
+      "clip": "sonic_boom",
+      "range": { "max": 5 },
+      "track_until": 0.2,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.sonic_charge", "volume": 3 } },
+        { "type": "hit", "at": 1.7, "shape": { "type": "circle", "radius": 6 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.2, "color": "#0E8C8C" },
+          "hit": { "amount": 14.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.4, "knock_up": 0.5 } },
+        { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "cloud", "at": 1.7, "radius": 3, "duration": 8,
+          "effects": [ { "id": "minecraft:slowness", "duration": 2, "amplifier": 1 } ] }
+      ]
+    },
     "sonic_lance": {
       "duration": 3.0, "cooldown_group": "lance", "cooldown": 14, "initial_cooldown": 8, "weight": 3,
-      "no_repeat": true, "fixed_speed": true, "clip": "sonic_boom", "target": "farthest",
+      "no_repeat": true, "fixed_speed": true, "clip": "sonic_boom", "target": "farthest", "include_unreachable": true,
       "range": { "min": 8, "max": 40, "above": 12, "below": 4 },
       "track_until": 0.9,
       "events": [
@@ -101,6 +257,190 @@
           "particles": { "id": "minecraft:sculk_charge_pop", "at": "heads", "count": 12, "spread": 0.4 } },
         { "type": "vulnerable", "at": 1.7, "until": 3.0, "multiplier": 1.25 }
       ]
+    },
+    "sonic_volley": {
+      "duration": 3.2, "cooldown_group": "lance", "cooldown": 14, "initial_cooldown": 8, "weight": 3,
+      "no_repeat": true, "fixed_speed": true, "clip": "sonic_boom", "target": "farthest", "include_unreachable": true,
+      "range": { "min": 8, "max": 40, "above": 12, "below": 4 },
+      "track_until": 0.9,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.sonic_charge", "volume": 3 } },
+        { "type": "fx", "at": 0.2, "particles": { "id": "minecraft:sculk_charge_pop", "at": "aim", "count": 6 } },
+        { "type": "fx", "at": 0.5, "particles": { "id": "minecraft:sculk_charge_pop", "at": "aim", "count": 6 } },
+        { "type": "hit", "at": 1.7, "shape": { "type": "rectangle", "width": 2.5, "length": 40 },
+          "height": 12, "depth": 4,
+          "telegraph": { "from": 0.9, "style": "sweep", "arrow": true, "color": "#0E8C8C" },
+          "hit": { "amount": 8.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.6 } },
+        { "type": "hit", "at": 2.2, "aim_side": 0, "shape": { "type": "rectangle", "width": 2.5, "length": 40 },
+          "height": 12, "depth": 4,
+          "telegraph": { "from": 1.4, "style": "sweep", "arrow": true, "color": "#0E8C8C" },
+          "hit": { "amount": 8.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.6 } },
+        { "type": "hit", "at": 2.7, "aim_side": 0, "shape": { "type": "rectangle", "width": 2.5, "length": 40 },
+          "height": 12, "depth": 4,
+          "telegraph": { "from": 1.9, "style": "sweep", "arrow": true, "color": "#29E0E0" },
+          "hit": { "amount": 8.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.6 } },
+        { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 1, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 2.2, "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 1.1, "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 1, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 2.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 1.2, "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 1, "count": 1, "spread": 0 } }
+      ]
+    },
+    "tremor_line": {
+      "duration": 3.2, "cooldown": 12, "weight": 3, "clip": "tendrils", "target": "slot:listener",
+      "range": { "min": 4, "max": 16 },
+      "track_until": 0.4,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.angry", "volume": 3 } },
+        { "type": "clip", "at": 0.5, "clip": "attack" },
+        { "type": "fx", "at": 0.5, "sound": { "id": "minecraft:entity.warden.attack_impact", "volume": 2 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "ground", "count": 12, "spread": 0.6 } },
+        { "type": "hit", "at": 1.3, "offset": 2, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 0.5, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "hit", "at": 1.6, "offset": 4, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 0.8, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "hit", "at": 1.9, "offset": 6, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 1.1, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "hit", "at": 2.2, "offset": 8, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 1.4, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "hit", "at": 2.5, "offset": 10, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 1.7, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "hit", "at": 2.8, "offset": 12, "once": true, "shape": { "type": "circle", "radius": 2 },
+          "telegraph": { "from": 2.0, "color": "#1B4FB0" },
+          "hit": { "amount": 7.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4, "knock_up": 0.3 } },
+        { "type": "fx", "at": 1.3, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } },
+        { "type": "fx", "at": 1.6, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } },
+        { "type": "fx", "at": 1.9, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } },
+        { "type": "fx", "at": 2.2, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } },
+        { "type": "fx", "at": 2.5, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } },
+        { "type": "fx", "at": 2.8, "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1.5, "count": 2 } }
+      ]
+    },
+    "hunting_sniff": {
+      "duration": 4.2, "cooldown": 30, "initial_cooldown": 20, "weight": 2, "fixed_speed": true,
+      "clip": "sniff", "target": "top_damage",
+      "track_until": 0.5,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.sniff", "volume": 3 } },
+        { "type": "fx", "at": 3.8, "sound": { "id": "minecraft:entity.warden.listening", "volume": 3 },
+          "message": { "key": "mobs_ld.cue.warden.scent", "where": "actionbar" } },
+        { "type": "effect", "at": 3.8, "on": "aim", "effects": [ { "id": "minecraft:glowing", "duration": 8 } ] },
+        { "type": "chain", "at": 4.2, "to": "deep_charge", "taunt_wins": true }
+      ]
+    },
+    "deep_charge": {
+      "duration": 3.2, "weight": 0, "clip": "roar",
+      "track_until": 0.2,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.angry", "pitch": 0.8, "volume": 3 } },
+        { "type": "clip", "at": 1.2, "clip": "attack" },
+        { "type": "dash", "at": 1.2, "speed": 0.9, "max_distance": 28, "overshoot": 4, "width": "body", "push": "side",
+          "on_wall": "stagger", "stagger_min_distance": 4,
+          "telegraph": { "from": 0.2, "style": "sweep", "arrow": true, "color": "#1B4FB0" },
+          "hit": { "amount": 16.0, "damage_type": "minecraft:mob_attack", "knockback": 0.8, "knock_up": 0.2 } }
+      ]
+    },
+    "deafening_rings": {
+      "duration": 4.2, "cooldown": 18, "weight": 2, "fixed_speed": true, "clip": "roar",
+      "track_until": 0.0,
+      "events": [
+        { "type": "fx", "at": 1.25, "sound": { "id": "minecraft:entity.warden.roar", "volume": 3 } },
+        { "type": "hit", "at": 1.6, "shape": { "type": "ring", "inner": 6, "outer": 9 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.6, "color": "#0E8C8C" },
+          "hit": { "amount": 9.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "hit", "at": 2.2, "shape": { "type": "ring", "inner": 12, "outer": 15 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 1.2, "color": "#0E8C8C" },
+          "hit": { "amount": 9.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "hit", "at": 2.8, "shape": { "type": "ring", "inner": 18, "outer": 22 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 1.8, "color": "#0E8C8C" },
+          "hit": { "amount": 9.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 1.6, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 2.2, "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 0.9, "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
+        { "type": "fx", "at": 2.8, "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 0.8, "volume": 3 },
+          "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } }
+      ]
+    },
+    "echo_mines": {
+      "duration": 4.2, "cooldown": 20, "weight": 2, "fixed_speed": true, "clip": "sniff",
+      "track_until": 0.0,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.listening_angry", "volume": 3 } },
+        { "type": "hit", "at": 1.4, "origin": "each_fighter", "lead": 0.6, "shape": { "type": "circle", "radius": 2.5 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 0.6, "color": "#0E8C8C" },
+          "hit": { "amount": 5.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.2 } },
+        { "type": "hit", "at": 2.6, "origin": "each_fighter", "lead": 0.6, "shape": { "type": "circle", "radius": 2.5 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 1.8, "color": "#0E8C8C" },
+          "hit": { "amount": 5.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.2 } },
+        { "type": "hit", "at": 3.8, "origin": "each_fighter", "lead": 0.6, "shape": { "type": "circle", "radius": 2.5 },
+          "height": 4, "depth": 2,
+          "telegraph": { "from": 3.0, "color": "#0E8C8C" },
+          "hit": { "amount": 5.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.2 } },
+        { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.4, "volume": 3 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1, "count": 2 } },
+        { "type": "fx", "at": 2.6, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.6, "volume": 3 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1, "count": 2 } },
+        { "type": "fx", "at": 3.8, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 },
+          "particles": { "id": "minecraft:sculk_charge_pop", "at": "along", "every": 1, "count": 2 } }
+      ]
+    },
+    "listening_silence": {
+      "duration": 4.2, "cooldown": 40, "weight": 2, "fixed_speed": true, "clip": "sniff",
+      "track_until": 0.0,
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.warden.listening_angry", "volume": 3 },
+          "message": { "key": "mobs_ld.cue.warden.be_still", "where": "actionbar" } },
+        { "type": "fx", "at": 1.0, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
+        { "type": "listen", "from": 1.0, "until": 3.0, "range": 40, "move_tolerance": 0.6, "chain_to": "sonic_lance",
+          "chain_at": 4.2, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 2 },
+          "hit": { "amount": 13.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 0.3 } },
+        { "type": "fx", "at": 2.0, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } }
+      ]
     }
-  }
+  },
+  "phases": [
+    { "below_health": 1.0,
+      "abilities": ["crushing_blow", "rending_combo", "sculk_backlash", "sonic_circle", "resonant_pulse", "sonic_lance",
+        "tremor_line", "hunting_sniff"] },
+    { "below_health": 0.6,
+      "transition": {
+        "duration": 4.2, "invulnerable": true, "fixed_speed": true, "clip": "roar",
+        "track_until": 0.0,
+        "events": [
+          { "type": "fx", "at": 0.0, "message": { "key": "mobs_ld.cue.warden.roar_of_the_deep", "where": "actionbar" } },
+          { "type": "fx", "at": 1.25, "sound": { "id": "minecraft:entity.warden.roar", "volume": 3 } },
+          { "type": "hit", "at": 1.6, "shape": { "type": "circle", "radius": 10 },
+            "height": 4, "depth": 2,
+            "telegraph": { "from": 0.6, "color": "#0E8C8C" },
+            "hit": { "amount": 3.0, "damage_type": "mobs_ld:warden_sonic", "knockback": 1.2 } },
+          { "type": "effect", "at": 1.6, "radius": 40, "effects": [ { "id": "minecraft:darkness", "duration": 6 } ] }
+        ]
+      },
+      "abilities": ["crushing_blow_branded", "rending_combo_branded", "sculk_backlash", "sonic_circle_open",
+        "resonant_pulse_pooled", "sonic_lance", "sonic_volley", "tremor_line", "deafening_rings", "echo_mines",
+        "hunting_sniff"],
+      "ready_in": { "sonic_circle_open": 7 },
+      "cooldowns": { "sonic_lance": 10, "sonic_volley": 10 },
+      "host": { "heartbeat": 50 } },
+    { "below_health": 0.25, "attack_speed": 1.2,
+      "abilities": ["crushing_blow_branded", "rending_combo_branded", "sculk_backlash", "sonic_circle_triple",
+        "resonant_pulse_pooled", "sonic_lance", "sonic_volley", "tremor_line", "deafening_rings", "echo_mines",
+        "hunting_sniff", "listening_silence"],
+      "ready_in": { "listening_silence": 10 },
+      "cooldowns": { "sonic_lance": 7, "sonic_volley": 7 },
+      "host": { "heartbeat": 90 } }
+  ]
 }

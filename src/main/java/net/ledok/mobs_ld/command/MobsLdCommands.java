@@ -176,7 +176,7 @@ public final class MobsLdCommands {
             source.sendFailure(Component.literal(mob.getType().getDescription().getString() + " has no ability '" + name + "'"));
             return;
         }
-        LivingEntity aim = CombatTargets.pick(mob, ability.target());
+        LivingEntity aim = CombatTargets.pick(mob, ability.target(), ability.includeUnreachable());
         if (aim == null) {
             aim = mob.getTarget() != null ? mob.getTarget()
                     : source.getEntity() instanceof LivingEntity living ? living : null;

@@ -95,13 +95,11 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
             if (!(event instanceof HitEvent hit) || !sameMoment(hit.at(), at)) {
                 continue;
             }
-            AbilityRun.HitZone zone = run.lockedZone(hit);
-            if (zone == null) {
-                continue;
-            }
-            Vec3 raised = zone.origin().add(0.0, height, 0.0);
-            for (double[] local : zone.shape().centreLine(every)) {
-                points.add(AbilityRun.local(raised, zone.yaw(), local[0], local[1]));
+            for (AbilityRun.HitZone zone : run.lockedZones(hit)) {
+                Vec3 raised = zone.origin().add(0.0, height, 0.0);
+                for (double[] local : zone.shape().centreLine(every)) {
+                    points.add(AbilityRun.local(raised, zone.yaw(), local[0], local[1]));
+                }
             }
         }
         return points;
@@ -148,7 +146,8 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
         /** Height of one layer of a column. */
         private static final double LAYER = 0.5;
 
-        private static final Codec<SimpleParticleType> TYPE = ResourceLocation.CODEC.comapFlatMap(id -> {
+        /** A particle type that needs no extra settings, by id (also used by {@code listen}). */
+        static final Codec<SimpleParticleType> TYPE = ResourceLocation.CODEC.comapFlatMap(id -> {
             ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
             if (type == null) {
                 return DataResult.error(() -> "Unknown particle type " + id);

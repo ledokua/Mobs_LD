@@ -80,8 +80,8 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
 
             scaleMult = switch (style) {
                 case GROW -> displayProgress;
-                // A circle has no length to sweep along: it grows instead.
-                case SWEEP -> isCircle(entity) ? displayProgress : 1.0F;
+                // A circle (or ring) has no length to sweep along: it grows instead.
+                case SWEEP -> isCircle(entity) || isRing(entity) ? displayProgress : 1.0F;
                 case DEFAULT -> 1.0F;
             };
             sweepProgress = switch (style) {
@@ -107,6 +107,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             case 2, 3 -> renderCircle(entity, matrix, buffer, color, scaleMult);
             case 4 -> renderCircleRays(entity, matrix, buffer, color, scaleMult, sweepProgress);
             case 5 -> renderStrip(entity, matrix, buffer, color, scaleMult, sweepProgress);
+            case 6 -> renderRing(entity, matrix, buffer, color, scaleMult);
             default -> {
             }
         }
@@ -195,6 +196,53 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float r2 = radius * radius;
         fillPixelated(matrix, buffer, color, 0.0F, -radius, -radius, radius, radius,
                 (x, z) -> x * x + z * z <= r2);
+    }
+
+    /**
+     * A band from the inner to the outer radius. Growing, it fills outward across the band (from the inner edge), so
+     * it never shows anywhere the hit does not reach. Drawn on the same {@link #PIXEL_SIZE} grid as the other shapes,
+     * one quad per run of cells in a row (a 22-block ring stays cheap).
+     */
+    private void renderRing(AttackZoneVisualEntity entity, Matrix4f matrix, VertexConsumer buffer, int color, float fill) {
+        float inner = entity.getParamA();
+        float outer = inner + (entity.getParamB() - inner) * clamp01(fill);
+        if (outer <= inner || outer <= 0.0F) {
+            return;
+        }
+        float inner2 = inner * inner;
+        float outer2 = outer * outer;
+        float min = -outer;
+        int cells = Math.max(1, Mth.ceil(2.0F * outer / PIXEL_SIZE));
+        for (int iz = 0; iz < cells; iz++) {
+            float z0 = min + iz * PIXEL_SIZE;
+            float z1 = Math.min(z0 + PIXEL_SIZE, outer);
+            float zc = (z0 + z1) * 0.5F;
+            float zc2 = zc * zc;
+            if (zc2 > outer2) {
+                continue;
+            }
+            float far = (float) Math.sqrt(outer2 - zc2);
+            if (zc2 >= inner2) {
+                ringSpan(matrix, buffer, color, min, cells, -far, far, z0, z1);
+            } else {
+                float near = (float) Math.sqrt(inner2 - zc2);
+                ringSpan(matrix, buffer, color, min, cells, -far, -near, z0, z1);
+                ringSpan(matrix, buffer, color, min, cells, near, far, z0, z1);
+            }
+        }
+    }
+
+    /** One row's run of grid cells whose centres lie within {@code [from, to]}, as a single quad. */
+    private void ringSpan(Matrix4f matrix, VertexConsumer buffer, int color, float min, int cells, float from, float to,
+                          float z0, float z1) {
+        int first = Math.max(0, Mth.ceil((from - min) / PIXEL_SIZE - 0.5F));
+        int last = Math.min(cells - 1, Mth.floor((to - min) / PIXEL_SIZE - 0.5F));
+        if (last < first) {
+            return;
+        }
+        float x0 = min + first * PIXEL_SIZE;
+        float x1 = min + (last + 1) * PIXEL_SIZE;
+        addQuad(matrix, buffer, color, x0, z0, x1, z0, x1, z1, x0, z1);
     }
 
     private void renderCircleRays(
@@ -362,6 +410,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             case 1, 2, 3 -> entity.getParamA();
             case 4 -> entity.getParamB();
             case 5 -> entity.getParamB() + entity.getParamC();
+            case 6 -> entity.getParamB();
             default -> 0.0;
         };
     }
@@ -370,6 +419,11 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
     private static boolean isCircle(AttackZoneVisualEntity entity) {
         int kind = entity.getZoneKind();
         return kind == 2 || kind == 3;
+    }
+
+    /** Ring zones (kind 6). */
+    private static boolean isRing(AttackZoneVisualEntity entity) {
+        return entity.getZoneKind() == 6;
     }
 
     private static float clamp01(float value) {

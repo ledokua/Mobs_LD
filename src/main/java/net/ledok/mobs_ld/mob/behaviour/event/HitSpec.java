@@ -48,11 +48,13 @@ import java.util.function.Supplier;
  *                   for ability hits, vanilla's {@code minecraft:wither_skull} for skulls)
  * @param knockback  horizontal push away from the hit origin
  * @param knockUp    upward launch speed (0.4 is about a jump)
+ * @param stacks     a landed hit puts one stack on the victim that makes this mob's later hits on them stronger (see
+ *                   {@link Stacks}); ability hits only (not skulls)
  */
 public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional<ResourceLocation> damageType,
-                      List<EffectSpec> effects, double knockback, double knockUp) {
+                      List<EffectSpec> effects, double knockback, double knockUp, Optional<Stacks> stacks) {
     public static final HitSpec DEFAULT = new HitSpec(Optional.empty(), Optional.empty(), Optional.empty(), List.of(),
-            0.4, 0.0);
+            0.4, 0.0, Optional.empty());
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<EntityType<?>> NO_ATTACK_DAMAGE = new HashSet<>();
     private static final Set<ResourceLocation> UNKNOWN_TYPES = new HashSet<>();
@@ -64,7 +66,8 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
             ResourceLocation.CODEC.optionalFieldOf("damage_type").forGetter(HitSpec::damageType),
             EffectSpec.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(HitSpec::effects),
             Codec.DOUBLE.optionalFieldOf("knockback", 0.4).forGetter(HitSpec::knockback),
-            Codec.DOUBLE.optionalFieldOf("knock_up", 0.0).forGetter(HitSpec::knockUp)
+            Codec.DOUBLE.optionalFieldOf("knock_up", 0.0).forGetter(HitSpec::knockUp),
+            Stacks.CODEC.optionalFieldOf("stacks").forGetter(HitSpec::stacks)
     ).apply(i, HitSpec::new)).validate(HitSpec::validate);
 
     private static DataResult<HitSpec> validate(HitSpec spec) {
@@ -73,10 +76,14 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
                 : DataResult.success(spec);
     }
 
-    /** Damages, debuffs and pushes {@code victim} for the running ability; {@code from} is where the blow came from. */
+    /**
+     * Damages, debuffs and pushes {@code victim} for the running ability; {@code from} is where the blow came from.
+     * The damage is times the stacks this mob's hits have put on the victim ({@link Stacks}); this hit's own stack (if
+     * it lands) only counts from the next hit on.
+     */
     public void apply(AbilityRun run, LivingEntity victim, Vec3 from) {
         Mob mob = run.mob();
-        float amount = rawDamage(mob);
+        float amount = (float) (rawDamage(mob) * run.combat().stackMultiplier(victim));
         // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
         // would silently swallow a combo's second blow or a slash right after a trample.
         victim.invulnerableTime = 0;
@@ -94,6 +101,7 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
         run.combat().trace(String.format("hit %s for %.1f at %.1f blocks (feet %+.1f vs mob)", victim.getName().getString(),
                 amount, CombatTargets.distance(mob, victim), victim.getY() - mob.getY()));
         applyEffects(victim, mob);
+        stacks.ifPresent(spec -> run.combat().addStack(victim, spec));
         if (knockback > 0.0 || knockUp > 0.0) {
             double dx = victim.getX() - from.x;
             double dz = victim.getZ() - from.z;
@@ -184,6 +192,29 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
             }
         }
         return 0.0;
+    }
+
+    /**
+     * A per-victim stack this hit leaves (the Warden's Sculk Brand): each stack of {@code id} on a player makes this
+     * mob's later hits on them {@code per_stack} stronger ({@code 1 + per_stack x stacks}, several ids multiply), at
+     * most {@code max} stacks; each new stack restarts the {@code duration} (seconds) of all of them, and they all go
+     * when it runs out, or when the mob resets or dies. Only while at least {@code min_players} players fight the mob
+     * (0 = always). Not a mob effect: milk and cleanses do not remove it. The victim sees an action-bar line,
+     * {@code mobs_ld.stacks.<id>} with the count as its argument.
+     */
+    public record Stacks(String id, double perStack, int max, double duration, int minPlayers) {
+        public static final Codec<Stacks> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.STRING.fieldOf("id").forGetter(Stacks::id),
+                Codec.doubleRange(0.0, 100.0).fieldOf("per_stack").forGetter(Stacks::perStack),
+                Codec.intRange(1, 100).optionalFieldOf("max", 1).forGetter(Stacks::max),
+                Codec.doubleRange(0.05, 3600.0).fieldOf("duration").forGetter(Stacks::duration),
+                Codec.intRange(0, 64).optionalFieldOf("min_players", 0).forGetter(Stacks::minPlayers)
+        ).apply(i, Stacks::new));
+
+        /** The action-bar line's translation key. */
+        public String messageKey() {
+            return "mobs_ld.stacks." + id;
+        }
     }
 
     /** A mob effect by registry id (any mod's, e.g. {@code spell_engine:bleed}); seconds, 0-based amplifier. */

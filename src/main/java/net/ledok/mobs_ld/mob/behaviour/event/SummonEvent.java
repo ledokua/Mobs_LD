@@ -237,10 +237,10 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     private Optional<Vec3> place(AbilityRun run, Placement rule, LivingEntity owner, List<Vec3> taken) {
         Mob mob = run.mob();
         ServerLevel level = run.level();
-        Vec3 centre = switch (rule.around()) {
-            case SELF -> rule.ground() ? run.groundBelow(anchor(run), 0).orElse(null) : anchor(run);
-            case AIM, FIGHTERS -> owner != null && owner.isAlive() ? owner.position() : run.aimPosition();
-        };
+        Vec3 point = centre(rule.around(), anchor(run), owner != null && owner.isAlive() ? owner.position() : null,
+                run.aimPosition(), run.combat().home());
+        boolean projected = rule.around() == Placement.Around.SELF || rule.around() == Placement.Around.HOME;
+        Vec3 centre = projected && rule.ground() ? run.groundBelow(point, 0).orElse(null) : point;
         if (centre != null) {
             Optional<Vec3> spot = RuneSpots.around(level, mob.getRandom(), centre, rule.radius().min(),
                     rule.radius().max(), taken, rule.minGap(), rule.clearance(), rule.ground(), RUNE_DROP);
@@ -251,6 +251,19 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         Optional<Vec3> shadow = rule.ground() ? run.groundBelow(mob.position(), 0) : Optional.of(mob.position());
         return shadow.flatMap(floor -> RuneSpots.nearShadow(level, mob.getRandom(), floor, taken, rule.minGap(),
                 rule.clearance(), rule.ground(), RUNE_DROP));
+    }
+
+    /**
+     * The point a placement's spots are rolled around, before a {@code self} or {@code home} centre is laid on the
+     * floor: the anchor ({@code self}), the rune's player where it stands ({@code aim}, {@code fighters}; the aim's
+     * locked position without one), or the mob's home point (its spawn or arena centre; the anchor until it has one).
+     */
+    public static Vec3 centre(Placement.Around around, Vec3 anchor, Vec3 owner, Vec3 aimPosition, Vec3 home) {
+        return switch (around) {
+            case SELF -> anchor;
+            case AIM, FIGHTERS -> owner != null ? owner : aimPosition;
+            case HOME -> home != null ? home : anchor;
+        };
     }
 
     /** The default spot without a placement: around the anchor, at its height. */
@@ -439,8 +452,9 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     /**
      * Where the adds rise instead of the scatter around the anchor.
      *
-     * @param around    {@code self} (the floor under the anchor), {@code aim} or {@code fighters} (each rune is placed for
-     *                  one fighting player: one each in turn for two rounds, the rest at random)
+     * @param around    {@code self} (the floor under the anchor), {@code aim}, {@code fighters} (each rune is placed for
+     *                  one fighting player: one each in turn for two rounds, the rest at random) or {@code home} (the
+     *                  floor under the mob's home point: where it first ticked, the arena it walks back to)
      * @param radius    blocks from that centre, rolled per spot
      * @param minGap    least distance between two runes of the wave
      * @param clearance open blocks needed above the floor
@@ -458,7 +472,8 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         public enum Around implements StringRepresentable {
             SELF("self"),
             AIM("aim"),
-            FIGHTERS("fighters");
+            FIGHTERS("fighters"),
+            HOME("home");
 
             public static final Codec<Around> CODEC = StringRepresentable.fromEnum(Around::values);
             private final String name;

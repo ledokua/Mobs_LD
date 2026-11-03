@@ -149,8 +149,8 @@ class ShippedBehavioursTest {
     @Test
     void wardenFirstKitLoads() throws Exception {
         MobBehaviour warden = load("/data/minecraft/mob_behaviour/warden.json");
-        assertEquals(java.util.Set.of("crushing_blow", "sonic_circle", "resonant_pulse", "sonic_lance"),
-                warden.abilities().keySet());
+        assertTrue(warden.abilities().keySet().containsAll(java.util.Set.of("crushing_blow", "sonic_circle",
+                "resonant_pulse", "sonic_lance")));
         ResourceLocation sonic = ResourceLocation.fromNamespaceAndPath("mobs_ld", "warden_sonic");
         MobBehaviour.Ability blow = warden.abilities().get("crushing_blow");
         assertFalse(blow.fixedSpeed(), "a physical swing follows the phase's attack speed");
@@ -229,6 +229,149 @@ class ShippedBehavioursTest {
                 }
             }
         }
+    }
+
+    /**
+     * M3's fields are all optional: the earlier files (Gorefist, Rot Wart, the Wither) use none of them, so they play
+     * as before.
+     */
+    @Test
+    void earlierFilesUseNoWardenM3Fields() throws Exception {
+        for (String path : List.of("/data/mobs_ld/mob_behaviour/gorefist.json", "/data/mobs_ld/mob_behaviour/rot_wart.json",
+                "/data/minecraft/mob_behaviour/wither.json")) {
+            MobBehaviour behaviour = load(path);
+            assertTrue(behaviour.movement().follow().kind() != MobBehaviour.TargetRule.Kind.TOP_DAMAGE, path);
+            List<MobBehaviour.Ability> abilities = new ArrayList<>(behaviour.abilities().values());
+            behaviour.phases().forEach(phase -> phase.transition().ifPresent(abilities::add));
+            behaviour.intro().ifPresent(abilities::add);
+            behaviour.onDeath().ifPresent(abilities::add);
+            for (MobBehaviour.Ability ability : abilities) {
+                assertTrue(ability.minPlayers().isEmpty() && ability.maxPlayers().isEmpty() && ability.when().isEmpty(), path);
+                assertFalse(ability.includeUnreachable(), path);
+                assertTrue(ability.target().kind() != MobBehaviour.TargetRule.Kind.TOP_DAMAGE, path);
+                for (var event : ability.events()) {
+                    assertFalse(event instanceof net.ledok.mobs_ld.mob.behaviour.event.ListenEvent, path);
+                    if (event instanceof HitEvent hit) {
+                        assertTrue(hit.origin() != net.ledok.mobs_ld.mob.behaviour.event.Origin.EACH_FIGHTER, path);
+                        assertTrue(hit.lead().isEmpty() && !hit.once(), path);
+                        assertTrue(hit.hit().stacks().isEmpty(), path);
+                        assertFalse(hit.shape() instanceof Shape.Ring, path);
+                    }
+                    if (event instanceof DashEvent dash) {
+                        assertTrue(dash.hit().flatMap(net.ledok.mobs_ld.mob.behaviour.event.HitSpec::stacks).isEmpty(), path);
+                    }
+                    if (event instanceof ChainEvent chain) {
+                        assertFalse(chain.tauntWins(), path);
+                    }
+                    if (event instanceof net.ledok.mobs_ld.mob.behaviour.event.EffectEvent effect) {
+                        assertEquals(net.ledok.mobs_ld.mob.behaviour.event.EffectEvent.On.AROUND, effect.on(), path);
+                    }
+                    if (event instanceof SummonEvent summon) {
+                        assertTrue(summon.placement().map(p -> p.around() != SummonEvent.Placement.Around.HOME).orElse(true), path);
+                    }
+                }
+            }
+            for (MobBehaviour.Phase phase : behaviour.phases()) {
+                assertTrue(phase.damageTaken().stream().allMatch(rule -> rule.whileAdds().isEmpty()), path);
+            }
+            behaviour.host().options().ifPresent(options -> options.skulls().values().forEach(skull ->
+                    assertTrue(skull.hit().stacks().isEmpty())));
+        }
+    }
+
+    /** M3's kit: the three phases and the abilities M3 makes possible (design 2.2), placeholder numbers. */
+    @Test
+    void wardenM3KitLoads() throws Exception {
+        MobBehaviour warden = load("/data/minecraft/mob_behaviour/warden.json");
+        assertEquals(3, warden.phases().size());
+        assertEquals(List.of(1.0, 0.6, 0.25), warden.phases().stream().map(MobBehaviour.Phase::belowHealth).toList());
+        // Every ability a phase lists exists (validated at load); Deep Charge is only chained.
+        assertEquals(0, warden.abilities().get("deep_charge").weight());
+        assertTrue(warden.phases().stream().noneMatch(phase -> phase.abilities().contains("deep_charge")));
+        assertTrue(warden.phases().get(0).abilities().containsAll(List.of("crushing_blow", "rending_combo",
+                "sculk_backlash", "sonic_circle", "resonant_pulse", "sonic_lance", "tremor_line", "hunting_sniff")));
+        assertTrue(warden.phases().get(1).abilities().containsAll(List.of("sonic_volley", "deafening_rings",
+                "echo_mines", "sonic_circle_open", "crushing_blow_branded", "rending_combo_branded")));
+        assertTrue(warden.phases().get(2).abilities().containsAll(List.of("listening_silence", "sonic_circle_triple")));
+        assertFalse(warden.phases().get(0).abilities().contains("crushing_blow_branded"), "Sculk Brand: P2 and P3");
+        assertEquals(java.util.Map.of("listening_silence", 10.0), warden.phases().get(2).readyIn());
+        assertEquals(Seconds.of(7.0), warden.phases().get(2).cooldowns().get("sonic_volley"));
+        assertEquals(1.2, warden.phases().get(2).attackSpeed());
+        assertTrue(warden.phases().get(1).transition().orElseThrow().invulnerable(), "Roar of the Deep");
+        assertEquals(java.util.Optional.of(90), ((WardenHostOptions) warden.hostOptions(2).orElseThrow()).heartbeat());
+        assertEquals(java.util.Optional.of(50), ((WardenHostOptions) warden.hostOptions(1).orElseThrow()).heartbeat());
+
+        assertTrue(warden.abilities().get("sonic_lance").includeUnreachable());
+        assertTrue(warden.abilities().get("sonic_volley").includeUnreachable());
+        assertEquals(java.util.Optional.of("lance"), warden.abilities().get("sonic_volley").cooldownGroup());
+        assertEquals(3, hits(warden.abilities().get("sonic_volley")).size());
+
+        MobBehaviour.Ability backlash = warden.abilities().get("sculk_backlash");
+        assertEquals(new MobBehaviour.Behind(2, 4.0, 4.5, 140.0, 3.0), backlash.behind().orElseThrow());
+        assertEquals(java.util.Optional.of(180.0), hits(backlash).get(0).rotate(), "the rear cone");
+
+        MobBehaviour.Ability sniff = warden.abilities().get("hunting_sniff");
+        assertEquals(MobBehaviour.TargetRule.TOP_DAMAGE, sniff.target());
+        assertTrue(sniff.events().stream().anyMatch(event -> event instanceof net.ledok.mobs_ld.mob.behaviour.event.EffectEvent effect
+                && effect.on() == net.ledok.mobs_ld.mob.behaviour.event.EffectEvent.On.AIM));
+        assertTrue(sniff.events().stream().anyMatch(event -> event instanceof ChainEvent chain
+                && chain.to().equals("deep_charge") && chain.tauntWins()));
+        DashEvent charge = dash(warden.abilities().get("deep_charge"));
+        assertEquals(java.util.Optional.of(0.9), charge.speed());
+        assertEquals(DashEvent.Push.SIDE, charge.push());
+
+        List<HitEvent> rings = hits(warden.abilities().get("deafening_rings"));
+        assertEquals(List.of(new Shape.Ring(6, 9), new Shape.Ring(12, 15), new Shape.Ring(18, 22)),
+                rings.stream().map(HitEvent::shape).toList());
+
+        List<HitEvent> mines = hits(warden.abilities().get("echo_mines"));
+        assertEquals(3, mines.size());
+        for (HitEvent mine : mines) {
+            assertEquals(net.ledok.mobs_ld.mob.behaviour.event.Origin.EACH_FIGHTER, mine.origin());
+            assertEquals(java.util.Optional.of(0.6), mine.lead());
+            assertEquals(0.8, mine.at() - mine.begin(), 1.0e-9, "each drawn 0.8 s ahead");
+        }
+
+        List<HitEvent> tremor = hits(warden.abilities().get("tremor_line"));
+        assertEquals(6, tremor.size());
+        assertTrue(tremor.stream().allMatch(HitEvent::once), "once per victim along the line");
+        assertEquals(MobBehaviour.TargetRule.slot("listener"), warden.abilities().get("tremor_line").target());
+
+        for (String name : List.of("crushing_blow_branded", "rending_combo_branded")) {
+            for (HitEvent hit : hits(warden.abilities().get(name))) {
+                var brand = hit.hit().stacks().orElseThrow();
+                assertEquals("sculk_brand", brand.id());
+                assertEquals(3, brand.minPlayers());
+                assertEquals(4, brand.max());
+            }
+        }
+        assertTrue(hits(warden.abilities().get("crushing_blow")).get(0).hit().stacks().isEmpty());
+
+        var listen = warden.abilities().get("listening_silence").events().stream()
+                .filter(net.ledok.mobs_ld.mob.behaviour.event.ListenEvent.class::isInstance)
+                .map(net.ledok.mobs_ld.mob.behaviour.event.ListenEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(1.0, listen.from());
+        assertEquals(3.0, listen.until());
+        assertEquals(4.2, listen.end(), 1.0e-9);
+        assertEquals(java.util.Optional.of("sonic_lance"), listen.chainTo());
+        assertEquals(13.0, listen.hit().amount().orElseThrow());
+        // No broken references to what later milestones add (burrow M4, resonators M5).
+        assertFalse(json("/data/minecraft/mob_behaviour/warden.json").toString().contains("sculk_resonator"));
+        assertFalse(warden.abilities().containsKey("burrow_ambush"));
+    }
+
+    /** Every sound the Warden's file plays is a registered vanilla sound (no silent typos). */
+    @Test
+    void wardenSoundsExist() throws Exception {
+        java.util.regex.Matcher ids = java.util.regex.Pattern.compile("\"id\": \"(minecraft:entity\\.[a-z_.]+)\"")
+                .matcher(json("/data/minecraft/mob_behaviour/warden.json").toString().replace(":\"", ": \""));
+        int found = 0;
+        while (ids.find()) {
+            found++;
+            assertTrue(net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.containsKey(
+                    ResourceLocation.parse(ids.group(1))), ids.group(1));
+        }
+        assertTrue(found > 10);
     }
 
     /** The sonic damage type and its tags ship in the jar (design 4.8). */

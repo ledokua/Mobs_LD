@@ -2,17 +2,21 @@ package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
+import net.ledok.mobs_ld.entity.threat.ThreatEffects;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.behaviour.Seconds;
 import net.ledok.mobs_ld.mob.behaviour.SkullSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
@@ -52,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -102,6 +107,21 @@ public final class MobCombat {
     private long bodyMovedAt = Long.MIN_VALUE;
     /** Game time a dash last moved the body (see {@link #markDashing}). */
     private long dashedAt = Long.MIN_VALUE;
+    /** Damage dealt to it over the last 10 s, per attacker ({@code top_damage}). */
+    private final DamageLedger damageLedger = new DamageLedger();
+    /** Stacks its hits put on players ({@code hit.stacks}). */
+    private final HitStacks stacks = new HitStacks();
+    /** Fighters' recent positions, sampled only while the phase has a hit with a {@code lead}. */
+    private final MoveLead moveLead = new MoveLead();
+    /** Who stands behind it, per ability with {@code when.behind} that is allowed and off cooldown now. */
+    private final Map<String, BehindWatch> behind = new HashMap<>();
+    /** The behaviour and phase {@link #phaseLead} was worked out for (see {@link #scanPhase}). */
+    private MobBehaviour scannedBehaviour;
+    private int scannedPhase = -1;
+    /** Abilities of the scanned phase with a {@code lead} hit. */
+    private List<String> phaseLead = List.of();
+    /** Abilities of the scanned phase with a {@code when.behind} rule. */
+    private List<String> phaseBehind = List.of();
 
     private AbilityRun current;
     /** The ability started last (for {@code no_repeat}); null after a reset. */
@@ -236,6 +256,10 @@ public final class MobCombat {
         if (home == null) {
             home = mob.position();
         }
+        if (!stacks.isEmpty()) {
+            // A victim that died, logged out or left this level loses its stacks.
+            stacks.removeVictims(id -> !(level.getEntity(id) instanceof LivingEntity victim) || !victim.isAlive());
+        }
         MobBehaviour behaviour = behaviour();
         if (behaviour == null) {
             if (!inert) {
@@ -282,6 +306,9 @@ public final class MobCombat {
         if (!mob.isRemoved()) {
             slots.tick(behaviour, engaged);
         }
+        if (engaged && !mob.isRemoved()) {
+            tickWatches(behaviour, now);
+        }
         if (engaged && !busy() && !mob.isRemoved() && movement().style() == MobBehaviour.Movement.Style.VANILLA) {
             // The combat goal only runs during abilities for these hosts, so abilities are picked from here.
             tryStartAbility();
@@ -323,6 +350,107 @@ public final class MobCombat {
         }
     }
 
+    /**
+     * The per-player bookkeeping some abilities need, and only while one may use it: fighters' positions while an
+     * ability with a {@code lead} hit is allowed by the phase and off cooldown, or running (also when chained or
+     * forced: it then starts sampling and predicts once it has a trail), and who stands behind it for each
+     * {@code when.behind} ability that is allowed and off cooldown (a watch that is not needed is dropped, so its
+     * timers start over).
+     */
+    private void tickWatches(MobBehaviour behaviour, long now) {
+        scanPhase(behaviour);
+        boolean runLead = current != null && hasLeadHit(current.ability());
+        if (phaseBehind.isEmpty() && phaseLead.isEmpty() && !runLead) {
+            clearWatches(); // the usual case (every phase without such abilities): nothing to poll
+            return;
+        }
+        boolean lead = runLead || anyReady(behaviour, phaseLead, now);
+        List<String> watching = new ArrayList<>();
+        for (String name : phaseBehind) {
+            if (anyReady(behaviour, List.of(name), now)) {
+                watching.add(name);
+            }
+        }
+        behind.keySet().retainAll(watching);
+        if (!lead) {
+            moveLead.clear();
+        }
+        if (!lead && watching.isEmpty()) {
+            return;
+        }
+        List<Player> fighters = Fighters.of(mob);
+        if (lead) {
+            moveLead.sample(fighters, now);
+        }
+        for (String name : watching) {
+            MobBehaviour.Behind rule = behaviour.abilities().get(name).behind().orElseThrow();
+            Set<UUID> back = new HashSet<>();
+            for (Player fighter : fighters) {
+                if (BehindWatch.isBehind(fighter.getX() - mob.getX(), fighter.getY() - mob.getY(),
+                        fighter.getZ() - mob.getZ(), mob.yBodyRot, rule.range(), rule.angle(), rule.height())) {
+                    back.add(fighter.getUUID());
+                }
+            }
+            behind.computeIfAbsent(name, key -> new BehindWatch()).update(back, now);
+        }
+    }
+
+    /** Whether any of the abilities {@code names} is off cooldown now. */
+    private boolean anyReady(MobBehaviour behaviour, List<String> names, long now) {
+        for (String name : names) {
+            MobBehaviour.Ability ability = behaviour.abilities().get(name);
+            if (ability != null && AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether one of the ability's {@code hit} events places its zones ahead of moving players ({@code lead}). */
+    private static boolean hasLeadHit(MobBehaviour.Ability ability) {
+        for (AbilityEvent event : ability.events()) {
+            if (event instanceof HitEvent hit && hit.lead().isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Works out, once per behaviour and phase, which of the phase's abilities have {@code lead} hits or {@code when.behind}. */
+    private void scanPhase(MobBehaviour behaviour) {
+        if (behaviour == scannedBehaviour && phase == scannedPhase) {
+            return;
+        }
+        scannedBehaviour = behaviour;
+        scannedPhase = phase;
+        MobBehaviour.Phase active = activePhase(behaviour);
+        List<String> withLead = new ArrayList<>();
+        List<String> withBehind = new ArrayList<>();
+        for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
+            if (active != null && !active.allows(entry.getKey())) {
+                continue;
+            }
+            if (entry.getValue().behind().isPresent()) {
+                withBehind.add(entry.getKey());
+            }
+            if (hasLeadHit(entry.getValue())) {
+                withLead.add(entry.getKey());
+            }
+        }
+        phaseLead = List.copyOf(withLead);
+        phaseBehind = List.copyOf(withBehind);
+    }
+
+    /** Whether ability {@code name}'s {@code when.behind} rule holds now (true without one). */
+    private boolean behindHolds(String name, MobBehaviour.Ability ability, long now) {
+        MobBehaviour.Behind rule = ability.behind().orElse(null);
+        if (rule == null) {
+            return true;
+        }
+        BehindWatch watch = behind.get(name);
+        return watch != null && watch.count(now, Math.round(rule.seconds() * 20.0)) >= rule.players();
+    }
+
     private void engage(MobBehaviour behaviour, LivingEntity target, long now) {
         engaged = true;
         engagedAt = now;
@@ -345,8 +473,16 @@ public final class MobCombat {
         staggerUntil = -1;
         host.mobs_ld$stopAction();
         slots.clear();
+        clearWatches();
+        ListenWindows.closeFor(mob);
         engaged = false;
         idleTicks = 0;
+    }
+
+    /** Drops the per-player bookkeeping of the fight (positions, who stands behind it). */
+    private void clearWatches() {
+        moveLead.clear();
+        behind.clear();
     }
 
     /**
@@ -383,6 +519,10 @@ public final class MobCombat {
         unreachable.clear(); // nothing re-checks them now, and targeting would keep skipping those players
         unreachableSince.clear();
         hurtBy.clear();
+        clearWatches();
+        ListenWindows.closeFor(mob);
+        stacks.clear();
+        damageLedger.clear();
         ServerBossEvent hostBar = adapter.bossBar(mob);
         MobBehaviour.BossBar vanilla = adapter.defaultBarStyle();
         if (hostBar != null && vanilla != null) {
@@ -519,14 +659,23 @@ public final class MobCombat {
         MobBehaviour.Phase active = activePhase(behaviour);
         List<Candidate> options = new ArrayList<>();
         int totalWeight = 0;
+        int fighters = -1; // counted once, if an ability asks
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
             if ((active != null && !active.allows(name)) || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
-                    || (ability.skipWhenFull() && summonsFull(ability))) {
+                    || (ability.skipWhenFull() && summonsFull(ability)) || !behindHolds(name, ability, now)) {
                 continue;
             }
-            LivingEntity aim = CombatTargets.pick(mob, ability.target());
+            if (ability.countsPlayers()) {
+                if (fighters < 0) {
+                    fighters = Fighters.of(mob).size();
+                }
+                if (!ability.allowsPlayers(fighters)) {
+                    continue;
+                }
+            }
+            LivingEntity aim = CombatTargets.pick(mob, ability.target(), ability.includeUnreachable());
             if (aim == null) {
                 continue;
             }
@@ -605,10 +754,13 @@ public final class MobCombat {
         String chained = current.chainTo();
         trace("end " + current.name() + (staggered ? " (staggered)" : chained != null ? " -> chain " + chained : ""));
         LivingEntity aim = current.aim();
+        LivingEntity asked = current.chainAim();
+        boolean tauntWins = current.chainTauntWins();
         current = null;
         if (chained != null && behaviour.abilities().containsKey(chained)) {
             MobBehaviour.Ability next = behaviour.abilities().get(chained);
-            start(chained, next, chainedAim(next, aim));
+            LivingEntity nextAim = asked != null && asked.isAlive() ? asked : chainedAim(next, aim, tauntWins);
+            start(chained, next, nextAim);
             return;
         }
         globalReadyAt = now + Math.round(behaviour.globalCooldown() * 20.0);
@@ -623,15 +775,28 @@ public final class MobCombat {
 
     /**
      * Whom a chained-into ability aims at: the previous run's aim when its rule is {@code current} (a charge's finisher
-     * hits whoever was charged, not the tank), else a fresh pick by its own rule (e.g. a target slot's holder now),
-     * falling back to the previous aim when that finds nobody.
+     * hits whoever was charged, not the tank), unless {@code tauntWins} and a taunt lock holds the mob (then the
+     * taunter); else a fresh pick by its own rule (e.g. a target slot's holder now), falling back to the previous aim
+     * when that finds nobody.
      */
-    private LivingEntity chainedAim(MobBehaviour.Ability next, LivingEntity previous) {
+    private LivingEntity chainedAim(MobBehaviour.Ability next, LivingEntity previous, boolean tauntWins) {
         if (next.target().kind() == MobBehaviour.TargetRule.Kind.CURRENT) {
-            return previous;
+            LivingEntity taunter = tauntWins ? taunter() : null;
+            if (taunter != null && taunter != previous) {
+                trace("taunt lock: " + taunter.getName().getString() + " takes the chain");
+            }
+            return taunter != null ? taunter : previous;
         }
-        LivingEntity picked = CombatTargets.pick(mob, next.target());
+        LivingEntity picked = CombatTargets.pick(mob, next.target(), next.includeUnreachable());
         return picked != null ? picked : previous;
+    }
+
+    /** The player (or summon) whose live taunt or provoke holds this mob now, if it may be hit; else null. */
+    private LivingEntity taunter() {
+        ServerLevel level = (ServerLevel) mob.level();
+        UUID id = ThreatEffects.lockedController(((ThreatHolder) mob).getThreatTable(), level,
+                uuid -> level.getEntity(uuid) instanceof LivingEntity living && CombatTargets.isEnemy(mob, living));
+        return id != null && level.getEntity(id) instanceof LivingEntity living ? living : null;
     }
 
     private Seconds cooldownOf(String name, MobBehaviour.Ability ability) {
@@ -813,7 +978,7 @@ public final class MobCombat {
             return amount;
         }
         MobBehaviour.Phase active = activePhase(behaviour);
-        double multiplier = active == null ? 1.0 : active.damageMultiplier(source);
+        double multiplier = active == null ? 1.0 : active.damageMultiplier(source, this::hasLiveAdd);
         if (current != null) {
             multiplier *= current.damageTakenMultiplier();
         }
@@ -841,6 +1006,10 @@ public final class MobCombat {
         groupReadyAt.clear();
         readyInWins.clear();
         lastStarted = null;
+        stacks.clear();
+        damageLedger.clear();
+        clearWatches();
+        ListenWindows.closeFor(mob);
         // Unreachable marks survive a reset: otherwise a cheeser on a tower is re-targeted at once and the boss
         // loops intro -> unreachable -> reset. They clear themselves when the player is reachable again.
         clearEnrage();
@@ -902,6 +1071,9 @@ public final class MobCombat {
             current.cancel();
             current = null;
         }
+        stacks.clear();
+        clearWatches();
+        ListenWindows.closeFor(mob);
         discardSummons();
         removeBar();
         MobBehaviour behaviour = behaviour();
@@ -947,10 +1119,71 @@ public final class MobCombat {
         }
         fading.clear();
         removeBar();
+        ListenWindows.closeFor(mob); // the abandoned run's window (its events were not told)
         if (!leftovers.isEmpty() && mob.level() instanceof ServerLevel level) {
             MinecraftServer server = level.getServer();
             server.tell(new TickTask(server.getTickCount(), () -> leftovers.forEach(AttackZoneDisplay::remove)));
         }
+    }
+
+    // --- Damage dealt to it, stacks, positions ---
+
+    /** {@code attacker} dealt it {@code amount} (after armour): counted for {@code top_damage} for 10 s. */
+    public void noteDamage(LivingEntity attacker, float amount) {
+        damageLedger.record(attacker.getUUID(), amount, mob.level().getGameTime());
+    }
+
+    /** Whoever {@code eligible} accepts that dealt it the most damage in the last 10 s; null if none did. */
+    public UUID topDamage(Predicate<UUID> eligible) {
+        return damageLedger.top(mob.level().getGameTime(), eligible);
+    }
+
+    /** What this mob's ability hits on {@code victim} are multiplied by, from the stacks they carry (1 = none). */
+    public double stackMultiplier(LivingEntity victim) {
+        return stacks.isEmpty() ? 1.0 : stacks.multiplier(victim.getUUID(), mob.level().getGameTime());
+    }
+
+    /**
+     * A hit with {@code stacks} landed on {@code victim}: one more stack (if enough players fight it), and the victim
+     * (a player) sees the count in its action bar.
+     */
+    public void addStack(LivingEntity victim, HitSpec.Stacks spec) {
+        if (spec.minPlayers() > 0 && Fighters.of(mob).size() < spec.minPlayers()) {
+            return;
+        }
+        int count = stacks.add(victim.getUUID(), spec.id(), spec.perStack(), spec.max(),
+                Math.round(spec.duration() * 20.0), mob.level().getGameTime());
+        trace(String.format("%s x%d on %s", spec.id(), count, victim.getName().getString()));
+        if (victim instanceof ServerPlayer player) {
+            player.displayClientMessage(Component.translatable(spec.messageKey(), count), true);
+        }
+    }
+
+    /**
+     * Where {@code entity} is heading {@code lead} seconds ahead, from its movement over the last half second (only
+     * fighters are tracked, and only while a {@code lead} hit is off cooldown or running); where it stands otherwise.
+     */
+    public Vec3 predictedPosition(LivingEntity entity, double lead) {
+        return moveLead.predict(entity, lead, mob.level().getGameTime());
+    }
+
+    /** Where it lives: where it first ticked, or was carried to (the arena it walks back to); null before that. */
+    public Vec3 home() {
+        return home;
+    }
+
+    /** Whether one of its own adds of entity type {@code type} is alive now ({@code damage_taken.while_adds}). */
+    public boolean hasLiveAdd(ResourceLocation type) {
+        if (summons.isEmpty() || !(mob.level() instanceof ServerLevel level)) {
+            return false;
+        }
+        for (UUID id : summons) {
+            Entity entity = level.getEntity(id);
+            if (entity != null && entity.isAlive() && BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).equals(type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- Summons ---

@@ -1,7 +1,7 @@
 package net.ledok.mobs_ld.entity.attack;
 
 public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone, AttackZone.Circle, AttackZone.CircleTarget,
-        AttackZone.CircleRays, AttackZone.Strip {
+        AttackZone.CircleRays, AttackZone.Strip, AttackZone.Ring {
     float maxForwardReach();
 
     record Rectangle(float width, float length, float offsetForward) implements AttackZone {
@@ -79,6 +79,19 @@ public sealed interface AttackZone permits AttackZone.Rectangle, AttackZone.Cone
         @Override
         public float maxForwardReach() {
             return length + headLength;
+        }
+    }
+
+    /** A band from {@code inner} to {@code outer} blocks around the origin (the facing does not matter). */
+    record Ring(float inner, float outer) implements AttackZone {
+        public Ring {
+            inner = Math.max(0.0F, inner);
+            outer = Math.max(inner, outer);
+        }
+
+        @Override
+        public float maxForwardReach() {
+            return outer;
         }
     }
 }

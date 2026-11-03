@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 /** Who a mob running a behaviour may hurt and aim at. */
 public final class CombatTargets {
@@ -35,12 +36,20 @@ public final class CombatTargets {
 
     /** Players the mob could aim at right now: alive, attackable, not stealthed, within its follow range. */
     public static List<LivingEntity> candidates(Mob mob) {
+        return candidates(mob, false);
+    }
+
+    /**
+     * As {@link #candidates(Mob)}; with {@code includeUnreachable}, players the reach rule gave up on count too (an
+     * ability with {@code include_unreachable}).
+     */
+    public static List<LivingEntity> candidates(Mob mob, boolean includeUnreachable) {
         double range = mob.getAttributeValue(Attributes.FOLLOW_RANGE);
         MobCombat combat = CombatHost.of(mob);
         List<LivingEntity> result = new ArrayList<>();
         for (Player player : mob.level().players()) {
             if (isEnemy(mob, player) && !StealthCompat.isHidden(player) && mob.distanceToSqr(player) <= range * range
-                    && (combat == null || !combat.isUnreachable(player))) {
+                    && (includeUnreachable || combat == null || !combat.isUnreachable(player))) {
                 result.add(player);
             }
         }
@@ -53,6 +62,14 @@ public final class CombatTargets {
 
     /** Applies a target rule; null when nobody qualifies. */
     public static LivingEntity pick(Mob mob, MobBehaviour.TargetRule rule) {
+        return pick(mob, rule, false);
+    }
+
+    /**
+     * Applies a target rule; with {@code includeUnreachable}, the rules that choose among players (all but
+     * {@code current} and {@code slot:}) may pick players the reach rule gave up on. Null when nobody qualifies.
+     */
+    public static LivingEntity pick(Mob mob, MobBehaviour.TargetRule rule, boolean includeUnreachable) {
         switch (rule.kind()) {
             case CURRENT -> {
                 LivingEntity target = mob.getTarget();
@@ -66,7 +83,7 @@ public final class CombatTargets {
             default -> {
             }
         }
-        List<LivingEntity> options = candidates(mob);
+        List<LivingEntity> options = candidates(mob, includeUnreachable);
         if (options.isEmpty()) {
             return null;
         }
@@ -75,8 +92,28 @@ public final class CombatTargets {
             case FARTHEST -> options.stream().max(Comparator.comparingDouble(mob::distanceToSqr)).orElse(null);
             case RANDOM -> options.get(mob.getRandom().nextInt(options.size()));
             case LOWEST_THREAT -> lowestThreat(mob, options);
+            case TOP_DAMAGE -> topDamage(mob, options);
             case CURRENT, SLOT -> throw new AssertionError();
         };
+    }
+
+    /**
+     * Among {@code options}, whoever dealt the mob the most damage in the last 10 s (see {@link DamageLedger}); if
+     * none of them did, the one with the most threat; null if none has any.
+     */
+    private static LivingEntity topDamage(Mob mob, List<LivingEntity> options) {
+        MobCombat combat = CombatHost.of(mob);
+        UUID top = combat == null ? null : combat.topDamage(id -> options.stream().anyMatch(o -> o.getUUID().equals(id)));
+        if (top == null) {
+            ThreatTable table = ((ThreatHolder) mob).getThreatTable();
+            top = table.topHolder(id -> options.stream().anyMatch(o -> o.getUUID().equals(id)));
+        }
+        for (LivingEntity option : options) {
+            if (option.getUUID().equals(top)) {
+                return option;
+            }
+        }
+        return null;
     }
 
     /** The lowest-threat player among {@code options} (0 counts); a tie goes to someone other than the tank. */

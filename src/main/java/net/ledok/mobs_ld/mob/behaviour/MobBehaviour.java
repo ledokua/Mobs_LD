@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * The reloadable half of a mob definition: how it moves, what it can do and, for bosses, how the fight evolves.
@@ -388,6 +389,12 @@ public record MobBehaviour(
      * @param cooldownGroup abilities naming the same group share one cooldown: using one puts all of them on the
      *                     cooldown it rolled (its own, or the phase's override for it)
      * @param noRepeat     not picked right after itself while another ability can be picked
+     * @param minPlayers   only usable while at least this many players fight the mob ({@link
+     *                     net.ledok.mobs_ld.mob.combat.Fighters}); empty = any number
+     * @param maxPlayers   only usable while at most this many players fight it; empty = any number
+     * @param when         extra conditions on the players around it (see {@link When})
+     * @param includeUnreachable its target rule may also pick players the reach rule gave up on (a ranged attack at a
+     *                     player on a ledge); {@code current} and {@code slot:} rules are not affected
      */
     public record Ability(
             String clip,
@@ -405,6 +412,10 @@ public record MobBehaviour(
             boolean fixedSpeed,
             Optional<String> cooldownGroup,
             boolean noRepeat,
+            Optional<Integer> minPlayers,
+            Optional<Integer> maxPlayers,
+            Optional<When> when,
+            boolean includeUnreachable,
             List<AbilityEvent> events
     ) {
         /**
@@ -421,6 +432,26 @@ public record MobBehaviour(
 
             static Scheduling of(Ability ability) {
                 return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat());
+            }
+        }
+
+        /** The Warden rework's M3 conditions: who must be fighting, and where, for the ability to be usable. */
+        private record Conditions(Optional<Integer> minPlayers, Optional<Integer> maxPlayers, Optional<When> when,
+                                  boolean includeUnreachable) {
+            static final MapCodec<Conditions> CODEC = RecordCodecBuilder.<Conditions>mapCodec(i -> i.group(
+                    Codec.intRange(0, 64).optionalFieldOf("min_players").forGetter(Conditions::minPlayers),
+                    Codec.intRange(0, 64).optionalFieldOf("max_players").forGetter(Conditions::maxPlayers),
+                    When.CODEC.optionalFieldOf("when").forGetter(Conditions::when),
+                    Codec.BOOL.optionalFieldOf("include_unreachable", false).forGetter(Conditions::includeUnreachable)
+            ).apply(i, Conditions::new)).validate(c -> c.minPlayers().isPresent() && c.maxPlayers().isPresent()
+                    && c.maxPlayers().get() < c.minPlayers().get()
+                    ? DataResult.error(() -> "An ability's max_players (" + c.maxPlayers().get() + ") is below its "
+                    + "min_players (" + c.minPlayers().get() + ")")
+                    : DataResult.success(c));
+
+            static Conditions of(Ability ability) {
+                return new Conditions(ability.minPlayers(), ability.maxPlayers(), ability.when(),
+                        ability.includeUnreachable());
             }
         }
 
@@ -453,15 +484,54 @@ public record MobBehaviour(
 
         public static final Codec<Ability> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Core.CODEC.forGetter(Core::of),
-                Scheduling.CODEC.forGetter(Scheduling::of)
-        ).apply(i, (core, scheduling) -> new Ability(core.clip(), core.duration(), core.cooldown(),
+                Scheduling.CODEC.forGetter(Scheduling::of),
+                Conditions.CODEC.forGetter(Conditions::of)
+        ).apply(i, (core, scheduling, conditions) -> new Ability(core.clip(), core.duration(), core.cooldown(),
                 core.initialCooldown(), core.weight(), core.range(), core.target(), core.trackUntil(),
                 core.forceAfter(), core.aimSide(), core.invulnerable(), core.skipWhenFull(), scheduling.fixedSpeed(),
-                scheduling.cooldownGroup(), scheduling.noRepeat(), core.events())));
+                scheduling.cooldownGroup(), scheduling.noRepeat(), conditions.minPlayers(), conditions.maxPlayers(),
+                conditions.when(), conditions.includeUnreachable(), core.events())));
 
         public String clipOr(String key) {
             return clip.isEmpty() ? key : clip;
         }
+
+        /** Whether {@code fighters} fighting players satisfy {@code min_players} / {@code max_players}. */
+        public boolean allowsPlayers(int fighters) {
+            return fighters >= minPlayers.orElse(0) && fighters <= maxPlayers.orElse(Integer.MAX_VALUE);
+        }
+
+        /** Whether either player-count bound is set (so the fighters must be counted). */
+        public boolean countsPlayers() {
+            return minPlayers.isPresent() || maxPlayers.isPresent();
+        }
+
+        /** Its {@code when.behind} rule, if any. */
+        public Optional<Behind> behind() {
+            return when.flatMap(When::behind);
+        }
+    }
+
+    /** Conditions on the players around the mob that an ability needs (all must hold). */
+    public record When(Optional<Behind> behind) {
+        public static final Codec<When> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Behind.CODEC.optionalFieldOf("behind").forGetter(When::behind)
+        ).apply(i, When::new));
+    }
+
+    /**
+     * At least {@code players} fighting players have each stood behind the mob (within {@code range} blocks, the rear
+     * {@code angle} degrees, the whole width, centred on its back, and {@code height} blocks above or below its feet,
+     * so a player on a ledge does not count) for {@code seconds} without a break.
+     */
+    public record Behind(int players, double seconds, double range, double angle, double height) {
+        public static final Codec<Behind> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(1, 64).optionalFieldOf("players", 1).forGetter(Behind::players),
+                Codec.doubleRange(0.0, 600.0).optionalFieldOf("for", 0.0).forGetter(Behind::seconds),
+                Codec.doubleRange(0.5, 64.0).optionalFieldOf("range", 5.0).forGetter(Behind::range),
+                Codec.doubleRange(1.0, 360.0).optionalFieldOf("angle", 120.0).forGetter(Behind::angle),
+                Codec.doubleRange(0.0, 64.0).optionalFieldOf("height", 3.0).forGetter(Behind::height)
+        ).apply(i, Behind::new));
     }
 
     /**
@@ -487,7 +557,8 @@ public record MobBehaviour(
     /**
      * Who an ability aims at (or movement follows): {@code current} (the threat target, normally the tank),
      * {@code nearest}, {@code farthest}, {@code random} player, {@code lowest_threat} (the player with the least threat;
-     * ties prefer someone other than the tank) or {@code slot:<name>} (whoever that target slot holds now).
+     * ties prefer someone other than the tank), {@code top_damage} (whoever dealt it the most damage in the last 10 s;
+     * else the threat top) or {@code slot:<name>} (whoever that target slot holds now).
      *
      * @param slot the slot's name, for {@link Kind#SLOT}
      */
@@ -497,6 +568,7 @@ public record MobBehaviour(
         public static final TargetRule FARTHEST = new TargetRule(Kind.FARTHEST, Optional.empty());
         public static final TargetRule RANDOM = new TargetRule(Kind.RANDOM, Optional.empty());
         public static final TargetRule LOWEST_THREAT = new TargetRule(Kind.LOWEST_THREAT, Optional.empty());
+        public static final TargetRule TOP_DAMAGE = new TargetRule(Kind.TOP_DAMAGE, Optional.empty());
         private static final String SLOT_PREFIX = "slot:";
 
         public static final Codec<TargetRule> CODEC = Codec.STRING.comapFlatMap(TargetRule::parse, TargetRule::serialized);
@@ -517,7 +589,7 @@ public record MobBehaviour(
                 }
             }
             return DataResult.error(() -> "Unknown target '" + text
-                    + "' (expected current, nearest, farthest, random, lowest_threat or slot:<name>)");
+                    + "' (expected current, nearest, farthest, random, lowest_threat, top_damage or slot:<name>)");
         }
 
         public String serialized() {
@@ -530,6 +602,7 @@ public record MobBehaviour(
             FARTHEST("farthest"),
             RANDOM("random"),
             LOWEST_THREAT("lowest_threat"),
+            TOP_DAMAGE("top_damage"),
             SLOT("slot");
 
             private final String name;
@@ -643,10 +716,14 @@ public record MobBehaviour(
             return abilities.isEmpty() || abilities.contains(ability);
         }
 
-        public double damageMultiplier(DamageSource source) {
+        /**
+         * The product of the {@code damage_taken} rules that match {@code source}; a rule with {@code while_adds} only
+         * while {@code liveAdd} says the mob has a live add of that entity type.
+         */
+        public double damageMultiplier(DamageSource source, Predicate<ResourceLocation> liveAdd) {
             double multiplier = 1.0;
             for (DamageTaken rule : damageTaken) {
-                if (rule.kind().matches(source)) {
+                if (rule.kind().matches(source) && rule.whileAdds().map(liveAdd::test).orElse(true)) {
                     multiplier *= rule.multiplier();
                 }
             }
@@ -654,10 +731,15 @@ public record MobBehaviour(
         }
     }
 
-    public record DamageTaken(Kind kind, double multiplier) {
+    /**
+     * @param whileAdds only while one of the mob's own adds (its summons) of this entity type is alive (the Warden's
+     *                  Resonators halve its damage taken while any stands); empty = always
+     */
+    public record DamageTaken(Kind kind, double multiplier, Optional<ResourceLocation> whileAdds) {
         public static final Codec<DamageTaken> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Kind.CODEC.fieldOf("kind").forGetter(DamageTaken::kind),
-                Codec.DOUBLE.fieldOf("multiplier").forGetter(DamageTaken::multiplier)
+                Codec.DOUBLE.fieldOf("multiplier").forGetter(DamageTaken::multiplier),
+                ResourceLocation.CODEC.optionalFieldOf("while_adds").forGetter(DamageTaken::whileAdds)
         ).apply(i, DamageTaken::new));
 
         public enum Kind implements StringRepresentable {

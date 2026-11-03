@@ -31,7 +31,8 @@ public interface AbilityEvent {
             Map.entry("projectile", ProjectileEvent.CODEC),
             Map.entry("chain", ChainEvent.CODEC),
             Map.entry("clip", ClipEvent.CODEC),
-            Map.entry("vulnerable", VulnerableEvent.CODEC)
+            Map.entry("vulnerable", VulnerableEvent.CODEC),
+            Map.entry("listen", ListenEvent.CODEC)
     ));
 
     /** An unknown {@code type} is a decoding error (the file is reported and skipped), never an exception. */

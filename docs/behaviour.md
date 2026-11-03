@@ -36,7 +36,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary`, `vanilla` (the host's own AI moves and attacks between abilities; see below) |
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
-| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `slot:<name>` (as an ability's `target`) |
+| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `top_damage`, `slot:<name>` (as an ability's `target`) |
 | `reach_height` | 85 % of its height | how far above its feet it can strike |
 | `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
 | `reach_rule` | `path` | what makes a target reachable: `path` (reach band or a full path) or `line_of_sight` (it can see the target) |
@@ -86,7 +86,7 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `initial_cooldown` | 0 | *time range*: after engaging, before first use (rolled at each engage) |
 | `weight` | 1 | relative chance among the abilities usable right now; `0` = only reached by chaining |
 | `range` | any | `{ "min", "max", "above", "below" }` horizontal distance; `above`/`below` default to the reach band |
-| `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player, `lowest_threat` (the player with the least threat, 0 counts; a tie goes to someone other than the tank), `slot:<name>` (whoever that [target slot](#target-slots) holds; no holder = the ability is not usable) |
+| `target` | `current` | aim: `current` (threat target / tank), `nearest`, `farthest`, `random` player, `lowest_threat` (the player with the least threat, 0 counts; a tie goes to someone other than the tank), `top_damage` (whoever dealt it the most damage, after armour, in the last 10 s; a tie goes to whoever got there first; if none of the candidates hurt it in that time, the one with the most threat), `slot:<name>` (whoever that [target slot](#target-slots) holds; no holder = the ability is not usable) |
 | `track_until` | first telegraph | the mob turns toward its aim until this time, then facing and aim lock |
 | `force_after` | none | once fighting this long, use it as soon as it is off cooldown, ignoring range (a fuse) |
 | `aim_side` | 0 | blocks to the mob's right where its weapon strikes (one-handed weapon); it turns so that line meets the target |
@@ -95,11 +95,15 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `fixed_speed` | false | its timeline and clip ignore the phase's `attack_speed` (run at 1): for an ability timed to a host clip that cannot play faster (the Warden's `sonic_boom`: at 1.2 the wave would land 0.28 s before the chest burst) |
 | `cooldown_group` | none | a name; abilities with the same group share one cooldown: using one puts every ability of the group on the cooldown it rolled (its own `cooldown`, or the phase's `cooldowns` entry for it), never shortening a group cooldown that already runs longer. Their own initial cooldowns still count separately. A phase's `ready_in` wins over the group: the ability named there is usable at that time even while its group is on cooldown (once; its next use puts the group on cooldown as usual) |
 | `no_repeat` | false | never picked right after itself (the ability started last, by name) while another ability can be picked; alone it may repeat. A `force_after` fuse ignores it |
+| `min_players` / `max_players` | none | only usable while at least / at most this many [players fight it](#fighting-players) (counted when it would be picked; also holds a `force_after` fuse back) |
+| `when` | none | `{ "behind": { "players": 2, "for": 4, "range": 4.5, "angle": 140, "height": 3 } }`: only usable once at least `players` fighting players have each stood behind it (within `range` blocks, the rear `angle` degrees, the whole width, centred on its back, and `height` blocks above or below its feet, so a player on a ledge does not count) for `for` seconds without a break (defaults: 1 player, 0 s, 5 blocks, 120 degrees, 3 blocks). Who stands where is only watched while the ability is allowed by the phase and off cooldown, so the count starts when it comes off cooldown |
+| `include_unreachable` | false | its target rule may also pick players the reach rule gave up on (a player on a ledge can still be the farthest); `current` and `slot:` rules are not affected |
 | `events` | `[]` | timeline (below) |
 
 Choosing: every tick out of an ability, the mob picks at random (by `weight`) among abilities that are allowed by
-the phase, off cooldown (their own and their `cooldown_group`'s), have an aim and are in range, leaving out a
-`no_repeat` ability that went last while there is another; if none is, it moves per `movement`. An ability with
+the phase, off cooldown (their own and their `cooldown_group`'s), meet their `min_players` / `max_players` and `when`,
+have an aim and are in range, leaving out a `no_repeat` ability that went last while there is another; if none is, it
+moves per `movement`. An ability with
 `"weight": 0, "force_after": 0` is never picked by chance but goes as soon as it is ready, at any range (the Wither's
 Grave Call).
 
@@ -113,7 +117,9 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 |---|---|---|
 | `at` | required | impact time |
 | `shape` | required | see Shapes |
-| `origin` | `self` | `self` (on the mob) or `target` (where the aim stood when the telegraph appeared) |
+| `origin` | `self` | `self` (on the mob), `target` (where the aim stood when the telegraph appeared) or `each_fighter`: one zone under each [fighting player](#fighting-players), all locked when the telegraph appears and drawn as one telegraph; anyone inside any of them is hit, once per event even where zones overlap. With nobody fighting yet (a forced test) one zone at the aim |
+| `lead` | - | with `each_fighter` only: each zone goes where its player is heading, this many seconds ahead at their horizontal speed over the last 0.5 s, at most 4 blocks from where they stand. Fighters' positions are only sampled while an ability with such a hit is allowed by the phase and off cooldown, or running (a chained or forced one starts the sampling as it starts, so its first zones go where the players stand); without a trail, and for a player who just joined, where they stand |
+| `once` | false | a victim already struck by another `once` hit of the same ability run is skipped (a line of overlapping circles strikes each player once) |
 | `offset` | 0 | push the origin forward along the facing |
 | `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
 | `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
@@ -142,12 +148,22 @@ The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
 | `damage_type` | `minecraft:mob_attack` | damage type id (any datapack's; skulls default to vanilla's `minecraft:wither_skull`); the mob stays the attacker either way. Unknown ids are reported when the server starts or reloads, and those hits deal the default type |
 | `effects` | none | `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id, applied only when the hit lands; unknown ids are skipped with a log warning |
 | `knockback` / `knock_up` | 0.4 / 0 | the whole push (below) |
+| `stacks` | none | `{ "id": "sculk_brand", "per_stack": 0.12, "max": 4, "duration": 15, "min_players": 3 }`: a landed hit leaves a stack (below). Ability hits only (`hit`, `dash`, `chase`, `trace`, `listen`), not skulls |
 
 Hits ignore vanilla's 10-tick hurt immunity (each event lands at most once per victim), so combo beats and a
 slash right after a trample all count. Mod dodges that cancel damage (Combat Roll's roll i-frames) still work.
 `knockback` / `knock_up` are the whole push: vanilla's own 0.4 shove on every melee hit is removed, so 0 means the
 victim does not budge. Keep knockback low on a combo's opening beats, or the first hit pushes the target out of the
 next one's reach.
+
+**Stacks** (`hit.stacks`, the Warden's Sculk Brand): each stack of `id` a player carries from this mob makes its later
+ability hits on them `1 + per_stack x stacks` times stronger (several ids multiply); the hit that leaves a stack
+counts it only from the next hit on. At most `max` stacks (1); every new one restarts the `duration` (seconds,
+required) of all of them, and they all go when it runs out, or when the mob resets or dies. Only while at least
+`min_players` players [fight it](#fighting-players) (0 = always). They live on the mob's fight state, not as a mob
+effect: milk and cleanses do not remove them, and there is no icon. A player who dies, logs out or leaves the mob's
+level loses them at once. The player sees an action-bar line with the
+count, translation key `mobs_ld.stacks.<id>` (`%s` = the count), e.g. "Sculk Brand: 3".
 
 ### `clip` - play a clip mid-timeline
 ```json
@@ -166,6 +182,39 @@ out on the tick its timeline reads 0, so a `clip` at 1.7 and a hit at 1.7 both l
 From `at` to `until` the mob takes `multiplier` times the damage (an opening after a big attack). It stacks with the
 phase's `damage_taken` and with other windows open at the same time, and closes early if the ability is cut off
 (phase change, stagger, reset). The ability lasts at least until `until`. `until` before `at` is an error.
+
+### `listen` - punish whoever moves
+```json
+{ "type": "listen", "from": 1.0, "until": 3.0, "range": 40, "move_tolerance": 0.6,
+  "triggers": ["damage", "use_item", "sprint", "jump", "move"],
+  "hit": { "amount": 13.0, "damage_type": "mobs_ld:warden_sonic" },
+  "chain_to": "sonic_lance", "chain_at": 4.2, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 2 } }
+```
+From `from` to `until` the mob listens to every [fighting player](#fighting-players) within `range` blocks when the
+window opens. Whoever gives themselves away takes `hit` at once (once per window), with a line of `particles`
+(default `minecraft:sonic_boom`, one per block) from the mob's chest to them and `sound` (none by default) at the mob.
+At `chain_at` (default `until`; not before it) the ability hands over to `chain_to` (checked at load, like a `chain`),
+aimed at the first offender who is still alive, in the mob's level and someone it may hit; if there is no such
+offender (nobody was caught, or they all died or left) there is no hand-over and it simply runs to its end.
+
+| trigger | what gives a player away during the window |
+|---|---|
+| `damage` | damaging the mob or one of its adds by an action during the window: a melee hit (or a spell the player strikes with directly), or a projectile or other damaging entity of theirs that came into being after the window opened. Arrows already in flight when it opened, damage over time and effects (no direct source), and thorns do not count |
+| `use_item` | starting to use an item: drawing a bow or crossbow, raising a shield, eating (one already raised when the window opened is not "starting"; lowering and raising it again is); using an instant item: an ender pearl, a snowball, a splash potion, a firework (the stack shrinks or goes on cooldown; a right-click that does nothing does not count). Also starting a Spell Engine cast with a cast time or a channel |
+| `sprint` | sprinting at any moment |
+| `jump` | a jump (the server's jump statistic) |
+| `move` | being more than `move_tolerance` (0.6) blocks, horizontally, from where they stood when the window opened (a roll moves about 3) |
+
+`triggers` defaults to all five. The players are only read during the window, once per tick.
+
+- **Pushes are forgiven.** The server counts a hit's knock-up as a jump, and knockback moves a player. For 10 ticks
+  after a player was hurt or had their velocity set by the server (knockback, a knock-up, a shove), `jump` and `move`
+  are not held against them, and the spot they must keep becomes where they land. `use_item` and `sprint` still
+  count. A shove the server does not see (a wind charge's push is applied by the player's own client) is not
+  forgiven.
+- **Not caught:** an instant Spell Engine spell that deals no damage (a heal or a buff without a cast time): it is
+  neither an item use nor a cast in progress. A mod's damage over time that names the player as its direct source
+  counts as damage.
 
 ### `trace` - weapon hitbox that follows the animation
 `from`, `to` (active window, seconds), `path` (bones, e.g. `["blade_right", "hit_blade_right"]` = wrist to blade
@@ -252,6 +301,9 @@ At `at` the ability ends (events still running are cut off, telegraphs vanish) a
 one of the file's abilities). The follow-up keeps this ability's aim if its `target` is `current` (the default);
 any other rule picks again, so `"target": "slot:left_head"` turns it on whoever the left head holds now (with nobody
 there it keeps the old aim). A stagger, phase change or reset before `at` ends the ability without the hand-over.
+With `"taunt_wins": true` (default false) a taunt lock beats the kept aim: if a live taunt or provoke holds the mob
+when the hand-over happens, a `current` follow-up goes for the taunter instead (a taunt during the Warden's Hunting
+Sniff moves its Deep Charge onto the taunter).
 
 ### `summon` - adds
 ```json
@@ -296,7 +348,7 @@ adds nothing (a solo count).
 
 | field | default | meaning |
 |---|---|---|
-| `around` | `self` | `self` (the floor under the offset point), `aim`, or `fighters`: each rune is placed for one fighting player, one each in turn for two rounds (so a short wave reaches as many players as it can), the rest to random players; the order is shuffled per wave |
+| `around` | `self` | `self` (the floor under the offset point), `aim`, `fighters`: each rune is placed for one fighting player, one each in turn for two rounds (so a short wave reaches as many players as it can), the rest to random players; the order is shuffled per wave; or `home`: the floor under the mob's home point (where it first ticked, the spot it walks back to after a reset: an arena's centre for a boss spawned there), wherever the mob and the players stand now |
 | `radius` | [2, 4] | blocks from that centre: a number or `[min, max]`, rolled per spot |
 | `min_gap` | 1.5 | least distance between two runes of a wave |
 | `clearance` | 2 | open blocks needed above the floor (a wither skeleton is 2.4 tall: 3) |
@@ -340,7 +392,9 @@ chunk unload that kept only the add, the summoner gone through a portal or disca
 `at`, `origin`, `radius`, `duration`, `effects` - a lingering area-effect cloud.
 
 ### `effect`
-`at`, `radius` (0 = the mob itself), `effects` - buffs on self or debuffs on enemies around.
+`at`, `radius` (0 = the mob itself), `effects` - buffs on self or debuffs on enemies around. With `"on": "aim"`
+(default `around`, as above) the effects go on the ability's aim alone (if it is alive), credited to the mob, and
+`radius` is not used: the Warden's Hunting Sniff puts Glowing on the player it picked.
 
 ### `despawn`
 `at` - removes the mob in a puff of smoke (no death, drops or `on_death`), e.g. after a self-destruct.
@@ -469,6 +523,7 @@ disengage). Results for the Wither's heads (middle head = the main target):
 | `cone` | `radius`, `angle` (degrees, total width) |
 | `circle` | `radius` |
 | `rays` | `count` (even; lines through the origin, the first on the facing), `length` (each way), `width`, `widen` (0: blocks of extra lane width per block along the lane, so a lane is `width + widen x distance` wide there; drawn and tested as trapezoids; widening lanes are at most 48 long) |
+| `ring` | `inner`, `outer` (blocks, `outer` larger): a band around the origin; a victim whose feet are between `inner` and `outer` blocks away horizontally (both edges included, within the event's `height` / `depth`) is hit, inside `inner` is safe. Its telegraph fills outward across the band (`grow` and `sweep` alike). Clients from before rings draw nothing for it (the hit still lands) |
 
 ## Phases
 
@@ -493,7 +548,7 @@ disengage). Results for the Wither's heads (middle head = the main target):
 | `ready_in` | on entering, these abilities become usable after N seconds |
 | `cooldowns` | per-ability cooldown overrides (*time range*s) |
 | `attack_speed` | timelines and clips run this much faster |
-| `damage_taken` | `kind`: `melee`, `projectile`, `other` (spells, fire, ...), `all` |
+| `damage_taken` | `[ { "kind": "all", "multiplier": 0.5, "while_adds": "mobs_ld:sculk_resonator" } ]`: `kind` is `melee`, `projectile`, `other` (spells, fire, ...) or `all`; rules multiply. With `while_adds` (an entity id) the rule only applies while one of the mob's own live adds (its summons) is of that type |
 | `texture` | uses `<mob>_<texture>.png` if it exists |
 | `movement` | overrides `movement` |
 | `bar` | `{ "color": "blue", "overlay": "notched_10" }`: each part set replaces `boss.bar`'s while the phase runs; on a vanilla host with its own bar (the Wither) it recolours that bar, even without `boss.bar`, and a part neither sets goes back to the host bar's own look |
@@ -713,8 +768,8 @@ Mobs_LD ships a behaviour for the vanilla Warden with `host.only_tagged: ["arena
 Arenas_LD run spawns are hosted. Every other Warden (ancient cities, structures, shriekers, `/summon` without the tag)
 is fully vanilla: its swing, sonic boom, Darkness pulse, dig-away and loot. The file declares no `base_attributes`
 (Arenas sets the stats) and `reference_attributes` `attack_damage` 30, so R is 1 at vanilla attack damage. The file
-holds the first part of the kit (Crushing Blow, Sonic Boom Circle, Resonant Pulse, Sonic Lance; placeholder numbers,
-no phases yet); the full fight comes later.
+holds the kit as far as the engine supports it so far, in its three phases (all numbers are placeholders the owner
+tunes later; see the kit below and the design, `docs/design/warden-rework.md`).
 
 A hosted Warden keeps its entity, model, sounds, pathing, anger and a real death with its vanilla loot table. Its AI
 is a Brain, not goals; the engine works with it:
@@ -766,7 +821,32 @@ Host options (`"type": "mobs_ld:warden"`; these defaults are the boss's, not van
 | `follow_range` | 48 | its base `generic.follow_range` once hosted (vanilla 16: threat targeting and abilities only reach players within it), with its path search sized to match; a phase or a reload that changes it applies within a second |
 | `heartbeat` | vanilla | 0-150: while it fights, the anger level its clients' heartbeat and heart glow show instead of its real anger (0 = one beat every 2 s; 80 or more = the fastest, two a second); set per phase for the fight's tempo (the file: 20). Synced once a second |
 
-Not yet: its burrow (the `dig` and `emerge` cues), and its emerge when a run spawns it.
+**The kit so far** (phases 100-60 %, 60-25 %, 25-0 %; every hit names the Warden as the attacker; P = physical
+`minecraft:mob_attack`, S = `mobs_ld:warden_sonic`; raw amounts at level 0 / Normal):
+
+| ability | phases | what it does |
+|---|---|---|
+| `crushing_blow` | P1 (`crushing_blow_branded` in P2, P3) | tendril twitch, red rectangle 2.5 x 4.5 at the tank, P 12 at 1.0 s |
+| `rending_combo` | P1 (`rending_combo_branded` in P2, P3) | red cone 100 degrees r 3.5 at 1.0 s (P 7), then a 2 x 6 rectangle re-aimed at the tank at 2.0 s (P 11) |
+| Sculk Brand | P2, P3, 3+ fighters | the `_branded` swings leave `sculk_brand` stacks: +12 % from the Warden per stack, at most 4, 15 s |
+| `sculk_backlash` | all | only once 2 players have each stood behind it (4.5 blocks, rear 140 degrees, within 3 blocks of its height) for 4 s: heartbeat and sculk souls, rear cone 140 degrees r 4.5 at 1.1 s, S 9 |
+| `sonic_circle` | P1, tank within 8 | the Circle (two waves, see M2); `sonic_circle_open` (any range) in P2, ready 7 s into it; `sonic_circle_triple` (a third wave at the first wave's angle at 5.1 s, chest open 5.1-6.7 s) in P3 |
+| `resonant_pulse` | P1 (`resonant_pulse_pooled` in P2, P3) | circle r 6 at 1.7 s, S 14; pooled: a Slowness II cloud r 3 for 8 s where it burst |
+| `sonic_lance` | all | farthest player at 8+ blocks, also one the reach rule gave up on; group `lance` 14 / 10 / 7 s by phase |
+| `sonic_volley` | P2, P3 | three lances (S 8 each) at 1.7 / 2.2 / 2.7 s, the second and third re-aimed as their strips appear; shares the `lance` cooldown |
+| `tremor_line` | all | aimed at the `listener` slot (a spread slot: not the tank): six blue circles r 2 walking toward that player, 2 blocks apart, landing 1.3-2.8 s; P 7, each player at most once |
+| `hunting_sniff` | all | `sniff` clip; at 3.8 s Glowing 8 s on the player with the most damage in the last 10 s (picked at its start) and "The Warden has caught a scent"; at 4.2 s it chains into `deep_charge` (a taunt lock wins) |
+| `deep_charge` | chained only | roar pose, blue strip with an arrowhead from 0.2 s, runs at 0.9 blocks per tick from 1.2 s, P 16 with a side push; a wall stagger is the 4.2 s `sniff` |
+| `deafening_rings` | P2, P3 | roar pose; rings 6-9 at 1.6 s, 12-15 at 2.2 s, 18-22 at 2.8 s, each drawn 1 s ahead; S 9 each |
+| `echo_mines` | P2, P3 | `sniff` clip; a circle r 2.5 under every fighter, 0.6 s ahead of where they are heading, drawn at 0.6 / 1.8 / 3.0 s and landing 0.8 s later; S 5 each |
+| `listening_silence` | P3, first 10 s into it | "Be still..."; from 1.0 to 3.0 s it [listens](#listen---punish-whoever-moves): every offender takes S 13, and at 4.2 s it chains into a Lance at the first one |
+| Roar of the Deep | the 60 % transition | invulnerable roar (4.2 s): shove r 10 at 1.6 s (S 3, knockback 1.2), Darkness 6 s on everyone within 40 |
+
+Not yet (later milestones of the design; the file names none of it, so nothing refers to missing parts):
+- M4: Burrow Ambush, the 25 % transition (Heart of the Deep: dig, emerge at the arena centre, Chest Open), the `dig`
+  and `emerge` cues, and its emerge when a run spawns it. P3 starts without a transition for now.
+- M5: the Sculk Resonators: their raise in Roar of the Deep and 45 s into P2 (`resonance`, `min_players` 2,
+  `placement.around: home`), and the x0.5 damage taken while any stands (`damage_taken.while_adds`).
 
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).

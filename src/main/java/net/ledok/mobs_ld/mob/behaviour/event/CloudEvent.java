@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld.mob.behaviour.event;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
@@ -18,13 +19,15 @@ public record CloudEvent(double at, Origin origin, double radius, double duratio
     /** Entity tag marking a cloud that must only touch players' side. */
     public static final String HOSTILE_TAG = "mobs_ld_hostile";
 
-    public static final MapCodec<CloudEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+    public static final MapCodec<CloudEvent> CODEC = RecordCodecBuilder.<CloudEvent>mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("at").forGetter(CloudEvent::at),
             Origin.CODEC.optionalFieldOf("origin", Origin.SELF).forGetter(CloudEvent::origin),
             Codec.DOUBLE.fieldOf("radius").forGetter(CloudEvent::radius),
             Codec.DOUBLE.fieldOf("duration").forGetter(CloudEvent::duration),
             HitSpec.EffectSpec.CODEC.listOf().fieldOf("effects").forGetter(CloudEvent::effects)
-    ).apply(i, CloudEvent::new));
+    ).apply(i, CloudEvent::new)).validate(event -> event.origin() == Origin.EACH_FIGHTER
+            ? DataResult.error(() -> "A cloud's origin is self or target (each_fighter is for hits)")
+            : DataResult.success(event));
 
     @Override
     public String type() {

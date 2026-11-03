@@ -146,6 +146,13 @@ public class AttackZoneVisualEntity extends Entity {
                 entityData.set(DATA_PARAM_C, r.width());
                 entityData.set(DATA_PARAM_D, r.widen());
             }
+            case AttackZone.Ring ring -> {
+                // Kind 6: a client from before rings draws nothing for it (its renderer ignores unknown kinds).
+                entityData.set(DATA_ZONE_KIND, 6);
+                entityData.set(DATA_PARAM_A, ring.inner());
+                entityData.set(DATA_PARAM_B, ring.outer());
+                entityData.set(DATA_PARAM_C, 0.0F);
+            }
             case AttackZone.Strip strip -> {
                 entityData.set(DATA_ZONE_KIND, 5);
                 entityData.set(DATA_PARAM_A, strip.width());

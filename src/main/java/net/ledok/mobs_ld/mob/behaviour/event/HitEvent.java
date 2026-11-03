@@ -1,15 +1,24 @@
 package net.ledok.mobs_ld.mob.behaviour.event;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.Fighters;
+import net.ledok.mobs_ld.mob.combat.MoveLead;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Area attack: telegraphed from {@link Telegraph#start}, lands at {@code at} on everyone hostile inside the shape.
@@ -26,17 +35,22 @@ import java.util.Optional;
  *               right, as yaw grows): the zone and its hit test are turned by it (the Warden's second Circle wave at
  *               22.5). Empty = the current facing, as before
  * @param turnBody when the telegraph appears, the body turns to the zone's facing over {@link #TURN_SECONDS}
+ * @param lead   with {@code origin: each_fighter}: each zone goes where its player is heading, this many seconds of
+ *               their movement over the last {@value MoveLead#WINDOW_SECONDS} s ahead (at most
+ *               {@value MoveLead#MAX_LEAD_BLOCKS} blocks); empty = where they stand
+ * @param once   a victim already struck by another {@code once} hit of this ability run is skipped (overlapping
+ *               circles of one line strike each player once)
  */
 public record HitEvent(double at, Shape shape, Origin origin, double offset, double side, Optional<Double> aimSide,
                        Optional<Double> height, Optional<Double> depth, Telegraph telegraph, HitSpec hit,
-                       Optional<Double> rotate, boolean turnBody)
+                       Optional<Double> rotate, boolean turnBody, Optional<Double> lead, boolean once)
         implements AbilityEvent {
     /** Default warning lead when the data does not say. */
     private static final double DEFAULT_LEAD = 0.8;
     /** How long a {@code turn_body} turn takes (seconds of the ability's clock). */
     public static final double TURN_SECONDS = 0.3;
 
-    public static final MapCodec<HitEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+    public static final MapCodec<HitEvent> CODEC = RecordCodecBuilder.<HitEvent>mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("at").forGetter(HitEvent::at),
             Shape.CODEC.fieldOf("shape").forGetter(HitEvent::shape),
             Origin.CODEC.optionalFieldOf("origin", Origin.SELF).forGetter(HitEvent::origin),
@@ -48,8 +62,13 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
             Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(HitEvent::telegraph),
             HitSpec.CODEC.optionalFieldOf("hit", HitSpec.DEFAULT).forGetter(HitEvent::hit),
             Codec.doubleRange(-360.0, 360.0).optionalFieldOf("rotate").forGetter(HitEvent::rotate),
-            Codec.BOOL.optionalFieldOf("turn_body", false).forGetter(HitEvent::turnBody)
-    ).apply(i, HitEvent::new));
+            Codec.BOOL.optionalFieldOf("turn_body", false).forGetter(HitEvent::turnBody),
+            Codec.doubleRange(0.0, 10.0).optionalFieldOf("lead").forGetter(HitEvent::lead),
+            Codec.BOOL.optionalFieldOf("once", false).forGetter(HitEvent::once)
+    ).apply(i, HitEvent::new)).validate(event -> event.lead().isPresent() && event.origin() != Origin.EACH_FIGHTER
+            ? DataResult.error(() -> "A hit's 'lead' only works with origin each_fighter (got " + event.origin()
+            .getSerializedName() + ")")
+            : DataResult.success(event));
 
     @Override
     public String type() {
@@ -79,13 +98,24 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         boolean telegraphed = telegraphed();
         float aimed = aimSide.isEmpty() ? run.yaw() : telegraphed ? run.aimFor(aimSide.get()) : run.reaim(aimSide.get());
         float yaw = zoneYaw(aimed, run.lockedYaw());
-        Vec3 base = origin == Origin.TARGET ? run.aimPosition() : run.mob().position();
-        Vec3 point = run.groundAt(base.add(AbilityRun.forward(yaw).scale(offset)).add(AbilityRun.right(yaw).scale(side)));
-        run.noteZone(this, new AbilityRun.HitZone(shape, point, yaw));
+        List<AbilityRun.HitZone> zones = new ArrayList<>();
+        for (Vec3 base : bases(run)) {
+            Vec3 point = run.groundAt(base.add(AbilityRun.forward(yaw).scale(offset)).add(AbilityRun.right(yaw).scale(side)));
+            zones.add(new AbilityRun.HitZone(shape, point, yaw));
+        }
+        run.noteZones(this, zones);
         if (turnBody) {
             run.turnBody(yaw, TURN_SECONDS);
         }
-        AbilityRun.Marker marker = telegraphed ? run.telegraph(point, yaw, shape, telegraph, at) : null;
+        AbilityRun.Marker marker = null;
+        if (telegraphed && !zones.isEmpty()) {
+            List<AbilityRun.Zone> drawn = new ArrayList<>(zones.size());
+            for (AbilityRun.HitZone zone : zones) {
+                drawn.add(AbilityRun.zoneOf(zone.origin(), yaw, shape, telegraph));
+            }
+            marker = run.telegraph(drawn, telegraph, at);
+        }
+        AbilityRun.Marker drawnMarker = marker;
         return new Instance() {
             private boolean turned = !telegraphed || aimSide.isEmpty();
 
@@ -101,17 +131,54 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
             public void finish(AbilityRun run) {
                 double up = height.orElse(run.combat().reachUp());
                 double down = depth.orElse(run.combat().reachDown());
-                for (LivingEntity victim : run.enemiesIn(shape, point, yaw, up, down)) {
-                    hit.apply(run, victim, point);
+                // Each victim once per event, even where zones overlap (two fighters standing together).
+                Map<UUID, Victim> victims = new LinkedHashMap<>();
+                for (AbilityRun.HitZone zone : zones) {
+                    for (LivingEntity victim : run.enemiesIn(shape, zone.origin(), yaw, up, down)) {
+                        victims.putIfAbsent(victim.getUUID(), new Victim(victim, zone.origin()));
+                    }
                 }
-                run.flash(marker);
+                for (Victim victim : victims.values()) {
+                    if (!once || run.strikeOnce(victim.entity())) {
+                        hit.apply(run, victim.entity(), victim.from());
+                    }
+                }
+                run.flash(drawnMarker);
             }
 
             @Override
             public void cancel(AbilityRun run) {
-                run.clear(marker);
+                run.clear(drawnMarker);
             }
         };
+    }
+
+    /**
+     * Where the zones are anchored before {@code offset} and {@code side}: the mob, its aim, or each fighting player
+     * (moved ahead by {@code lead}). With nobody fighting yet (a forced test), {@code each_fighter} uses the aim.
+     */
+    private List<Vec3> bases(AbilityRun run) {
+        return switch (origin) {
+            case SELF -> List.of(run.mob().position());
+            case TARGET -> List.of(run.aimPosition());
+            case EACH_FIGHTER -> {
+                List<Vec3> bases = new ArrayList<>();
+                double seconds = lead.orElse(0.0);
+                for (Player fighter : Fighters.of(run.mob())) {
+                    bases.add(run.combat().predictedPosition(fighter, seconds));
+                }
+                if (bases.isEmpty()) {
+                    LivingEntity aim = run.aim();
+                    bases.add(aim != null && aim.isAlive() ? run.combat().predictedPosition(aim, seconds)
+                            : run.aimPosition());
+                }
+                yield bases;
+            }
+        };
+    }
+
+    /** One victim of a hit and the zone origin it was struck from (its knockback pushes away from there). */
+    private record Victim(LivingEntity entity, Vec3 from) {
     }
 
     /**
