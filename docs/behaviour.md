@@ -17,7 +17,8 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | field | default | meaning |
 |---|---|---|
 | `base_attributes` | none | `{ "minecraft:generic.max_health": 1711, ... }`: base values set on every new mob of the type (below) |
-| `host` | none | vanilla hosts only: the host adapter's options, or `{ "enabled": false }` to switch the file off (see [Vanilla hosts](#vanilla-hosts)) |
+| `reference_attributes` | none | `{ "minecraft:generic.attack_damage": 30 }`: the base values the file's numbers are written against, never applied: read after `base_attributes` as the base of R (`hit.amount`) and of summon `scale` ratios. For a mob whose stats come from elsewhere (an Arenas_LD spawner) |
+| `host` | none | vanilla hosts only: the host adapter's options, `only_tagged` (which mobs of the type it applies to), or `{ "enabled": false }` to switch the file off (see [Vanilla hosts](#vanilla-hosts)) |
 | `target_slots` | none | secondary targets by name, e.g. the Wither's side heads (see [Target slots](#target-slots)) |
 | `movement` | standoff 2.0 | how it positions itself between abilities (below) |
 | `global_cooldown` | 0.5 | pause after every ability before the next can start |
@@ -131,7 +132,7 @@ The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
 | field | default | meaning |
 |---|---|---|
 | `damage` | 1.0 | multiplier on the mob's live `attack_damage` (the LdMob way) |
-| `amount` | - | instead of `damage`: absolute raw damage at level 0 on Normal, multiplied at hit time by **R** = the mob's live `attack_damage` / the `attack_damage` its `base_attributes` declare (1 if the file declares none, so `amount` then works like `damage`). R is 1 on an unscaled mob and carries what scales its attack (Dungeon Difficulty levels, soft enrage), so a balance sheet lists every hit as one number. Setting both is an error |
+| `amount` | - | instead of `damage`: absolute raw damage at level 0 on Normal, multiplied at hit time by **R** = the mob's live `attack_damage` / the `attack_damage` its `base_attributes` declare, else its `reference_attributes` (1 if the file declares neither, so `amount` then works like `damage`). R is 1 on an unscaled mob and carries what scales its attack (Dungeon Difficulty levels, soft enrage), so a balance sheet lists every hit as one number. Setting both is an error |
 | `damage_type` | `minecraft:mob_attack` | damage type id (any datapack's; skulls default to vanilla's `minecraft:wither_skull`); the mob stays the attacker either way. Unknown ids are reported when the server starts or reloads, and those hits deal the default type |
 | `effects` | none | `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id, applied only when the hit lands; unknown ids are skipped with a log warning |
 | `knockback` / `knock_up` | 0.4 / 0 | the whole push (below) |
@@ -290,7 +291,7 @@ stay the add's own.
 
 | field | target |
 |---|---|
-| `max_health` | a number: the add's own max health x this factor x (the summoner's max health / the base its behaviour declares in `base_attributes`, else its own base value); or `{ "of_summoner": f }`: the summoner's max health x `f`, whatever the add's own is |
+| `max_health` | a number: the add's own max health x this factor x (the summoner's max health / the base its behaviour declares in `base_attributes`, else in `reference_attributes`, else its own base value); or `{ "of_summoner": f }`: the summoner's max health x `f`, whatever the add's own is |
 | `attack_damage` | the same two forms; as a number, the add's own attack damage x this factor x (the summoner's attack damage / its declared base), i.e. R; a soft enrage carries over to adds raised after it |
 | `armor` | the add's own armor + `summoner_bonus` (the summoner's armor above its declared base, never negative), or + a fixed number |
 | `damage_dealt` | `copy`: the add's `loot_stage:damage_dealt` (DD Loot Stage) is set to the summoner's current value. Looked up by id: skipped if that attribute is not installed or either mob lacks it |
@@ -518,8 +519,10 @@ vanilla AI. Everything above works the same, except:
   colour and overlay are applied, and a phase's `bar` recolours it even without `boss.bar`). A behaviour with a
   `boss` block keeps the mob from despawning.
 - **Not supported**, logged and ignored at reload: the Ender Dragon (its AI bypasses the mob tick) and Brain-driven
-  mobs (Warden, piglins, hoglin, zoglin, breeze, villager, allay, axolotl, frog, tadpole, goat, camel, sniffer,
-  armadillo), which ignore goals. Players and armor stands are not mobs.
+  mobs (piglins, hoglin, zoglin, breeze, villager, allay, axolotl, frog, tadpole, goat, camel, sniffer, armadillo),
+  which ignore goals. The Warden is a Brain mob too, but its host adapter drives its Brain (see
+  [The Warden](#the-warden-dataminecraftmob_behaviourwardenjson)); other mods' Warden subclasses stay refused.
+  Players and armor stands are not mobs.
 - **Flyers and climbers.** A mob with flying navigation, a flying body (ghast, phantom), a flying move control, no
   gravity (vex) or a wall-climbing navigation (spider) always counts as able to reach its target by `path`, so it is
   never made to drop aggro as unreachable; give a ranged flyer `reach_rule: line_of_sight` instead, so hiding from it
@@ -537,11 +540,22 @@ vanilla AI. Everything above works the same, except:
   once the server has started, so that report can be a false alarm there. Some vanilla mobs rewrite a few of their
   own base values after spawning (wither skeleton attack damage in finalizeSpawn, slime and magma cube size stats,
   horse stats, phantom size, ravager speed, tamed wolf health, ...); a file cannot override those values on them.
+  `reference_attributes` sets nothing: it only names the base R and summon scaling divide by, for a host whose real
+  stats come from its spawner.
 - **The `host` block.** `{ "type": "<adapter type>", "enabled": true, ...options }`. `"enabled": false` switches the
   file off: the type is not hosted at all, exactly as if the file were absent (a server datapack can override a file
   shipped in a jar this way). `type` names the options its host adapter reads (only the Wither has one so far:
-  `mobs_ld:wither`); every option defaults to vanilla. A `type` for another adapter, and keys nobody defines, are
-  reported at reload and ignored. Phases may override options (see Phases).
+  `mobs_ld:wither`, `mobs_ld:warden`); every Wither option defaults to vanilla. A `type` for another adapter, and keys
+  nobody defines, are reported at reload and ignored. Phases may override options (see Phases), but not
+  `only_tagged` or `enabled`.
+- **Only some mobs of the type: `host.only_tagged`.** `["arenas_ld_run_mob"]` (any list of entity tags) makes the
+  file apply only to mobs carrying at least one of the tags; every other mob of the type never gets the engine and
+  stays fully vanilla (its goals, stats, despawning). Arenas_LD tags every mob of a run this way before it enters the
+  world, and tags are saved, so it survives restarts. The decision is made when the engine would attach (the mob's
+  first AI tick) and again after each `/reload`: a tag added later by a command counts from the next reload. A file
+  with `only_tagged` may not have `base_attributes` (it is refused at reload): those are set while the mob is being
+  built, before it carries any tag, so they would reach every mob of the type. Declare the numbers' base in
+  `reference_attributes` instead and let the spawner set the stats.
 
 ### The Wither (`data/minecraft/mob_behaviour/wither.json`)
 
@@ -662,6 +676,46 @@ ends the combo.
 - No loot, equipment or experience (no farmable skulls); removed when the Wither dies or resets, and (`bound`) gone in
   a puff of smoke within seconds of the Wither being gone or unloaded, also after a restart.
 
+### The Warden (`data/minecraft/mob_behaviour/warden.json`)
+
+Mobs_LD ships a behaviour for the vanilla Warden with `host.only_tagged: ["arenas_ld_run_mob"]`: only Wardens an
+Arenas_LD run spawns are hosted. Every other Warden (ancient cities, structures, shriekers, `/summon` without the tag)
+is fully vanilla: its swing, sonic boom, Darkness pulse, dig-away and loot. The file declares no `base_attributes`
+(Arenas sets the stats) and `reference_attributes` `attack_damage` 30, so R is 1 at vanilla attack damage. This first
+version is a test kit (one telegraphed swing); the full fight comes later.
+
+A hosted Warden keeps its entity, model, sounds, pathing, anger and a real death with its vanilla loot table. Its AI
+is a Brain, not goals; the engine works with it:
+- **Between abilities** its Brain walks it at its target (`movement.style: vanilla`). While an ability, a stagger or
+  the walk home runs, its Brain is held: memories still expire and its senses stay fresh, but no Brain behaviour
+  starts or runs, so the engine alone moves and turns it (it still swims, as its Brain would, so it does not sink).
+- **No vanilla attacks.** Its swing (30, disables shields) and sonic boom never start; every hit it deals comes from
+  the behaviour. While it fights it is deaf to vibrations (tendril twitches are not its listener reacting).
+- **Target.** Threat decides, as for every host (taunts work): the target goes to its Brain's attack target, and its
+  anger at that target is kept angry so the Brain never drops it; when the engine drops or replaces a target, its
+  anger at that one is cleared, so it does not roar and take them back. Its own senses, anger and retaliation when hit
+  only ever pick targets the engine allows (`engage_on`, players given up on as unreachable, nobody while walking
+  home). Before anyone has threat it wakes like vanilla (vibrations, a hit, then a roar).
+- **Never digs away** (vanilla discards a Warden that idles 60 s; in a raid that loses the run): a Warden that is
+  hosted, or simply carries `arenas_ld_run_mob`, keeps a dig cooldown from its first tick, and vanilla's dig can
+  neither start nor discard it. It is also made persistent. Wardens re-read the run tag every second, so one tagged
+  after it spawned is locked and hosted within a second (not only after a `/reload`).
+- **Reset** (`/mobs_ld reset`, or a wipe outside a run): its anger table is emptied as well, and its target, roar,
+  walk, disturbance and projectile memories cleared, so it does not roar straight back. Inside a run Arenas owns the
+  wipe, as for every boss.
+- **No Mobs_LD boss bar** (no `boss.bar`): the Arenas run HUD shows the boss's health.
+
+Host options (`"type": "mobs_ld:warden"`; these defaults are the boss's, not vanilla's):
+
+| option | default | meaning |
+|---|---|---|
+| `darkness_pulse` | `off` | `vanilla`: its Darkness every 6 s within 20 blocks; `off`: none (Darkness only from the behaviour's own effects) |
+| `disable_shields` | false | true: a shield that blocks its hit is disabled, as by vanilla's swing |
+| `follow_range` | 48 | its base `generic.follow_range` once hosted (vanilla 16: threat targeting and abilities only reach players within it), with its path search sized to match; a phase or a reload that changes it applies within a second |
+
+Not yet: its clips (`attack`, `sonic_boom`, `roar`, ...) as ability cues, its burrow, and its emerge when a run spawns
+it.
+
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).
 - `/mobs_ld ability <targets> <name>` - start an ability now, aimed by its `target` rule (else at the mob's target,
@@ -672,5 +726,7 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
 - `/mobs_ld heads <targets>` - print what every head aims at: the middle head's main target, then each target slot
   with its rule, the head it shows on, its holder, the time to its next re-pick (and the slot it follows) and how
   long the holder has been out of sight.
+- `/mobs_ld brain <targets>` - a Warden's Brain: hosted or not, held by the engine or running, its activity, its
+  attack target and its anger at it, its dig cooldown (and when it expires), its pose and whether it is burrowed.
 - `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks (abilities, hits, slot picks,
   skull hits and splashes with their amounts).

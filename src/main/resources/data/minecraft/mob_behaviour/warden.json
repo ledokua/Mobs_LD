@@ -1,0 +1,34 @@
+{
+  "reference_attributes": {
+    "minecraft:generic.attack_damage": 30
+  },
+  "host": {
+    "type": "mobs_ld:warden",
+    "enabled": true,
+    "only_tagged": ["arenas_ld_run_mob"],
+    "darkness_pulse": "off",
+    "disable_shields": false,
+    "follow_range": 48
+  },
+  "movement": {
+    "style": "vanilla",
+    "reach_rule": "path"
+  },
+  "global_cooldown": 0.8,
+  "boss": {
+    "engage_on": "players"
+  },
+  "abilities": {
+    "crushing_blow": {
+      "duration": 1.6, "cooldown": 6, "weight": 3, "clip": "tendrils",
+      "range": { "max": 4.5 },
+      "track_until": 0.2,
+      "events": [
+        { "type": "fx", "at": 0.2, "sound": { "id": "minecraft:entity.warden.angry", "volume": 3 } },
+        { "type": "hit", "at": 1.0, "shape": { "type": "rectangle", "width": 2.5, "length": 4.5 },
+          "telegraph": { "from": 0.2, "color": "#B01818" },
+          "hit": { "amount": 12.0, "damage_type": "minecraft:mob_attack", "knockback": 0.6 } }
+      ]
+    }
+  }
+}

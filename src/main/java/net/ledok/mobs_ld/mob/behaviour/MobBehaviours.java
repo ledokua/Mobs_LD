@@ -9,6 +9,8 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.ledok.mobs_ld.MobsLdMod;
+import net.ledok.mobs_ld.mob.combat.CombatHost;
+import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
@@ -74,15 +76,18 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
     private static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "mob_behaviour");
 
     /**
-     * Vanilla mobs the engine cannot drive, refused at reload: the dragon's AI never reaches {@code Mob.serverAiStep},
-     * and the rest are run by a Brain that ignores goals (it would fight the engine's movement).
+     * Vanilla mobs run by a Brain that ignores goals (it would fight the engine's movement): refused at reload, unless
+     * their entity type's host adapter drives the Brain itself ({@link HostAdapter#acceptsBrain()}, the Warden's).
      */
-    private static final Set<EntityType<?>> REFUSED_TYPES = Set.of(EntityType.ENDER_DRAGON, EntityType.WARDEN,
+    private static final Set<EntityType<?>> BRAIN_TYPES = Set.of(EntityType.WARDEN,
             EntityType.PIGLIN, EntityType.PIGLIN_BRUTE, EntityType.HOGLIN, EntityType.ZOGLIN, EntityType.BREEZE,
             EntityType.ALLAY, EntityType.AXOLOTL, EntityType.FROG, EntityType.TADPOLE, EntityType.GOAT,
             EntityType.CAMEL, EntityType.SNIFFER, EntityType.ARMADILLO, EntityType.VILLAGER);
-    /** The same mobs by class, checked when a mob would attach: also catches other mods' subclasses of them. */
-    private static final List<Class<?>> REFUSED_CLASSES = List.of(EnderDragon.class, Warden.class,
+    /**
+     * The same mobs by class, checked when a mob would attach: also catches other mods' subclasses of them (which
+     * have their own entity type, so no adapter accepts their Brain).
+     */
+    private static final List<Class<?>> BRAIN_CLASSES = List.of(Warden.class,
             AbstractPiglin.class, Hoglin.class, Zoglin.class, Breeze.class, Allay.class, Axolotl.class, Frog.class,
             Tadpole.class, Goat.class, Camel.class, Sniffer.class, Armadillo.class, Villager.class);
     private static final Set<EntityType<?>> WARNED = ConcurrentHashMap.newKeySet();
@@ -135,8 +140,27 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
         }
     }
 
+    /**
+     * The behaviour loaded for {@code type}, whether or not its {@code host.only_tagged} filter lets it apply to a
+     * given mob: for type-wide uses ({@code base_attributes} in the constructor). Per mob, use {@link #forMob}.
+     */
     public static MobBehaviour get(EntityType<?> type) {
         return byType.get(type);
+    }
+
+    /**
+     * The behaviour that applies to {@code mob}: its type's, if the file's {@code host.only_tagged} filter passes
+     * (see {@link HostSpec#appliesTo}), else null; the same as {@link #get} for files without the filter. A mob that
+     * has a combat answers from it (decided on attach and after each reload, see {@link MobCombat#behaviour}); any
+     * other mob looks its tags up now.
+     */
+    public static MobBehaviour forMob(Mob mob) {
+        MobCombat combat = CombatHost.of(mob);
+        if (combat != null) {
+            return combat.behaviour();
+        }
+        MobBehaviour behaviour = byType.get(mob.getType());
+        return behaviour != null && behaviour.host().appliesTo(mob.getTags()) ? behaviour : null;
     }
 
     /** Changes whenever the loaded behaviours do. */
@@ -145,11 +169,22 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
     }
 
     /**
-     * Whether the engine may attach to {@code mob}; false (with one warning per entity type) for mob classes whose
-     * AI cannot be driven by goals.
+     * Whether the engine may attach to {@code mob}; false (with one warning per entity type) for the Ender Dragon and
+     * for mob classes whose AI is a Brain, unless the entity type's host adapter drives that Brain
+     * ({@link HostAdapter#acceptsBrain()}).
      */
     public static boolean canHost(Mob mob) {
-        for (Class<?> refused : REFUSED_CLASSES) {
+        if (mob instanceof EnderDragon) {
+            if (WARNED.add(mob.getType())) {
+                LOGGER.warn("Mob behaviour for {} is ignored: its AI never reaches the mob tick, so the ability engine "
+                        + "cannot run it", BuiltInRegistries.ENTITY_TYPE.getKey(mob.getType()));
+            }
+            return false;
+        }
+        if (HostAdapters.get(mob.getType()).acceptsBrain()) {
+            return true;
+        }
+        for (Class<?> refused : BRAIN_CLASSES) {
             if (refused.isInstance(mob)) {
                 if (WARNED.add(mob.getType())) {
                     LOGGER.warn("Mob behaviour for {} is ignored: {} is not driven by goals, so the ability engine "
@@ -185,7 +220,8 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
             EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
             if (type == null) {
                 LOGGER.warn("Mob behaviour {} names no registered entity type; it will never be used", id);
-            } else if (REFUSED_TYPES.contains(type)) {
+            } else if (type == EntityType.ENDER_DRAGON
+                    || (BRAIN_TYPES.contains(type) && !HostAdapters.get(type).acceptsBrain())) {
                 LOGGER.warn("Mob behaviour {} is ignored: that mob is not driven by goals, so the ability engine "
                         + "cannot run it", id);
             } else if (!DefaultAttributes.hasSupplier(type) || type == EntityType.PLAYER || type == EntityType.ARMOR_STAND) {
@@ -236,6 +272,10 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
                     LOGGER.warn("Mob behaviour {}: unknown key '{}' in the host block of the phase below {} is ignored",
                             id, key, phase.belowHealth());
                 }
+                if (block.get("only_tagged").result().isPresent()) {
+                    LOGGER.warn("Mob behaviour {}: 'only_tagged' in the host block of the phase below {} is ignored "
+                            + "(only the file's own host block filters mobs)", id, phase.belowHealth());
+                }
                 if (block.get("enabled").result().isPresent()) {
                     LOGGER.warn("Mob behaviour {}: 'enabled' in the host block of the phase below {} is ignored "
                             + "(only the file's own host block switches it off)", id, phase.belowHealth());
@@ -251,10 +291,17 @@ public final class MobBehaviours extends SimpleJsonResourceReloadListener implem
      */
     @SuppressWarnings("unchecked")
     private static void checkBaseAttributes(ResourceLocation id, EntityType<?> type, MobBehaviour behaviour) {
-        if (behaviour.baseAttributes().isEmpty()) {
+        if (behaviour.baseAttributes().isEmpty() && behaviour.referenceAttributes().isEmpty()) {
             return;
         }
         AttributeSupplier supplier = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) type);
+        for (ResourceLocation attributeId : behaviour.referenceAttributes().keySet()) {
+            Optional<Holder.Reference<Attribute>> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(attributeId);
+            if (attribute.isEmpty() || !supplier.hasAttribute(attribute.get())) {
+                LOGGER.warn("Mob behaviour {}: reference_attributes names {}, which {}; nothing reads it", id,
+                        attributeId, attribute.isEmpty() ? "is no known attribute" : "this entity does not have");
+            }
+        }
         for (ResourceLocation attributeId : behaviour.baseAttributes().keySet()) {
             Optional<Holder.Reference<Attribute>> attribute = BuiltInRegistries.ATTRIBUTE.getHolder(attributeId);
             if (attribute.isEmpty()) {

@@ -23,6 +23,10 @@ class MixinApplyTest {
             "net.minecraft.world.entity.projectile.AbstractHurtingProjectile",
             "net.minecraft.world.entity.projectile.WitherSkull",
             "net.minecraft.world.entity.boss.wither.WitherBoss",
+            "net.minecraft.world.entity.ai.Brain",
+            "net.minecraft.world.entity.monster.warden.Warden",
+            "net.minecraft.world.entity.ai.behavior.warden.Digging",
+            "net.minecraft.world.entity.ai.behavior.warden.SonicBoom",
             "net.minecraft.client.Camera"
     };
 

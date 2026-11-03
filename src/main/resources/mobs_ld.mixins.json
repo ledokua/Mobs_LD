@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AreaEffectCloudMixin",
+    "BrainAccessor",
     "EntityCombatViewersMixin",
     "EntityDashMixin",
     "EntityDropsMixin",
@@ -15,6 +16,7 @@
     "LivingEntityEffectThreatMixin",
     "MobCombatHostMixin",
     "MobGoalsAccessor",
+    "MobNavigationAccessor",
     "MobThreatMixin",
     "PlayerThreatAttributeMixin",
     "TargetGoalCombatMixin",
@@ -25,7 +27,11 @@
     "wither.WitherBossAccessor",
     "wither.WitherBossHostMixin",
     "wither.ProjectileBlockHitMixin",
-    "wither.WitherSkullMixin"
+    "wither.WitherSkullMixin",
+    "warden.DiggingMixin",
+    "warden.SonicBoomMixin",
+    "warden.WardenAccessor",
+    "warden.WardenHostMixin"
   ],
   "client": [
     "client.CameraMixin"

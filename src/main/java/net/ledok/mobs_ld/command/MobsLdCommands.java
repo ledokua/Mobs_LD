@@ -10,6 +10,7 @@ import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
+import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.warden.Warden;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -27,8 +29,8 @@ import java.util.function.BiConsumer;
  * Debug commands for mobs running a behaviour (ops only; LdMobs and vanilla hosts alike): {@code play <targets> <clip>}
  * / {@code stop <targets>} preview an animation clip (a host cue on vanilla mobs), {@code ability <targets> <name>}
  * forces a behaviour ability now (telegraphs, hits and all), {@code reset <targets>} runs the boss reset (full
- * heal, phases and adds cleared), {@code threat <targets>} prints the threat table and {@code heads <targets>} what
- * every head and target slot is aimed at.
+ * heal, phases and adds cleared), {@code threat <targets>} prints the threat table, {@code heads <targets>} what
+ * every head and target slot is aimed at, and {@code brain <targets>} a Warden's Brain state.
  */
 public final class MobsLdCommands {
     private MobsLdCommands() {
@@ -71,6 +73,9 @@ public final class MobsLdCommands {
                 .then(Commands.literal("heads")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> showHeads(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
+                .then(Commands.literal("brain")
+                        .then(Commands.argument("targets", EntityArgument.entities())
+                                .executes(ctx -> showBrain(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
                 .then(Commands.literal("reset")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
@@ -106,6 +111,26 @@ public final class MobsLdCommands {
         }
         if (shown == 0) {
             source.sendFailure(Component.literal("No threat-tracking mob among the targets"));
+        }
+        return shown;
+    }
+
+    /**
+     * Prints each Warden's Brain as the engine sees it: hosted or not, held or running, its ATTACK_TARGET and the anger
+     * behind it, its dig cooldown, pose and burrow state. World Wardens show too (as not hosted).
+     */
+    private static int showBrain(CommandSourceStack source, Collection<? extends Entity> targets) {
+        int shown = 0;
+        for (Entity entity : targets) {
+            if (entity instanceof Warden warden) {
+                for (String line : WardenAdapter.describe(warden)) {
+                    source.sendSuccess(() -> Component.literal(line), false);
+                }
+                shown++;
+            }
+        }
+        if (shown == 0) {
+            source.sendFailure(Component.literal("No Warden among the targets"));
         }
         return shown;
     }
@@ -171,7 +196,7 @@ public final class MobsLdCommands {
                 continue;
             }
             MobCombat combat = CombatHost.of(mob);
-            if (combat == null && attach && MobBehaviours.get(mob.getType()) != null && MobBehaviours.canHost(mob)) {
+            if (combat == null && attach && MobBehaviours.forMob(mob) != null && MobBehaviours.canHost(mob)) {
                 combat = ((CombatHost) mob).mobs_ld$combatOrCreate();
             }
             if (combat != null) {

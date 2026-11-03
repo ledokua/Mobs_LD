@@ -10,6 +10,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,22 +25,28 @@ import java.util.Set;
  *   <li>{@code enabled} (default true): false hosts nothing, exactly as if the behaviour file were absent, so a
  *       server datapack can switch off a file shipped in the jar;</li>
  *   <li>{@code type}: which options follow, read by the entity type's {@link HostAdapter} (see
- *       {@link HostAdapter#hostType()}); without it the block only carries {@code enabled};</li>
+ *       {@link HostAdapter#hostType()}); without it the block only carries {@code enabled} and {@code only_tagged};</li>
+ *   <li>{@code only_tagged} (default: none, every mob of the type): a list of entity tags; the file then applies only
+ *       to mobs carrying at least one of them (e.g. {@code ["arenas_ld_run_mob"]}: Arenas_LD's run mobs), and every
+ *       other mob of the type stays fully vanilla (see {@link #appliesTo});</li>
  *   <li>every other key is an option of that type, with vanilla behaviour as each option's default.</li>
  * </ul>
  * A phase may carry a {@code host} block of its own, laid over this one key by key ({@link #withOverride}).
  * Keys this mod does not know are ignored (reported once at reload), so files written for a later version load.
  *
- * @param raw the block as written, kept for merging phase overrides over it
+ * @param onlyTagged the entity tags of {@code only_tagged}; empty = the file applies to every mob of its type
+ * @param raw        the block as written, kept for merging phase overrides over it
  */
-public record HostSpec(boolean enabled, Optional<HostOptions> options, Dynamic<?> raw) {
+public record HostSpec(boolean enabled, Optional<HostOptions> options, List<String> onlyTagged, Dynamic<?> raw) {
     private static final Map<ResourceLocation, MapCodec<? extends HostOptions>> TYPES = new LinkedHashMap<>();
-    private static final Set<String> COMMON_KEYS = Set.of("type", "enabled");
+    private static final Set<String> COMMON_KEYS = Set.of("type", "enabled", "only_tagged");
     private static final MapCodec<Boolean> ENABLED = Codec.BOOL.optionalFieldOf("enabled", true);
+    private static final MapCodec<List<String>> ONLY_TAGGED = Codec.STRING.listOf().optionalFieldOf("only_tagged", List.of());
     private static final MapCodec<Optional<ResourceLocation>> TYPE = ResourceLocation.CODEC.optionalFieldOf("type");
 
     /** No host block: hosted (if the file exists), with the adapter's vanilla defaults. */
-    public static final HostSpec NONE = new HostSpec(true, Optional.empty(), new Dynamic<>(JsonOps.INSTANCE, new JsonObject()));
+    public static final HostSpec NONE = new HostSpec(true, Optional.empty(), List.of(),
+            new Dynamic<>(JsonOps.INSTANCE, new JsonObject()));
     public static final Codec<HostSpec> CODEC = Codec.PASSTHROUGH.comapFlatMap(HostSpec::parse, HostSpec::raw);
 
     /** Registers the options read under {@code host.type} = {@code type}; call from a mod initializer. */
@@ -49,17 +56,43 @@ public record HostSpec(boolean enabled, Optional<HostOptions> options, Dynamic<?
         }
     }
 
+    public HostSpec {
+        onlyTagged = List.copyOf(onlyTagged);
+    }
+
     public static DataResult<HostSpec> parse(Dynamic<?> raw) {
-        return ENABLED.codec().parse(raw).flatMap(enabled -> TYPE.codec().parse(raw).flatMap(type -> {
-            if (type.isEmpty()) {
-                return DataResult.success(new HostSpec(enabled, Optional.empty(), raw));
+        return ENABLED.codec().parse(raw).flatMap(enabled -> ONLY_TAGGED.codec().parse(raw).flatMap(tags -> {
+            if (raw.get("only_tagged").result().isPresent() && tags.isEmpty()) {
+                return DataResult.error(() -> "only_tagged needs at least one entity tag (leave it out to host every mob of the type)");
             }
-            MapCodec<? extends HostOptions> codec = TYPES.get(type.get());
-            if (codec == null) {
-                return DataResult.error(() -> "Unknown host type '" + type.get() + "' (expected one of " + TYPES.keySet() + ")");
-            }
-            return codec.codec().parse(raw).map(options -> new HostSpec(enabled, Optional.<HostOptions>of(options), raw));
+            return TYPE.codec().parse(raw).flatMap(type -> {
+                if (type.isEmpty()) {
+                    return DataResult.success(new HostSpec(enabled, Optional.empty(), tags, raw));
+                }
+                MapCodec<? extends HostOptions> codec = TYPES.get(type.get());
+                if (codec == null) {
+                    return DataResult.error(() -> "Unknown host type '" + type.get() + "' (expected one of " + TYPES.keySet() + ")");
+                }
+                return codec.codec().parse(raw).map(options -> new HostSpec(enabled, Optional.<HostOptions>of(options), tags, raw));
+            });
         }));
+    }
+
+    /**
+     * Whether the file applies to a mob carrying {@code tags} (its entity tags): always without {@code only_tagged},
+     * else when it carries at least one of the listed tags. The engine decides this when it would attach to a mob and
+     * again after each datapack reload, never per tick.
+     */
+    public boolean appliesTo(Collection<String> tags) {
+        if (onlyTagged.isEmpty()) {
+            return true;
+        }
+        for (String tag : onlyTagged) {
+            if (tags.contains(tag)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -120,6 +120,11 @@ public final class MobCombat {
     private ServerBossEvent bar;
     /** Per-mob state the host adapter keeps (e.g. the Wither's skull timers); see {@link #hostState}. */
     private Object hostState;
+    /** {@link MobBehaviours#generation()} the {@code host.only_tagged} filter was last decided at; see {@link #behaviour}. */
+    private int gateGeneration = -1;
+    private boolean gateOpen;
+    /** The engine holds the body (see {@link #syncBody}): the host adapter has been told so. */
+    private boolean bodyClaimed;
 
     public MobCombat(Mob mob) {
         this.mob = mob;
@@ -165,9 +170,22 @@ public final class MobCombat {
         }
     }
 
-    /** Current behaviour for this mob type; null until a datapack provides one (the mob then just wanders). */
+    /**
+     * Current behaviour for this mob; null until a datapack provides one for its type (the mob then just wanders), and
+     * null while the file's {@code host.only_tagged} filter keeps this mob out. The filter is decided on the first call
+     * (the attach) and again after each datapack reload, not per tick, so a mob tagged later waits for a reload.
+     */
     public MobBehaviour behaviour() {
-        return MobBehaviours.get(mob.getType());
+        MobBehaviour behaviour = MobBehaviours.get(mob.getType());
+        if (behaviour == null || behaviour.host().onlyTagged().isEmpty()) {
+            return behaviour;
+        }
+        int generation = MobBehaviours.generation();
+        if (generation != gateGeneration) {
+            gateGeneration = generation;
+            gateOpen = behaviour.host().appliesTo(mob.getTags());
+        }
+        return gateOpen ? behaviour : null;
     }
 
     /** How this mob's entity type hosts the engine (cues, readiness, its own boss bar). */
@@ -201,6 +219,11 @@ public final class MobCombat {
     // --- Ticking ---
 
     public void tick() {
+        tickFight();
+        syncBody();
+    }
+
+    private void tickFight() {
         ServerLevel level = (ServerLevel) mob.level();
         long now = level.getGameTime();
         tickFading(now);
@@ -360,6 +383,7 @@ public final class MobCombat {
             hostBar.setColor(vanilla.color());
             hostBar.setOverlay(vanilla.overlay());
         }
+        adapter.onReset(mob);
     }
 
     private void enterPhase(MobBehaviour behaviour, int index) {
@@ -398,6 +422,22 @@ public final class MobCombat {
     /** Whether the mob is committed to something (an ability or a stagger) and must not move on its own. */
     public boolean busy() {
         return current != null || staggerUntil >= 0;
+    }
+
+    /**
+     * Tells the host adapter when the engine takes the body (an ability, a stagger or the walk home starts) and when
+     * it gives it back: {@link HostAdapter#onClaimBody} / {@link HostAdapter#onReleaseBody}, once per edge.
+     */
+    private void syncBody() {
+        boolean claim = busy() || returning;
+        if (claim != bodyClaimed) {
+            bodyClaimed = claim;
+            if (claim) {
+                adapter.onClaimBody(mob);
+            } else {
+                adapter.onReleaseBody(mob);
+            }
+        }
     }
 
     /** Whether an ability (not a stagger) is running. */
@@ -521,6 +561,7 @@ public final class MobCombat {
         host.mobs_ld$playAction(ability.clipOr(name), speed);
         long now = mob.level().getGameTime();
         readyAt.put(name, now + ticks(cooldownOf(name, ability)));
+        syncBody(); // also when forced by a command, outside the tick
     }
 
     /** A time rolled now (a range gives a fresh value each use), in whole ticks. */
@@ -782,6 +823,7 @@ public final class MobCombat {
             returning = true;
             returnTicks = 0;
         }
+        adapter.onReset(mob);
     }
 
     private void clearEnrage() {

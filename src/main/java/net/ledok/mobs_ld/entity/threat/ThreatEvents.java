@@ -111,11 +111,11 @@ public final class ThreatEvents {
 
     /**
      * Whether {@code mob} should run the threat-targeting goal. This mod's own mobs always do, and so does any mob
-     * whose type has a behaviour (the ability engine aims by threat); other vanilla and modded mobs are gated by
-     * config. Called once per mob at construction (see MobThreatMixin) and on every threat event.
+     * its type's behaviour applies to (the ability engine aims by threat; see {@link MobBehaviours#forMob}); other
+     * vanilla and modded mobs are gated by config. Called once per mob at construction (see MobThreatMixin) and on every threat event.
      */
     public static boolean shouldThreatTarget(Mob mob) {
-        if (mob.getClass().getName().startsWith(MOD_PACKAGE) || MobBehaviours.get(mob.getType()) != null) {
+        if (mob.getClass().getName().startsWith(MOD_PACKAGE) || MobBehaviours.forMob(mob) != null) {
             return true; // our own mobs and behaviour hosts: always threat-aware
         }
         ThreatConfig cfg = ThreatConfig.get();

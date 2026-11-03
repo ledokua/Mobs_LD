@@ -35,11 +35,15 @@ import java.util.Optional;
  *
  * @param baseAttributes attribute id -> base value, set on every new mob of the type as it is constructed (before
  *                       its own constructor finishes and before other mods scale it); saved mobs keep their values
+ * @param referenceAttributes attribute id -> the base value the file's numbers are written against, never applied:
+ *                       read after {@code base_attributes} as the base of R ({@code hit.amount}) and of summon
+ *                       {@code scale} ratios, for a host whose stats come from elsewhere (an Arenas_LD Warden)
  * @param host           how the engine runs on a vanilla host (its adapter's options; an off switch)
  * @param targetSlots    secondary targets by name (e.g. the Wither's side heads), see {@link TargetSlot}
  */
 public record MobBehaviour(
         Map<ResourceLocation, Double> baseAttributes,
+        Map<ResourceLocation, Double> referenceAttributes,
         HostSpec host,
         Map<String, TargetSlot> targetSlots,
         Movement movement,
@@ -53,6 +57,7 @@ public record MobBehaviour(
 ) {
     public static final Codec<MobBehaviour> CODEC = RecordCodecBuilder.<MobBehaviour>create(i -> i.group(
             Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("base_attributes", Map.of()).forGetter(MobBehaviour::baseAttributes),
+            Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("reference_attributes", Map.of()).forGetter(MobBehaviour::referenceAttributes),
             HostSpec.CODEC.optionalFieldOf("host", HostSpec.NONE).forGetter(MobBehaviour::host),
             Codec.unboundedMap(Codec.STRING, TargetSlot.CODEC).optionalFieldOf("target_slots", Map.of()).forGetter(MobBehaviour::targetSlots),
             Movement.CODEC.optionalFieldOf("movement", Movement.DEFAULT).forGetter(MobBehaviour::movement),
@@ -68,6 +73,7 @@ public record MobBehaviour(
     public MobBehaviour {
         // Keep authoring order (phases sorted from full health down) and a stable ability order.
         baseAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(baseAttributes));
+        referenceAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(referenceAttributes));
         targetSlots = Collections.unmodifiableMap(new LinkedHashMap<>(targetSlots));
         abilities = new LinkedHashMap<>(abilities);
         List<Phase> sorted = new ArrayList<>(phases);
@@ -76,6 +82,13 @@ public record MobBehaviour(
     }
 
     private static DataResult<MobBehaviour> validate(MobBehaviour behaviour) {
+        if (!behaviour.host().onlyTagged().isEmpty() && !behaviour.baseAttributes().isEmpty()) {
+            // base_attributes are set inside the mob's constructor, before any tag exists: they would reach every mob of
+            // the type, also the ones only_tagged keeps vanilla.
+            return DataResult.error(() -> "host.only_tagged cannot be combined with base_attributes (they are set as "
+                    + "every mob of the type is built, before it carries any tag); declare the numbers' base in "
+                    + "reference_attributes instead");
+        }
         List<Ability> all = new ArrayList<>(behaviour.abilities().values());
         behaviour.intro().ifPresent(all::add);
         behaviour.onDeath().ifPresent(all::add);
@@ -187,7 +200,7 @@ public record MobBehaviour(
             }
             resolved.add(phase.withHost(options.get()));
         }
-        return DataResult.success(new MobBehaviour(behaviour.baseAttributes(), behaviour.host(),
+        return DataResult.success(new MobBehaviour(behaviour.baseAttributes(), behaviour.referenceAttributes(), behaviour.host(),
                 behaviour.targetSlots(), behaviour.movement(),
                 behaviour.globalCooldown(), behaviour.intro(), behaviour.stagger(), behaviour.onDeath(),
                 behaviour.abilities(), resolved, behaviour.boss()));
@@ -205,6 +218,15 @@ public record MobBehaviour(
             }
         }
         return host.options();
+    }
+
+    /**
+     * The base value of attribute {@code id} the file's numbers are written against: its {@code base_attributes} entry,
+     * else its {@code reference_attributes} entry; empty when it declares neither.
+     */
+    public Optional<Double> declaredBase(ResourceLocation id) {
+        Double base = baseAttributes.get(id);
+        return Optional.ofNullable(base != null ? base : referenceAttributes.get(id));
     }
 
     /**

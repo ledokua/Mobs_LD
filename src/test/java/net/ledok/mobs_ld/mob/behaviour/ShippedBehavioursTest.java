@@ -12,6 +12,8 @@ import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
+import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
+import net.ledok.mobs_ld.mob.host.warden.WardenHostOptions;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherHostOptions;
 import net.minecraft.SharedConstants;
@@ -33,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The behaviour files shipped in the jar decode (and the Wither's per-phase skull cadence merges as intended), the
  * M3 references (slots, skulls, hit damage) are validated at load, and so are the M4 dash and chain fields and the M5
- * summon fields (which leave Gorefist's and Rot Wart's files meaning what they did).
+ * summon fields (which leave Gorefist's and Rot Wart's files meaning what they did), and the Warden's file with the
+ * Warden rework's M1 fields (none of which the other files use).
  */
 class ShippedBehavioursTest {
     @BeforeAll
@@ -41,6 +44,7 @@ class ShippedBehavioursTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         WitherAdapter.register();
+        WardenAdapter.register();
     }
 
     private static MobBehaviour load(String path) throws Exception {
@@ -94,6 +98,59 @@ class ShippedBehavioursTest {
 
     private static List<SummonEvent> summons(MobBehaviour.Ability ability) {
         return ability.events().stream().filter(SummonEvent.class::isInstance).map(SummonEvent.class::cast).toList();
+    }
+
+    /** The Warden rework's instance filter and reference stats are absent from every earlier file: they host as before. */
+    @Test
+    void earlierFilesHostEveryMobOfTheirType() throws Exception {
+        for (String path : List.of("/data/mobs_ld/mob_behaviour/gorefist.json", "/data/mobs_ld/mob_behaviour/rot_wart.json",
+                "/data/minecraft/mob_behaviour/wither.json")) {
+            MobBehaviour behaviour = load(path);
+            assertTrue(behaviour.host().onlyTagged().isEmpty(), path);
+            assertTrue(behaviour.host().appliesTo(java.util.Set.of()), path);
+            assertTrue(behaviour.referenceAttributes().isEmpty(), path);
+        }
+        MobBehaviour wither = load("/data/minecraft/mob_behaviour/wither.json");
+        assertEquals(java.util.Optional.of(2.0), wither.declaredBase(ResourceLocation.withDefaultNamespace("generic.attack_damage")));
+    }
+
+    @Test
+    void wardenLoads() throws Exception {
+        MobBehaviour warden = load("/data/minecraft/mob_behaviour/warden.json");
+        assertEquals(List.of("arenas_ld_run_mob"), warden.host().onlyTagged());
+        assertTrue(warden.host().appliesTo(java.util.Set.of("arenas_ld_run_mob", "other")));
+        assertFalse(warden.host().appliesTo(java.util.Set.of()), "a world Warden stays vanilla");
+        assertTrue(warden.baseAttributes().isEmpty(), "world Wardens keep vanilla stats");
+        ResourceLocation attackDamage = ResourceLocation.withDefaultNamespace("generic.attack_damage");
+        assertEquals(java.util.Optional.of(30.0), warden.declaredBase(attackDamage));
+        assertEquals(1.0, net.ledok.mobs_ld.mob.behaviour.event.HitSpec.damageScale(30.0, warden), 1.0e-9, "R = 1 at vanilla stats");
+        WardenHostOptions options = (WardenHostOptions) warden.hostOptions(0).orElseThrow();
+        assertEquals(WardenHostOptions.DarknessPulse.OFF, options.darknessPulse());
+        assertFalse(options.disableShields());
+        assertEquals(48.0, options.followRange());
+        assertEquals(MobBehaviour.Movement.Style.VANILLA, warden.movement().style());
+        MobBehaviour.Boss boss = warden.boss().orElseThrow();
+        assertEquals(MobBehaviour.EngageOn.PLAYERS, boss.engageOn());
+        assertTrue(boss.bar().isEmpty(), "no Mobs_LD bar: Arenas shows the boss HP");
+        MobBehaviour.Ability blow = warden.abilities().get("crushing_blow");
+        assertEquals(Seconds.of(6.0), blow.cooldown());
+        net.ledok.mobs_ld.mob.behaviour.event.HitEvent hit = blow.events().stream()
+                .filter(net.ledok.mobs_ld.mob.behaviour.event.HitEvent.class::isInstance)
+                .map(net.ledok.mobs_ld.mob.behaviour.event.HitEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(12.0, hit.hit().amount().orElseThrow());
+        assertEquals(0.8, hit.at() - hit.telegraph().from().orElseThrow(), 1.0e-9, "telegraphed 0.8 s ahead");
+    }
+
+    /** Default options while the Warden's file has no typed host block, and the option ranges. */
+    @Test
+    void wardenOptionsAreValidated() {
+        String base = "{\"host\": {\"type\": \"mobs_ld:warden\", \"only_tagged\": [\"t\"]%s}}";
+        MobBehaviour plain = MobBehaviour.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(base.formatted("")))
+                .getOrThrow();
+        assertEquals(WardenHostOptions.DEFAULTS, plain.hostOptions(0).orElseThrow());
+        assertEquals("", error(base.formatted(", \"darkness_pulse\": \"vanilla\", \"disable_shields\": true")));
+        assertFalse(error(base.formatted(", \"darkness_pulse\": \"dim\"")).isEmpty());
+        assertFalse(error(base.formatted(", \"follow_range\": 0")).isEmpty());
     }
 
     @Test

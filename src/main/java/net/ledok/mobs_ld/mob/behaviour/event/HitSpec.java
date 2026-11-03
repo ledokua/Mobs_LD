@@ -135,14 +135,18 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
     }
 
     /**
-     * R: the mob's live {@code attack_damage} over the base its behaviour declares (1 when it declares none, or a
-     * non-positive one). Multiplies every {@code amount}.
+     * R: the mob's live {@code attack_damage} over the base its behaviour declares ({@code base_attributes}, else
+     * {@code reference_attributes}; 1 when it declares neither, or a non-positive one). Multiplies every
+     * {@code amount}.
      */
     public static double damageScale(Mob mob) {
-        MobBehaviour behaviour = MobBehaviours.get(mob.getType());
-        Double declared = behaviour == null ? null : behaviour.baseAttributes().get(ATTACK_DAMAGE);
-        double base = declared == null || declared <= 0.0 ? 1.0 : declared;
-        return attackDamage(mob) / base;
+        return damageScale(attackDamage(mob), MobBehaviours.forMob(mob));
+    }
+
+    /** R for a mob whose live {@code attack_damage} is {@code attackDamage}, running {@code behaviour} (or none). */
+    public static double damageScale(double attackDamage, MobBehaviour behaviour) {
+        double declared = behaviour == null ? 0.0 : behaviour.declaredBase(ATTACK_DAMAGE).orElse(0.0);
+        return attackDamage / (declared <= 0.0 ? 1.0 : declared);
     }
 
     /**

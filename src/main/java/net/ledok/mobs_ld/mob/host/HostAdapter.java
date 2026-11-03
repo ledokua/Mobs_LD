@@ -15,7 +15,9 @@ import java.util.Optional;
  * which boss bar to use. Registered per type in {@link HostAdapters}; a type without one gets {@link #DEFAULT},
  * which needs nothing from the host. Data-driven {@link net.ledok.mobs_ld.mob.LdMob}s always use the default.
  *
- * <p>All calls are server side, from the mob's own AI tick unless noted.
+ * <p>All calls are server side, from the mob's own AI tick unless noted. Every hook added for Brain hosts
+ * ({@link #acceptsBrain} to {@link #setBurrowed}) is a no-op by default, so goal-based hosts (the Wither) and LdMobs
+ * never see them.
  */
 public interface HostAdapter {
     /** Runs the engine on the mob as it is, with no cues and its own boss bar if the behaviour asks for one. */
@@ -122,5 +124,51 @@ public interface HostAdapter {
      */
     default Optional<Head> slotHead(String slot) {
         return Optional.empty();
+    }
+
+    // --- Brain hosts (the Warden): all no-ops by default ---
+
+    /**
+     * Whether this adapter drives a mob whose AI is a Brain rather than goals (the Warden). Such entity types are
+     * refused by {@link net.ledok.mobs_ld.mob.behaviour.MobBehaviours} unless their adapter says true here; the Ender
+     * Dragon (whose AI never reaches the mob tick) stays refused regardless.
+     */
+    default boolean acceptsBrain() {
+        return false;
+    }
+
+    /**
+     * After {@code Mob.setTarget} ran on a mob that has a combat (any caller: threat targeting, the engine's own drops
+     * and resets, taunts, Spell Engine aggro; the behaviour's target filter already passed). A Brain host whose
+     * {@code getTarget()} reads a memory writes the target there; null = the target was dropped.
+     */
+    default void onTargetSet(Mob mob, LivingEntity target) {
+    }
+
+    /**
+     * Whether the host's Brain must only keep its memories and sensors fresh this tick, starting and ticking no
+     * behaviour (the engine owns the body). Read by the host's own mixin, before the engine's tick.
+     */
+    default boolean holdsBrain(Mob mob) {
+        return false;
+    }
+
+    /** The engine took the body (an ability, a stagger or the walk home began). */
+    default void onClaimBody(Mob mob) {
+    }
+
+    /** The engine gave the body back (nothing runs any more); the host's own AI resumes. */
+    default void onReleaseBody(Mob mob) {
+    }
+
+    /**
+     * The fight was reset ({@code MobCombat.reset}), or the behaviour went away and the mob turns back to its own AI:
+     * the host clears whatever fight state of its own would bring the fight straight back (a Warden's anger).
+     */
+    default void onReset(Mob mob) {
+    }
+
+    /** A {@code burrow} event put the mob under the ground (true) or brought it back up (false). */
+    default void setBurrowed(Mob mob, boolean burrowed) {
     }
 }

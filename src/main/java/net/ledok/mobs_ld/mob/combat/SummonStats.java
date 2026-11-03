@@ -143,13 +143,14 @@ public final class SummonStats {
     }
 
     /**
-     * The base value of {@code attribute} the summoner's behaviour declares in {@code base_attributes}, else its own
-     * base value (0 if it lacks the attribute). A raid boss with an overridden base then still scales its adds.
+     * The base value of {@code attribute} the summoner's behaviour declares in {@code base_attributes}, else in
+     * {@code reference_attributes}, else its own base value (0 if it lacks the attribute). A raid boss with an
+     * overridden base then still scales its adds.
      */
     public static double declaredBase(Mob mob, Holder<Attribute> attribute) {
-        MobBehaviour behaviour = MobBehaviours.get(mob.getType());
+        MobBehaviour behaviour = MobBehaviours.forMob(mob);
         ResourceLocation id = BuiltInRegistries.ATTRIBUTE.getKey(attribute.value());
-        Double declared = behaviour == null ? null : behaviour.baseAttributes().get(id);
+        Double declared = behaviour == null ? null : behaviour.declaredBase(id).orElse(null);
         if (declared != null) {
             return declared;
         }

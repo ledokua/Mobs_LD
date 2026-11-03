@@ -106,7 +106,8 @@ public class MobCombatHostMixin implements CombatHost {
      * {@code base_attributes}: inside the Mob constructor, just before it creates the navigation and then registers
      * the goals, so both are built from the new values (follow range); before a subclass constructor fills its health
      * from them (the Wither's) and before the mob is added to a level (where Dungeon Difficulty scales it). A mob
-     * loaded from disk then reads its saved base values over these.
+     * loaded from disk then reads its saved base values over these. By type: the mob carries no tags yet, which is why
+     * a file with {@code host.only_tagged} may not have {@code base_attributes}.
      */
     @Inject(method = "<init>", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/entity/Mob;createNavigation(Lnet/minecraft/world/level/Level;)Lnet/minecraft/world/entity/ai/navigation/PathNavigation;"))
@@ -132,6 +133,19 @@ public class MobCombatHostMixin implements CombatHost {
         MobCombat combat = mobs_ld$combat();
         if (combat != null && !combat.mayTarget(target)) {
             ci.cancel();
+        }
+    }
+
+    /**
+     * After the filter above let a target through: a host whose {@code getTarget()} does not read the field this sets
+     * (the Warden's Brain) is told, so threat targeting, the engine's drops and resets, taunts and Spell Engine aggro
+     * steer it too. Every other mob pays one field read.
+     */
+    @Inject(method = "setTarget", at = @At("TAIL"))
+    private void mobs_ld$targetSet(LivingEntity target, CallbackInfo ci) {
+        MobCombat combat = mobs_ld$combat();
+        if (combat != null) {
+            combat.adapter().onTargetSet(mobs_ld$self(), target);
         }
     }
 
@@ -185,22 +199,24 @@ public class MobCombatHostMixin implements CombatHost {
     }
 
     /**
-     * After a datapack reload (or on the first tick): attaches the engine if the type now has a behaviour. Removing
-     * a behaviour leaves the combat in place but inert, so its goals stand down and it can resume after a reload.
+     * After a datapack reload (or on the first tick): attaches the engine if a behaviour now applies to the mob (its
+     * type has one, and its {@code host.only_tagged} filter passes: the one tag lookup a filtered-out mob pays per
+     * reload). Removing a behaviour leaves the combat in place but inert, so its goals stand down and it can resume
+     * after a reload.
      */
     @Unique
     private void mobs_ld$resolve() {
         Mob self = mobs_ld$self();
-        if (mobs_ld$combat() == null && !self.level().isClientSide() && MobBehaviours.get(self.getType()) != null
+        if (mobs_ld$combat() == null && !self.level().isClientSide() && MobBehaviours.forMob(self) != null
                 && MobBehaviours.canHost(self)) {
             mobs_ld$combatOrCreate();
         }
     }
 
     /**
-     * Bosses never despawn while their type's behaviour has a boss block: their fight, home and adds would vanish
-     * with them. Decided by type, so it holds from the first despawn check (before any AI tick) and lapses if the
-     * behaviour goes; the mob's saved PersistenceRequired flag is left alone. Wrapped at the call sites, because many
+     * Bosses never despawn while their behaviour has a boss block: their fight, home and adds would vanish with
+     * them. Decided by type (and {@code only_tagged}), so it holds from the first despawn check (before any AI tick)
+     * and lapses if the behaviour goes; the mob's saved PersistenceRequired flag is left alone. Wrapped at the call sites, because many
      * subclasses override removeWhenFarAway without calling super.
      */
     @ModifyExpressionValue(method = "checkDespawn", at = @At(value = "INVOKE",
@@ -210,7 +226,7 @@ public class MobCombatHostMixin implements CombatHost {
             return false;
         }
         Mob self = mobs_ld$self();
-        MobBehaviour behaviour = MobBehaviours.get(self.getType());
+        MobBehaviour behaviour = MobBehaviours.forMob(self);
         return behaviour == null || behaviour.boss().isEmpty() || !MobBehaviours.canHost(self);
     }
 
@@ -231,7 +247,7 @@ public class MobCombatHostMixin implements CombatHost {
             if (self.level().isClientSide() || !MobCombat.hasSavedState(tag)) {
                 return;
             }
-            if (MobBehaviours.get(self.getType()) == null || !MobBehaviours.canHost(self)) {
+            if (MobBehaviours.forMob(self) == null || !MobBehaviours.canHost(self)) {
                 MobCombat.stripEnrage(self); // its type lost the behaviour while it was saved enraged
                 return;
             }
