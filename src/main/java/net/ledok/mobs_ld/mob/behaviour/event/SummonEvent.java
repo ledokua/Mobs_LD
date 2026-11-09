@@ -12,6 +12,7 @@ import net.ledok.mobs_ld.entity.threat.ThreatTargetGoal;
 import net.ledok.mobs_ld.mixin.MobGoalsAccessor;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.ledok.mobs_ld.mob.combat.Fighters;
+import net.ledok.mobs_ld.mob.combat.MinionLinks;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.ledok.mobs_ld.mob.combat.RuneSpots;
 import net.ledok.mobs_ld.mob.combat.SummonBond;
@@ -54,14 +55,17 @@ import java.util.function.IntUnaryOperator;
  *   <li>{@code scale}: stats from the summoner's ({@link SummonStats});</li>
  *   <li>{@code loot} / {@code xp} false: the adds drop nothing (tags, so it survives saves);</li>
  *   <li>{@code bound}: the adds leave with their summoner even when it cannot reach them ({@link SummonBond});</li>
- *   <li>{@code target: rune_player}: each add first goes for the player its rune was placed for.</li>
+ *   <li>{@code target: rune_player}: each add first goes for the player its rune was placed for;</li>
+ *   <li>{@code minion_link}: an add that is killed hurts its summoner, and the summoner takes more damage once all
+ *       such adds are dead, until it summons again ({@link MinionLink}).</li>
  * </ul>
  *
  * @param maxAlive no more spawn while this many of the summoner's adds are still alive
  */
 public record SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
                           double spread, MaxAlive maxAlive, Optional<Runes> telegraph, Optional<Placement> placement,
-                          Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target)
+                          Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target,
+                          Optional<MinionLink> minionLink)
         implements AbilityEvent {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Runes without a {@code from} appear this long before the adds rise. */
@@ -86,7 +90,8 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             Codec.BOOL.optionalFieldOf("loot", true).forGetter(SummonEvent::loot),
             Codec.BOOL.optionalFieldOf("xp", true).forGetter(SummonEvent::xp),
             Codec.BOOL.optionalFieldOf("bound", false).forGetter(SummonEvent::bound),
-            AddTarget.CODEC.optionalFieldOf("target", AddTarget.AIM).forGetter(SummonEvent::target)
+            AddTarget.CODEC.optionalFieldOf("target", AddTarget.AIM).forGetter(SummonEvent::target),
+            MinionLink.CODEC.optionalFieldOf("minion_link").forGetter(SummonEvent::minionLink)
     ).apply(i, SummonEvent::new));
 
     @Override
@@ -352,10 +357,16 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         if (bound) {
             SummonBond.bind(spawned, mob);
         }
+        if (minionLink.isPresent()) {
+            MinionLinks.mark(spawned, mob);
+        }
         LivingEntity living = spawned instanceof LivingEntity entity ? entity : null;
         SummonStats.Targets stats = scale.isPresent() && living != null ? SummonStats.plan(scale.get(), mob, living) : null;
         boolean added = level.addFreshEntity(spawned);
         run.combat().trackSummon(spawned);
+        if (added && minionLink.isPresent()) {
+            run.combat().trackLinkedSummon(spawned, minionLink.get());
+        }
         if (added && stats != null) {
             // Whatever scaled the add inside addFreshEntity (Dungeon Difficulty, Arenas_LD, both synchronous there) is
             // evened out here, once.
@@ -585,6 +596,61 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         private final String name;
 
         AddTarget(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name;
+        }
+    }
+
+    /**
+     * Ties the adds of one summon to their summoner's health ({@link MinionLinks}): {@code death_damage} hurts the
+     * summoner when such an add is killed, {@code all_dead} makes it take more damage once every linked add is dead,
+     * until it summons linked adds again. Adds that vanish without dying (a reset, a bound add leaving) do neither.
+     */
+    public record MinionLink(Optional<DeathDamage> deathDamage, Optional<AllDead> allDead) {
+        public static final Codec<MinionLink> CODEC = RecordCodecBuilder.<MinionLink>create(i -> i.group(
+                DeathDamage.CODEC.optionalFieldOf("death_damage").forGetter(MinionLink::deathDamage),
+                AllDead.CODEC.optionalFieldOf("all_dead").forGetter(MinionLink::allDead)
+        ).apply(i, MinionLink::new)).validate(link -> link.deathDamage.isEmpty() && link.allDead.isEmpty()
+                ? DataResult.error(() -> "A minion_link needs death_damage or all_dead") : DataResult.success(link));
+    }
+
+    /**
+     * What a killed add takes off its summoner: {@code of_minion_max_health} of the add's max health, at most
+     * {@code cap_of_summoner_max_health} of the summoner's max health (no cap when absent).
+     */
+    public record DeathDamage(double ofMinionMaxHealth, Optional<Double> capOfSummonerMaxHealth) {
+        public static final Codec<DeathDamage> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.doubleRange(0.0, 100.0).fieldOf("of_minion_max_health").forGetter(DeathDamage::ofMinionMaxHealth),
+                Codec.doubleRange(0.0, 1.0).optionalFieldOf("cap_of_summoner_max_health")
+                        .forGetter(DeathDamage::capOfSummonerMaxHealth)
+        ).apply(i, DeathDamage::new));
+
+        public double amount(double minionMaxHealth, double summonerMaxHealth) {
+            double amount = minionMaxHealth * ofMinionMaxHealth;
+            return capOfSummonerMaxHealth.map(cap -> Math.min(amount, summonerMaxHealth * cap)).orElse(amount);
+        }
+    }
+
+    /** The summoner's damage taken multiplier once all its linked adds are dead, and until when it lasts. */
+    public record AllDead(double damageTaken, Until until) {
+        public static final Codec<AllDead> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.doubleRange(0.0, 100.0).fieldOf("damage_taken").forGetter(AllDead::damageTaken),
+                Until.CODEC.optionalFieldOf("until", Until.NEXT_SUMMON).forGetter(AllDead::until)
+        ).apply(i, AllDead::new));
+    }
+
+    public enum Until implements StringRepresentable {
+        /** Until the summoner raises linked adds again (or resets, or dies). */
+        NEXT_SUMMON("next_summon");
+
+        public static final Codec<Until> CODEC = StringRepresentable.fromEnum(Until::values);
+        private final String name;
+
+        Until(String name) {
             this.name = name;
         }
 

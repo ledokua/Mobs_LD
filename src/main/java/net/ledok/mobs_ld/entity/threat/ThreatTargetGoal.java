@@ -17,7 +17,8 @@ import java.util.UUID;
  * (see {@link ThreatEvents}). Runs at a higher priority than
  * the vanilla target goals, so as soon as anyone builds threat (by dealing damage, or via a taunt effect)
  * this takes over target selection. When the table is empty it stands down and lets
- * {@code NearestAttackableTargetGoal} provide the initial "nobody's hit me yet" aggro.
+ * {@code NearestAttackableTargetGoal} provide the initial "nobody's hit me yet" aggro. A decoy that sets itself as
+ * the mob's target ({@link ThreatConfig#decoyEntities}) counts as a provoke from the decoy, so this keeps it.
  */
 public class ThreatTargetGoal extends Goal {
     private final Mob mob;
@@ -35,6 +36,7 @@ public class ThreatTargetGoal extends Goal {
 
     @Override
     public boolean canUse() {
+        claimDecoy();
         return resolveTop() != null;
     }
 
@@ -58,6 +60,7 @@ public class ThreatTargetGoal extends Goal {
 
     @Override
     public void tick() {
+        claimDecoy();
         pruneAndDecay();
         LivingEntity top = resolveTop();
         if (top != null && top != mob.getTarget()) {
@@ -82,6 +85,20 @@ public class ThreatTargetGoal extends Goal {
         }
         UUID id = table.topHolder(uuid -> isValidTarget(server, uuid));
         return id == null ? null : holder(server, id);
+    }
+
+    /**
+     * When a decoy has just made itself the mob's target (and isn't already holding it), turn that into a provoke from
+     * the decoy. Re-taken each time its hold lapses while the decoy keeps targeting the mob.
+     */
+    private void claimDecoy() {
+        LivingEntity target = mob.getTarget();
+        if (target == null || !(mob.level() instanceof ServerLevel server) || !ThreatConfig.get().isDecoy(target)) {
+            return;
+        }
+        if (!table().isControlling(target.getUUID(), server.getGameTime()) && isValidTarget(server, target.getUUID())) {
+            ThreatEffects.provokeByDecoy(mob, target);
+        }
     }
 
     /** The player or summon behind a threat entry, if it is loaded in this level. */

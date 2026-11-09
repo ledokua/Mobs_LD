@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "mobs_ld:warden_sonic"
+    "mobs_ld:warden_sonic",
+    "mobs_ld:minion_link"
   ]
 }

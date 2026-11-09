@@ -109,6 +109,16 @@ public final class ThreatEffects {
         }
     }
 
+    /**
+     * A decoy ({@link ThreatConfig#decoyEntities}) took {@code mob}'s target: a provoke from the decoy, so threat
+     * targeting holds the mob on it for the override window instead of taking it back next tick.
+     */
+    public static void provokeByDecoy(Mob mob, LivingEntity decoy) {
+        if (mob.level() instanceof ServerLevel server) {
+            provoke(mob, decoy, 0, ++controlSequence, server);
+        }
+    }
+
     /** Drop {@code player}'s threat and control on {@code mob}, so it moves to the next player on its table. */
     public static void fadeMob(Mob mob, Player player) {
         if (!mob.level().isClientSide()) {
@@ -116,7 +126,7 @@ public final class ThreatEffects {
         }
     }
 
-    private static void provoke(Mob mob, Player caster, int amplifier, long sequence, ServerLevel server) {
+    private static void provoke(Mob mob, LivingEntity caster, int amplifier, long sequence, ServerLevel server) {
         UUID selfId = caster.getUUID();
         ThreatTable table = ((ThreatHolder) mob).getThreatTable();
         boost(table, selfId, provokeMultiplier(amplifier), server);

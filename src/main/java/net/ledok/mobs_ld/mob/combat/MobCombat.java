@@ -1,5 +1,6 @@
 package net.ledok.mobs_ld.mob.combat;
 
+import com.mojang.logging.LogUtils;
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.threat.ThreatEffects;
@@ -20,6 +21,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -47,6 +49,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,6 +69,7 @@ import java.util.function.Supplier;
  * ability; everything else ticks here every server AI tick, even while no goal runs.
  */
 public final class MobCombat {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final ResourceLocation SOFT_ENRAGE = ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "soft_enrage");
     /** Ticks a telegraph keeps flashing after its impact. */
     private static final int FLASH_TICKS = 4;
@@ -95,6 +99,11 @@ public final class MobCombat {
     /** Abilities a phase's {@code ready_in} made ready regardless of their group's cooldown, until next used. */
     private final Set<String> readyInWins = new HashSet<>();
     private final List<UUID> summons = new ArrayList<>();
+    /** Its adds from summons with a {@code minion_link}, and the link each was raised under ({@link MinionLinks}). */
+    private final Map<UUID, SummonEvent.MinionLink> links = new HashMap<>();
+    /** All its linked adds are dead: it takes {@link #exposedMultiplier} damage until it summons linked adds again. */
+    private boolean exposed;
+    private double exposedMultiplier = 1.0;
     private final List<Fading> fading = new ArrayList<>();
     /** When each currently-unreachable candidate was first found unreachable (game time). */
     private final Map<UUID, Long> unreachableSince = new HashMap<>();
@@ -182,13 +191,17 @@ public final class MobCombat {
         return debug;
     }
 
-    /** Tells operators near the mob what it just decided (only while {@code /mobs_ld debug} is on). */
+    /**
+     * Tells operators near the mob what it just decided, and the server log (for a console without players nearby);
+     * only while {@code /mobs_ld debug} is on.
+     */
     public void trace(String message) {
         if (!debug || !(mob.level() instanceof ServerLevel level)) {
             return;
         }
-        Component line = Component.literal("[" + mob.getType().getDescription().getString() + " " + mob.getId() + "] "
-                + message).withStyle(ChatFormatting.GRAY);
+        String text = "[" + mob.getType().getDescription().getString() + " " + mob.getId() + "] " + message;
+        LOGGER.info("Mobs_LD trace {}", text);
+        Component line = Component.literal(text).withStyle(ChatFormatting.GRAY);
         for (ServerPlayer player : level.players()) {
             if (player.hasPermissions(2) && player.distanceToSqr(mob) < 64.0 * 64.0) {
                 player.sendSystemMessage(line);
@@ -268,6 +281,9 @@ public final class MobCombat {
             return;
         }
         inert = false;
+        if (exposed && now % MinionLinks.FX_INTERVAL == 0) {
+            MinionLinks.tickFx(mob, level);
+        }
         if (!started) {
             started = true;
             if (loadedMidFight) {
@@ -302,6 +318,12 @@ public final class MobCombat {
         if (staggerUntil >= 0 && now >= staggerUntil) {
             staggerUntil = -1;
             host.mobs_ld$stopAction();
+            double recover = behaviour.stagger().map(MobBehaviour.Stagger::recover).orElse(0.0);
+            if (recover > 0.0) {
+                // Back on its feet, but nothing ready (a forced summon) fires the same tick.
+                globalReadyAt = Math.max(globalReadyAt, now + Math.round(recover * 20.0));
+                trace(String.format("stagger over, no ability for %.1f s", recover));
+            }
         }
         if (!mob.isRemoved()) {
             slots.tick(behaviour, engaged);
@@ -733,6 +755,23 @@ public final class MobCombat {
     }
 
     /**
+     * Whether {@code name} could start on its own now, range and weight aside: its phase allows it, it is off cooldown
+     * and, with {@code skip_when_full}, one of its summons has room ({@code chain.if_ready}).
+     */
+    public boolean readyToChain(String name) {
+        MobBehaviour behaviour = behaviour();
+        MobBehaviour.Ability ability = behaviour == null ? null : behaviour.abilities().get(name);
+        if (ability == null) {
+            return false;
+        }
+        MobBehaviour.Phase active = activePhase(behaviour);
+        long now = mob.level().getGameTime();
+        return (active == null || active.allows(name))
+                && AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
+                && !(ability.skipWhenFull() && summonsFull(ability));
+    }
+
+    /**
      * Whether none of the ability's {@code summon} events has room for another add now ({@code skip_when_full});
      * false for an ability that summons nothing.
      */
@@ -969,8 +1008,8 @@ public final class MobCombat {
     }
 
     /**
-     * Damage the mob takes: times the phase's {@code damage_taken} rules and any {@code vulnerable} window of the
-     * ability running now.
+     * Damage the mob takes: times the phase's {@code damage_taken} rules, any {@code vulnerable} window of the
+     * ability running now and the {@code minion_link.all_dead} multiplier while all its linked adds are dead.
      */
     public float adjustDamage(DamageSource source, float amount) {
         MobBehaviour behaviour = behaviour();
@@ -981,6 +1020,9 @@ public final class MobCombat {
         double multiplier = active == null ? 1.0 : active.damageMultiplier(source, this::hasLiveAdd);
         if (current != null) {
             multiplier *= current.damageTakenMultiplier();
+        }
+        if (exposed) {
+            multiplier *= exposedMultiplier;
         }
         return multiplier == 1.0 ? amount : (float) (amount * multiplier);
     }
@@ -1192,6 +1234,57 @@ public final class MobCombat {
         summons.add(summoned.getUUID());
     }
 
+    /** A linked add entered the level; the first add of a new linked summon ends {@code all_dead}'s exposure. */
+    public void trackLinkedSummon(Entity summoned, SummonEvent.MinionLink link) {
+        links.put(summoned.getUUID(), link);
+        if (exposed) {
+            exposed = false;
+            exposedMultiplier = 1.0;
+            trace("minion_link: summoned again, no longer exposed");
+        }
+    }
+
+    /**
+     * One of its linked adds was killed: it takes the link's {@code death_damage} (credited to the add's killer), then,
+     * if no linked add is left alive, the link's {@code all_dead} multiplier until it summons linked adds again.
+     */
+    void onLinkedSummonDeath(LivingEntity add, DamageSource source) {
+        SummonEvent.MinionLink link = links.remove(add.getUUID());
+        if (link == null || !mob.isAlive() || !(mob.level() instanceof ServerLevel level)) {
+            return;
+        }
+        if (link.deathDamage().isPresent()) {
+            float amount = (float) link.deathDamage().get().amount(add.getMaxHealth(), mob.getMaxHealth());
+            if (amount > 0.0F) {
+                LivingEntity killer = MinionLinks.killer(add, source, mob, this::ownsSummon);
+                trace(String.format("minion_link: add killed by %s, %.1f damage",
+                        killer == null ? "nobody" : killer.getName().getString(), amount));
+                mob.hurt(MinionLinks.damage(level, killer), amount);
+            }
+        }
+        // The hit may have killed it (its death clears the links) or the exposure may already be on.
+        if (link.allDead().isPresent() && mob.isAlive() && !exposed && !linkedAddAlive(level)) {
+            exposed = true;
+            exposedMultiplier = link.allDead().get().damageTaken();
+            trace("minion_link: all linked adds dead, damage taken x" + exposedMultiplier);
+            MinionLinks.announce(mob, level, exposedMultiplier);
+        }
+    }
+
+    /** Whether one of its linked adds is alive now; drops the ones that are gone (as {@link #aliveSummons} does). */
+    private boolean linkedAddAlive(ServerLevel level) {
+        links.keySet().removeIf(id -> {
+            Entity entity = level.getEntity(id);
+            return entity == null || !entity.isAlive();
+        });
+        return !links.isEmpty();
+    }
+
+    /** Whether all its linked adds are dead and it takes the {@code all_dead} multiplier now. */
+    public boolean exposed() {
+        return exposed;
+    }
+
     /** Whether {@code entity} is one of the adds this mob summoned (its skulls fly through them). */
     public boolean ownsSummon(Entity entity) {
         return !summons.isEmpty() && summons.contains(entity.getUUID());
@@ -1218,6 +1311,9 @@ public final class MobCombat {
             }
         }
         summons.clear();
+        links.clear();
+        exposed = false;
+        exposedMultiplier = 1.0;
     }
 
     // --- Telegraph fade-out ---
@@ -1320,6 +1416,17 @@ public final class MobCombat {
             ids.add(NbtUtils.createUUID(id));
         }
         state.put("summons", ids);
+        if (!links.isEmpty()) {
+            ListTag linked = new ListTag();
+            links.forEach((id, link) -> SummonEvent.MinionLink.CODEC.encodeStart(NbtOps.INSTANCE, link)
+                    .result().ifPresent(encoded -> {
+                        CompoundTag entry = new CompoundTag();
+                        entry.putUUID("id", id);
+                        entry.put("link", encoded);
+                        linked.add(entry);
+                    }));
+            state.put("links", linked);
+        }
         tag.put(SAVE_KEY, state);
     }
 
@@ -1345,6 +1452,14 @@ public final class MobCombat {
             summons.clear();
             for (Tag id : state.getList("summons", Tag.TAG_INT_ARRAY)) {
                 summons.add(NbtUtils.loadUUID(id));
+            }
+            links.clear();
+            for (Tag entry : state.getList("links", Tag.TAG_COMPOUND)) {
+                CompoundTag linked = (CompoundTag) entry;
+                if (linked.hasUUID("id")) {
+                    SummonEvent.MinionLink.CODEC.parse(NbtOps.INSTANCE, linked.get("link")).result()
+                            .ifPresent(link -> links.put(linked.getUUID("id"), link));
+                }
             }
             if (!started) {
                 // Not for a live mob whose data is merged by a command: that must not end its fight.

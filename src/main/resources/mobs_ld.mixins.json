@@ -22,6 +22,7 @@
     "TargetGoalCombatMixin",
     "TargetingConditionsMixin",
     "WitherBossMixin",
+    "compat.AlterEgoHealthMixin",
     "compat.SpellEngineAggroMixin",
     "compat.SpellEngineHealMixin",
     "wither.WitherBossAccessor",

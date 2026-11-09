@@ -87,6 +87,7 @@ class ShippedBehavioursTest {
             assertTrue(event.loot() && event.xp());
             assertFalse(event.bound());
             assertEquals(SummonEvent.AddTarget.AIM, event.target());
+            assertTrue(event.minionLink().isEmpty(), "Gorefist's rot warts do not hurt him");
             assertEquals(event.at(), event.begin(), "untelegraphed: fires at its time, as before");
             assertEquals(event.at(), event.end());
         }
@@ -498,7 +499,7 @@ class ShippedBehavioursTest {
         assertTrue(rush.width().blocks().isEmpty(), "width: body");
         assertEquals(DashEvent.Push.SIDE, rush.push());
         assertEquals(java.util.Optional.of(0.4), rush.height());
-        assertEquals(4.0, rush.staggerMinDistance());
+        assertEquals(0.0, rush.staggerMinDistance(), "any wall hit staggers, so it cancels the Grave Call");
         assertEquals(Telegraph.Style.SWEEP, rush.telegraph().style());
         assertTrue(rush.telegraph().arrow());
         assertEquals(0.8, rush.begin(), 1.0e-9);
@@ -520,7 +521,7 @@ class ShippedBehavioursTest {
         assertEquals(java.util.Map.of("soul_rush_2", 6.0), wither.phases().get(1).readyIn());
         assertTrue(wither.phases().get(2).readyIn().isEmpty());
         assertTrue(wither.phases().stream().allMatch(phase -> phase.cooldowns().isEmpty()));
-        assertTrue(wither.stagger().isPresent());
+        assertEquals(3.0, wither.stagger().orElseThrow().recover(), "no forced Grave Call the moment it gets up");
     }
 
     @Test
@@ -530,11 +531,19 @@ class ShippedBehavioursTest {
         assertEquals(new Seconds(30.0, 60.0), call.cooldown());
         assertEquals(Seconds.of(20.0), call.initialCooldown());
         assertEquals(0, call.weight());
-        assertEquals(java.util.Optional.of(0.0), call.forceAfter());
+        assertTrue(call.forceAfter().isEmpty(), "only after a full Soul Rush, never on its own");
         assertTrue(call.skipWhenFull());
+        for (String last : List.of("soul_rush", "soul_rush_follow")) {
+            assertTrue(wither.abilities().get(last).events().stream().anyMatch(event -> event instanceof ChainEvent chain
+                    && chain.to().equals("grave_call") && chain.ifReady()
+                    && Math.abs(chain.at() - wither.abilities().get(last).duration()) < 1.0e-9), last);
+        }
         assertEquals(3.0, call.duration());
         SummonEvent summon = summons(call).get(0);
         assertEquals(ResourceLocation.withDefaultNamespace("wither_skeleton"), summon.entity());
+        SummonEvent.MinionLink link = summon.minionLink().orElseThrow();
+        assertEquals(new SummonEvent.DeathDamage(0.5, java.util.Optional.empty()), link.deathDamage().orElseThrow());
+        assertEquals(new SummonEvent.AllDead(1.5, SummonEvent.Until.NEXT_SUMMON), link.allDead().orElseThrow());
         assertEquals(new SummonEvent.Count(2, 4, 2, 12), summon.count());
         assertEquals(new SummonEvent.MaxAlive(6, 3, 16), summon.maxAlive());
         SummonEvent.Placement placement = summon.placement().orElseThrow();

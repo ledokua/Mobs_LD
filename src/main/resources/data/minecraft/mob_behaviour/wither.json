@@ -33,7 +33,7 @@
     "ground_scan": 40
   },
   "global_cooldown": 1.0,
-  "stagger": { "clip": "stagger", "duration": 2.0 },
+  "stagger": { "clip": "stagger", "duration": 2.0, "recover": 3.0 },
   "boss": {
     "engage_on": "players",
     "leash": 64,
@@ -53,9 +53,10 @@
           "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 } },
         { "type": "hover", "from": 0.8, "until": 1.8, "relative_to": "aim", "height": 0.4, "rate": 0.25 },
         { "type": "dash", "at": 1.8, "speed": 1.4, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
-          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 0,
           "telegraph": { "from": 0.8, "style": "sweep", "arrow": true, "color": "#6A2CB0" },
-          "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } }
+          "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } },
+        { "type": "chain", "at": 4.0, "to": "grave_call", "if_ready": true }
       ]
     },
     "soul_rush_2": {
@@ -70,7 +71,7 @@
           "particles": { "id": "minecraft:soul_fire_flame", "at": "heads", "count": 12, "spread": 0.3 } },
         { "type": "hover", "from": 0.95, "until": 1.8, "relative_to": "aim", "height": 0.4, "rate": 0.3 },
         { "type": "dash", "at": 1.8, "speed": 1.4, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
-          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 0,
           "telegraph": { "from": 0.95, "style": "sweep", "arrow": true, "color": "#6A2CB0" },
           "hit": { "amount": 20.0, "knockback": 0.8, "knock_up": 0.3 } },
         { "type": "chain", "at": 2.9, "to": "soul_rush_follow" }
@@ -85,13 +86,14 @@
           "sound": { "id": "minecraft:entity.wither.shoot", "pitch": 0.5, "volume": 2 },
           "particles": { "id": "minecraft:large_smoke", "at": "heads", "count": 16, "spread": 0.3 } },
         { "type": "dash", "at": 0.7, "speed": 1.8, "overshoot": 5, "max_distance": 28, "width": "body", "height": 0.4,
-          "push": "side", "on_wall": "stagger", "stagger_min_distance": 4,
+          "push": "side", "on_wall": "stagger", "stagger_min_distance": 0,
           "telegraph": { "show": false },
-          "hit": { "amount": 12.0, "knockback": 0.8, "knock_up": 0.3 } }
+          "hit": { "amount": 12.0, "knockback": 0.8, "knock_up": 0.3 } },
+        { "type": "chain", "at": 2.6, "to": "grave_call", "if_ready": true }
       ]
     },
     "grave_call": {
-      "duration": 3.0, "cooldown": [30, 60], "initial_cooldown": 20, "weight": 0, "force_after": 0,
+      "duration": 3.0, "cooldown": [30, 60], "initial_cooldown": 20, "weight": 0,
       "skip_when_full": true,
       "events": [
         { "type": "hover", "from": 0.0, "until": 3.0, "relative_to": "ground", "height": 3 },
@@ -106,7 +108,8 @@
           "placement": { "around": "fighters", "radius": [3, 6], "min_gap": 2, "clearance": 3, "ground": true },
           "telegraph": { "from": 0.2, "radius": 0.9, "color": "#3A1F5C" },
           "scale": { "max_health": { "of_summoner": 0.025 }, "attack_damage": 1.0, "armor": "summoner_bonus", "damage_dealt": "copy" },
-          "loot": false, "xp": false, "bound": true, "target": "rune_player" }
+          "loot": false, "xp": false, "bound": true, "target": "rune_player",
+          "minion_link": { "death_damage": { "of_minion_max_health": 0.5 }, "all_dead": { "damage_taken": 1.5 } } }
       ]
     }
   },

@@ -23,7 +23,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `movement` | standoff 2.0 | how it positions itself between abilities (below) |
 | `global_cooldown` | 0.5 | pause after every ability before the next can start |
 | `intro` | none | ability played once when it first engages (e.g. a roar; set `invulnerable`) |
-| `stagger` | none | `{ "clip": "stagger", "duration": 1.8 }` - helpless window after a dash hits a wall |
+| `stagger` | none | `{ "clip": "stagger", "duration": 1.8, "recover": 0 }` - helpless window after a dash hits a wall; `recover`: seconds after it during which no ability starts (it moves on its own again), so an ability that became ready meanwhile (a forced summon) does not fire the moment it gets up |
 | `abilities` | `{}` | name -> ability (below) |
 | `on_death` | none | ability timeline run while the body falls (its clip is the death clip) |
 | `phases` | none | boss phases (below) |
@@ -304,6 +304,10 @@ there it keeps the old aim). A stagger, phase change or reset before `at` ends t
 With `"taunt_wins": true` (default false) a taunt lock beats the kept aim: if a live taunt or provoke holds the mob
 when the hand-over happens, a `current` follow-up goes for the taunter instead (a taunt during the Warden's Hunting
 Sniff moves its Deep Charge onto the taunter).
+With `"if_ready": true` (default false) the hand-over only happens if `to` could start on its own now: its phase allows
+it, its cooldown (and initial cooldown) is over and, with `skip_when_full`, a summon of it has room; else the ability
+just plays on to its end. The follow-up's cooldown starts as usual. The Wither's last dash of each Soul Rush chains into
+Grave Call this way, so its skeletons rise after a full sequence, and never after one that ended in a wall stagger.
 
 ### `summon` - adds
 ```json
@@ -334,6 +338,7 @@ Only `at` and `entity` are required; every other field is optional, and left out
 | `xp` | true | false: the adds drop no experience |
 | `bound` | false | true: the adds also leave (a puff of smoke, no drops) once the summoner is dead or gone, even where it cannot reach them (below) |
 | `target` | `aim` | whom each add goes for first: `aim` (the ability's aim) or `rune_player` (the player its rune was placed for; the aim when there is none). A `rune_player` add that runs threat targeting (vanilla monsters do under the default threat config) starts with 1 threat on its player, so it stays on them instead of turning to whoever is nearest, until someone builds more threat on it (one hit, a taunt) |
+| `minion_link` | - | `{death_damage, all_dead}` (at least one): an add that is **killed** hurts its summoner, and the summoner takes more damage once all such adds are dead (below) |
 
 Adds are spawned inside the summoner's tick (Arenas_LD treats them as minions of a run boss), counted as its adds for
 `max_alive` and `skip_when_full`, and removed when the summoner dies or resets, for every summon. The drop and bond
@@ -387,6 +392,24 @@ stay temporary. The modifiers are permanent: they are saved with the add. Exampl
 smoke, without dying or dropping anything, when the summoner is dead or removed, no longer counts it among its adds (a
 reset while the add was unloaded), or has not been loaded in the add's level for 5 s while the add ticks (a restart or
 chunk unload that kept only the add, the summoner gone through a portal or discarded).
+
+**`minion_link`**: `{ "death_damage": { "of_minion_max_health": 0.5, "cap_of_summoner_max_health": 0.03 },
+"all_dead": { "damage_taken": 1.5, "until": "next_summon" } }`.
+- `death_damage`: when one of these adds dies (a real death: killed by anyone, `/kill`; not an add that vanishes in a
+  puff of smoke, is discarded by a reset or despawns), its summoner takes `of_minion_max_health` x the add's max health,
+  at most `cap_of_summoner_max_health` x its own max health (no cap without it). The damage is `mobs_ld:minion_link`,
+  credited to the add's killer (whoever the killing blow names, else whoever last hurt it; nobody if that is the summoner
+  or one of its adds), so it counts for the killer in damage shares (Loot Stage, `top_damage`, threat). Armour,
+  Protection, Resistance, shields and the hurt cooldown do not reduce it, nor knock the summoner back, and per-mob damage
+  multipliers leave it alone (`#loot_stage:unscaled`); the summoner's own `damage_taken` rules, `vulnerable` windows and
+  `invulnerable` abilities still apply.
+- `all_dead`: once an add of a linked summon dies and none of the summoner's linked adds is left alive, the summoner takes
+  `damage_taken` x damage until it raises linked adds again (`until`: `next_summon`, the only value), resets or dies.
+  The fighters see "All minions are dead: <name> takes +50% damage!" over the hotbar (`mobs_ld.minion_link.exposed`,
+  en_us and uk_ua; servers without the client mod's language file send the English text), hear a shield break and see
+  sparks (`enchanted_hit`) on the summoner while it lasts.
+- A link is kept per add with the summoner's saved adds; a boss that loads mid-fight resets, which removes its adds and
+  the exposure.
 
 ### `cloud`
 `at`, `origin`, `radius`, `duration`, `effects` - a lingering area-effect cloud.
@@ -495,7 +518,7 @@ slot shows: the Wither's `right_head` and `left_head` slots turn those heads. Ab
 | `offset` | 0 | re-pick this long after each pick of its lead (the first slot listed without an offset), for the whole fight, whatever made either pick, so the two never switch together; must be shorter than the lead's `repick`. Without a lead it only delays the first scheduled re-pick |
 | `lost_after` | 2 | a holder out of sight this long is replaced |
 
-Candidates: players that are alive, attackable, not stealthed (Rogues' vanish), not spectating or in creative, within
+Candidates: players that are alive, attackable, not stealthed (Rogues' vanish, Infiltrator's Vanish), not spectating or in creative, within
 `range` and (with `line_of_sight`) visible from that head. Pets and summons only as a spread slot's last resort;
 other mobs never.
 - `lowest_threat`: the player with the least threat on the mob's table (0 counts). A tie goes to someone other than
@@ -761,6 +784,8 @@ ends the combo.
   skeleton swing otherwise (stone sword, Wither I for 10 s).
 - No loot, equipment or experience (no farmable skulls); removed when the Wither dies or resets, and (`bound`) gone in
   a puff of smoke within seconds of the Wither being gone or unloaded, also after a restart.
+- `minion_link`: a killed skeleton takes half its max health off the Wither (no cap), credited to its killer; once all
+  of them are dead the Wither takes +50% damage until its next Grave Call raises skeletons.
 
 ### The Warden (`data/minecraft/mob_behaviour/warden.json`)
 
@@ -861,5 +886,5 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
 - `/mobs_ld brain <targets>` - a Warden's Brain: hosted or not, held by the engine or running, its activity, its
   attack target and its anger at it, its dig cooldown (and when it expires), its pose (and the clip cue holding it)
   and whether it is burrowed.
-- `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks (abilities, hits, slot picks,
+- `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks and in the server log (`Mobs_LD trace ...`) (abilities, hits, slot picks,
   skull hits and splashes with their amounts).

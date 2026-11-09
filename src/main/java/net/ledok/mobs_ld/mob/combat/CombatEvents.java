@@ -40,12 +40,14 @@ public final class CombatEvents {
             return InteractionResultHolder.pass(ItemStack.EMPTY);
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> ListenWindows.clear());
-        // Fired once per real death (from LivingEntity.die), before the body starts falling.
+        // Fired once per real death (from LivingEntity.die), before the body starts falling. A killed minion_link add
+        // hurts its summoner (a discarded one never gets here).
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             MobCombat combat = CombatHost.of(entity);
             if (combat != null) {
                 combat.onDeath();
             }
+            MinionLinks.onDeath(entity, source);
         });
         // Every way out of the level. Destroyed (killed, discarded): clean up at once. Otherwise (chunk unload, which
         // fires this while the level streams over the chunk's entities, before any removal; dimension change) touch

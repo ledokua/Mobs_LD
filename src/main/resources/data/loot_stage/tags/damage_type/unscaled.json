@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "mobs_ld:wither_spawn_blast"
+    "mobs_ld:wither_spawn_blast",
+    "mobs_ld:minion_link"
   ]
 }

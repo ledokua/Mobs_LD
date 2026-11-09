@@ -24,7 +24,8 @@ import java.util.UUID;
  * <p>Summons are MMO-style threat holders: a player-owned entity that can be attacked (a tamed wolf, a Spell
  * Engine spirit wolf or frost elemental) builds its own threat and can pull and tank the mob. A summon that
  * cannot be targeted (Spell Engine's unattackable turrets, which report {@code isInvulnerable()}) would leave the
- * mob chasing nothing, so its threat is credited to its owner instead.
+ * mob chasing nothing, so its threat is credited to its owner instead. The owner of a targetable summon also earns
+ * {@link ThreatConfig#summonOwnerThreatShare} of the summon's threat.
  */
 public final class ThreatEvents {
     private static final String MOD_PACKAGE = MobsLdMod.class.getPackageName();
@@ -45,7 +46,7 @@ public final class ThreatEvents {
             LivingEntity attacker = threatSource(source.getEntity());
             if (attacker != null) {
                 double threat = damageTaken * ThreatConfig.get().threatPerDamage * threatMultiplier(attacker);
-                holder.getThreatTable().add(attacker.getUUID(), threat);
+                addThreat(holder.getThreatTable(), attacker, threat);
             }
         });
     }
@@ -88,7 +89,7 @@ public final class ThreatEvents {
         MobEffectCategory category = effect.getEffect().value().getCategory();
         if (category == MobEffectCategory.HARMFUL && cfg.threatPerDebuff > 0.0 && target instanceof Mob mob
                 && target instanceof ThreatHolder holder && shouldThreatTarget(mob)) {
-            holder.getThreatTable().add(source.getUUID(), cfg.threatPerDebuff * levels * threatMultiplier(source));
+            addThreat(holder.getThreatTable(), source, cfg.threatPerDebuff * levels * threatMultiplier(source));
         } else if (category == MobEffectCategory.BENEFICIAL && cfg.threatPerBuff > 0.0) {
             creditFightingMobs(target, source, cfg.threatPerBuff * levels * threatMultiplier(source));
         }
@@ -104,7 +105,7 @@ public final class ThreatEvents {
             }
             ThreatTable table = holder.getThreatTable();
             if (table.get(patientId) > 0.0 || mob.getTarget() == patient) {
-                table.add(source.getUUID(), threat);
+                addThreat(table, source, threat);
             }
         }
     }
@@ -141,6 +142,19 @@ public final class ThreatEvents {
             return null;
         }
         return summon.canBeSeenAsEnemy() ? summon : owner;
+    }
+
+    /**
+     * Adds {@code threat} for {@code source} and, when the source is a player-owned summon, the configured share of it
+     * for the owner too ({@link ThreatConfig#summonOwnerThreatShare}).
+     */
+    private static void addThreat(ThreatTable table, LivingEntity source, double threat) {
+        table.add(source.getUUID(), threat);
+        double share = ThreatConfig.get().summonOwnerThreatShare;
+        if (share > 0.0 && !(source instanceof Player) && source instanceof OwnableEntity ownable
+                && ownable.getOwner() instanceof Player owner && !owner.isSpectator()) {
+            table.add(owner.getUUID(), threat * share);
+        }
     }
 
     /** Threat scaling from the {@code mobs_ld:threat_multiplier} attribute (1.0 if absent, e.g. on summons). */

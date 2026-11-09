@@ -4,11 +4,19 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.ledok.mobs_ld.MobsLdMod;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Tunables for the aggro/threat system, persisted to {@code config/mobs_ld_threat.json}. Loaded lazily on
@@ -70,6 +78,26 @@ public final class ThreatConfig {
     public boolean summonThreat = true;
 
     /**
+     * Share of a targetable summon's threat that its owner also earns, on top of the summon's own (0.33 = a third).
+     * The summon can pull mobs off a player who stays out of the fight, and the owner still draws some aggro for it.
+     * Applies to damage, heal, buff and debuff threat; 0 turns it off. Untargetable summons already pass all of
+     * their threat to the owner.
+     */
+    public double summonOwnerThreatShare = 0.33;
+
+    /**
+     * Decoys: entity types that pull mobs onto themselves by setting the mob's target (Archers Expansion's Alter Ego
+     * does so every second for mobs within 12 blocks). Threat targeting used to take the mob back on the next tick;
+     * now a mob whose target becomes a decoy treats it as a provoke from the decoy (out-threats everyone by
+     * {@link #provokeMultiplierStep}, holds for {@link #provokeOverrideTicks}, renewed while the decoy keeps it).
+     * Empty = decoys get no threat.
+     */
+    public List<String> decoyEntities = new ArrayList<>(List.of("archers_expansion:alter_ego"));
+
+    /** Archers Expansion's Alter Ego copies spawn with their caster's current health (theirs is 20). */
+    public boolean decoyCopiesOwnerHealth = true;
+
+    /**
      * MMO-style heal threat: threat the healer earns per point of health actually restored (overheal earns nothing).
      * Every mob already fighting the healed player or summon, within {@link #healThreatRadius} of it, adds it to the
      * healer, so a healer keeping the tank up draws attention but never pulls mobs that are not in the fight.
@@ -99,6 +127,27 @@ public final class ThreatConfig {
 
     /** When {@link #affectVanillaMobs} is on, restrict it to hostile {@code Monster}s so passive/neutral mobs are left alone. */
     public boolean vanillaMonstersOnly = true;
+
+    private transient List<String> decoySource;
+    private transient Set<EntityType<?>> decoyTypes = Set.of();
+
+    /** Whether {@code entity} is one of {@link #decoyEntities}. */
+    public boolean isDecoy(Entity entity) {
+        if (decoySource != decoyEntities) {
+            Set<EntityType<?>> types = new HashSet<>();
+            if (decoyEntities != null) {
+                for (String id : decoyEntities) {
+                    ResourceLocation key = ResourceLocation.tryParse(id);
+                    if (key != null) {
+                        BuiltInRegistries.ENTITY_TYPE.getOptional(key).ifPresent(types::add);
+                    }
+                }
+            }
+            decoyTypes = types;
+            decoySource = decoyEntities;
+        }
+        return decoyTypes.contains(entity.getType());
+    }
 
     public static ThreatConfig get() {
         if (instance == null) {

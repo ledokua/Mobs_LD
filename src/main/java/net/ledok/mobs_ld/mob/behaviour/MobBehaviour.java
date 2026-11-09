@@ -653,10 +653,17 @@ public record MobBehaviour(
     }
 
     /** Helpless window after e.g. a charge into a wall: the clip holds while the mob does nothing. */
-    public record Stagger(String clip, double duration) {
+    /**
+     * The helpless window after a dash hits a wall.
+     *
+     * @param recover seconds after the window during which no ability starts (the mob moves on its own again), so a
+     *                ready ability does not fire the moment it gets up; 0 = at once, as before
+     */
+    public record Stagger(String clip, double duration, double recover) {
         public static final Codec<Stagger> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.STRING.optionalFieldOf("clip", "stagger").forGetter(Stagger::clip),
-                Codec.DOUBLE.fieldOf("duration").forGetter(Stagger::duration)
+                Codec.DOUBLE.fieldOf("duration").forGetter(Stagger::duration),
+                Codec.doubleRange(0.0, 60.0).optionalFieldOf("recover", 0.0).forGetter(Stagger::recover)
         ).apply(i, Stagger::new));
     }
 

@@ -12,5 +12,6 @@
   "mobs_ld.cue.warden.scent": "Боронитель учув запах",
   "mobs_ld.cue.warden.be_still": "Не рухайся...",
   "mobs_ld.cue.warden.roar_of_the_deep": "Боронитель реве: глибина відповідає",
-  "mobs_ld.stacks.sculk_brand": "Скалкове тавро: %s"
+  "mobs_ld.stacks.sculk_brand": "Скалкове тавро: %s",
+  "mobs_ld.minion_link.exposed": "Усі слуги мертві — %s отримує %s%% шкоди!"
 }

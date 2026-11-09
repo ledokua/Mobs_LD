@@ -23,6 +23,12 @@ public final class ModDamageTypes {
      * living non-player deals it, and every engine hit names the Warden as the attacker.
      */
     public static final ResourceKey<DamageType> WARDEN_SONIC = key("warden_sonic");
+    /**
+     * A summoner's share of a killed {@code minion_link} add, credited to whoever killed the add. A share of health,
+     * so armour, Protection, Resistance, shields and the hurt cooldown leave it whole; no knockback; outside per-mob
+     * damage multipliers ({@code #loot_stage:unscaled}). The summoner's own {@code damage_taken} rules still apply.
+     */
+    public static final ResourceKey<DamageType> MINION_LINK = key("minion_link");
 
     private ModDamageTypes() {
     }
