@@ -873,6 +873,51 @@ Not yet (later milestones of the design; the file names none of it, so nothing r
 - M5: the Sculk Resonators: their raise in Roar of the Deep and 45 s into P2 (`resonance`, `min_players` 2,
   `placement.around: home`), and the x0.5 damage taken while any stands (`damage_taken.while_adds`).
 
+## Attack profiles (`data/<ns>/mobs_ld/attack_profiles/*.json`)
+
+Size any mob's hits on players (modded or vanilla, hosted or not) before anything scales them. With no files and caps
+off (the defaults) nothing changes. One file per mob type, any file name; `/reload` reloads them.
+
+```json
+{ "entity": "bosses_of_mass_destruction:lich", "reference_hit": 12.0,
+  "attacks": [
+    { "match": { "damage_type": "minecraft:mob_attack" }, "hits": 1.0 },
+    { "match": { "direct": "bosses_of_mass_destruction:blue_fireball" }, "hits": 1.5 },
+    { "match": { "damage_type": "#minecraft:is_explosion" }, "multiply": 0.4 },
+    { "match": { "damage_type": "minecraft:magic", "no_attacker": true, "within": 24 }, "hits": 0.5 }
+  ],
+  "cap_of_target_max_health": 0.45 }
+```
+
+| Field | Default | Meaning |
+|---|---|---|
+| `entity` | - | the mob type |
+| `reference_hit` | - | the mob's one normal hit at level 0 on Normal: the unit of `hits` (required if any attack uses `hits`) |
+| `reference_attack_damage` | the type's default | the attack_damage `reference_hit` was measured at; R = live attack_damage / this |
+| `attacks` | `[]` | rules, first match wins; a hit nothing matches keeps its number |
+| `cap_of_target_max_health` | config | one hit of this mob takes at most this share of the player's max health (see caps) |
+
+An attack: `match` (every hit when absent; every field set must hold) and exactly one action.
+- `match.damage_type`: an id or `#tag`; `match.direct`: the direct source's entity type (a projectile); `match.ability`:
+  the Mobs_LD ability the mob is running; `match.no_attacker: true` + `within` (default 16): a hit with no living
+  attacker or direct source on a player within that many blocks of a living mob of this type (for mods that drop the
+  attacker; the nearest such mob stands in as the dealer).
+- `hits: N` = N x `reference_hit` x R (attack_damage scaling by Dungeon Difficulty or Arenas still carries);
+  `multiply: m` = the mod's own number x m; `set: n` = n; `ignore: true` = keep the number, stop looking.
+
+The dealer is who DD Loot Stage scales by: the attacker (the shooter, the owner of a cloud), else a living direct
+source; never a player. Order of one hit: the profile (at the very start of `LivingEntity.hurt`, wrapping every other
+mod's code there) -> `loot_stage:damage_dealt` -> the Arenas tier -> the cap (start of the player's `actuallyHurt`) ->
+armour, Resistance, absorption. `/kill` and other damage that bypasses invulnerability is never touched.
+
+**Caps** (`config/mobs_ld_damage.json`, reload with `/mobs_ld damage config`): `capsEnabled` (default false),
+`capOfTargetMaxHealth` (0.40) for normal mobs, `bossCapOfTargetMaxHealth` (0.60) for bosses (`#c:bosses` or a
+Mobs_LD behaviour with a `boss` block). A profile's own `cap_of_target_max_health` applies even with caps off. Hits
+without a mob behind them (falling, lava, a `no_attacker` hit no profile claims) are never capped. During i-frames
+vanilla passes only the excess over the last hit, which is capped alike.
+
+The damage audit (below) records each hit's raw number and, when a profile changed it, the profiled one.
+
 ## Debug commands (ops)
 All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[type=zombie,limit=1]`).
 - `/mobs_ld ability <targets> <name>` - start an ability now, aimed by its `target` rule (else at the mob's target,
@@ -888,3 +933,13 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
   and whether it is burrowed.
 - `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks and in the server log (`Mobs_LD trace ...`) (abilities, hits, slot picks,
   skull hits and splashes with their amounts).
+- `/mobs_ld damage audit start|stop|dump|status` - records every hit on a player while it runs (to size mob attacks
+  from data). Grouped by dealer kind (`attacker`, `direct`, `none`, `player`; the dealer is who DD Loot Stage scales
+  by: the attacker, else a living direct source), dealer entity type, damage type, direct entity type and the Mobs_LD
+  ability the dealer runs. Per group: landed/refused, raw min/avg/max (what `LivingEntity.hurt` received: after a
+  player's difficulty scaling, before `loot_stage:damage_dealt`, Arenas tier, armour, absorption), raw as a share of
+  the player's max health, health + absorption really taken, the dealer's attack_damage and damage_dealt, whether the
+  type is `#loot_stage:unscaled`, and for hits with no dealer the living non-players within 16 blocks (suspects).
+  `stop` and `dump` write `mobs_ld/damage_audit/<time>.json` in the server folder (`dump` keeps recording); a recording
+  still running when the server stops is written too. `/mobs_ld damage audit attributes` lists the living entity
+  types whose default attributes lack `loot_stage:damage_dealt` (`attributes_<time>.json`).

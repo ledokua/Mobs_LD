@@ -3,12 +3,14 @@ package net.ledok.mobs_ld.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.ledok.mobs_ld.config.DamageConfig;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.CombatTargets;
+import net.ledok.mobs_ld.mob.combat.DamageAudit;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.minecraft.commands.CommandSourceStack;
@@ -21,6 +23,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.warden.Warden;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.function.BiConsumer;
@@ -83,10 +87,90 @@ public final class MobsLdCommands {
                 .then(Commands.literal("stop")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> apply(ctx.getSource(), EntityArgument.getEntities(ctx, "targets"), false,
-                                        (mob, combat) -> ((CombatHost) mob).mobs_ld$stopAction(), "Stopped the action on")))));
+                                        (mob, combat) -> ((CombatHost) mob).mobs_ld$stopAction(), "Stopped the action on"))))
+                .then(Commands.literal("damage")
+                        .then(Commands.literal("audit")
+                                .then(Commands.literal("start").executes(ctx -> auditStart(ctx.getSource())))
+                                .then(Commands.literal("stop").executes(ctx -> auditStop(ctx.getSource())))
+                                .then(Commands.literal("dump").executes(ctx -> auditDump(ctx.getSource())))
+                                .then(Commands.literal("status").executes(ctx -> auditStatus(ctx.getSource())))
+                                .then(Commands.literal("attributes").executes(ctx -> auditAttributes(ctx.getSource()))))
+                        .then(Commands.literal("config").executes(ctx -> reloadDamageConfig(ctx.getSource())))));
     }
 
     /** Prints each mob's threat table, highest first, with its current target. */
+    // --- damage audit ---
+
+    private static int auditStart(CommandSourceStack source) {
+        if (!DamageAudit.start()) {
+            source.sendFailure(Component.literal("The damage audit is already recording (" + DamageAudit.hits() + " hits)"));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Damage audit started: every hit on a player is recorded"), true);
+        return 1;
+    }
+
+    private static int auditStop(CommandSourceStack source) {
+        try {
+            int hits = DamageAudit.hits();
+            Path file = DamageAudit.stop(source.getServer());
+            if (file == null) {
+                source.sendFailure(Component.literal("The damage audit is not recording"));
+                return 0;
+            }
+            source.sendSuccess(() -> Component.literal("Damage audit stopped, " + hits + " hits written to " + file), true);
+            return 1;
+        } catch (IOException e) {
+            source.sendFailure(Component.literal("Could not write the damage audit: " + e.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int auditDump(CommandSourceStack source) {
+        try {
+            int hits = DamageAudit.hits();
+            Path file = DamageAudit.dump(source.getServer());
+            source.sendSuccess(() -> Component.literal(hits + " hits written to " + file
+                    + (DamageAudit.recording() ? " (still recording)" : "")), true);
+            return 1;
+        } catch (IOException e) {
+            source.sendFailure(Component.literal("Could not write the damage audit: " + e.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int auditStatus(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.literal("Damage audit " + (DamageAudit.recording() ? "recording" : "stopped")
+                + ", " + DamageAudit.hits() + " hits"), false);
+        return 1;
+    }
+
+    private static int reloadDamageConfig(CommandSourceStack source) {
+        DamageConfig config = DamageConfig.reload();
+        source.sendSuccess(() -> Component.literal("Reloaded config/mobs_ld_damage.json: caps "
+                + (config.capsEnabled ? "on (" + config.capOfTargetMaxHealth + " of max health, bosses "
+                + config.bossCapOfTargetMaxHealth + ")" : "off") + "; attack profiles reload with /reload"), true);
+        return 1;
+    }
+
+    private static int auditAttributes(CommandSourceStack source) {
+        try {
+            DamageAudit.Missing missing = DamageAudit.missingDamageDealt(source.getServer());
+            if (!missing.installed()) {
+                source.sendFailure(Component.literal("loot_stage:damage_dealt is not installed (no DD Loot Stage)"));
+                return 0;
+            }
+            String shown = String.join(", ", missing.types().subList(0, Math.min(20, missing.types().size())));
+            source.sendSuccess(() -> Component.literal(missing.types().size() + " of " + missing.livingTypes()
+                    + " living entity types lack loot_stage:damage_dealt" + (shown.isEmpty() ? "" : ": " + shown)
+                    + (missing.types().size() > 20 ? ", ..." : "") + " (all in " + missing.file() + ")"), false);
+            return 1;
+        } catch (IOException e) {
+            source.sendFailure(Component.literal("Could not write the attribute audit: " + e.getMessage()));
+            return 0;
+        }
+    }
+
     private static int showThreat(CommandSourceStack source, Collection<? extends Entity> targets) {
         int shown = 0;
         for (Entity entity : targets) {

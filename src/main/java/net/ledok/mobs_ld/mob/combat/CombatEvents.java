@@ -40,6 +40,8 @@ public final class CombatEvents {
             return InteractionResultHolder.pass(ItemStack.EMPTY);
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> ListenWindows.clear());
+        // A damage audit still recording is written out rather than lost.
+        ServerLifecycleEvents.SERVER_STOPPING.register(DamageAudit::onServerStopping);
         // Fired once per real death (from LivingEntity.die), before the body starts falling. A killed minion_link add
         // hurts its summoner (a discarded one never gets here).
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {

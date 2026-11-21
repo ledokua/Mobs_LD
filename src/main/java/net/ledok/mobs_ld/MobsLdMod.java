@@ -6,6 +6,8 @@ import net.ledok.mobs_ld.entity.threat.ThreatEvents;
 import net.ledok.mobs_ld.mob.MobDeclarations;
 import net.ledok.mobs_ld.mob.behaviour.HitTracks;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.damage.AttackProfiles;
+import net.ledok.mobs_ld.config.DamageConfig;
 import net.ledok.mobs_ld.mob.combat.CombatEvents;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
@@ -27,6 +29,8 @@ public class MobsLdMod implements ModInitializer {
         WardenAdapter.register();
         MobBehaviours.register();
         HitTracks.register();
+        AttackProfiles.register();
+        DamageConfig.get(); // writes config/mobs_ld_damage.json with its defaults on the first start
         ModEffects.register();
         ModPotions.register();
         ModCreativeTabs.register();

@@ -588,6 +588,17 @@ public final class MobCombat {
 
     // --- Abilities ---
 
+    /** The ability running now, or null. */
+    public String currentAbility() {
+        return current == null ? null : current.name();
+    }
+
+    /** The ability {@code entity} runs now if the engine hosts it, else null. */
+    public static String abilityOf(Entity entity) {
+        MobCombat combat = CombatHost.of(entity);
+        return combat == null ? null : combat.currentAbility();
+    }
+
     /** Whether the mob is committed to something (an ability or a stagger) and must not move on its own. */
     public boolean busy() {
         return current != null || staggerUntil >= 0;
