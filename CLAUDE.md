@@ -18,9 +18,14 @@ names), Mixin + MixinExtras, GeckoLib 4.9.x, JUnit via fabric-loader-junit.
   - `src/main/resources/data/mobs_ld/mob_behaviour/rot_wart.json`: its add;
   - `src/main/resources/data/minecraft/mob_behaviour/wither.json` and `warden.json`: vanilla hosts.
 
-Before writing a field, look it up in `docs/behaviour.md`; don't guess names from memory. If a field you need doesn't
-exist, say so and propose it as an engine change (below) instead of inventing it in JSON. Unknown keys are mostly
-ignored silently.
+**Only use fields the engine really has.** The JSON readers skip keys they don't know, without an error. A guessed
+name (`"cooldown_time"` instead of `"cooldown"`, `"radius"` on a rectangle) loads cleanly and simply does nothing, so
+the file looks right and the mob silently fights differently. Only a wrong event `type` or a missing required field
+makes the file fail (logged, file skipped). Look every field up
+in `docs/behaviour.md` (or the codec in `mob/behaviour/`). If what you need isn't there, say so and propose it as an
+engine change (below) instead of writing it into the JSON.
+
+Starter files that are checked by the build: `docs/examples/` (vanilla host, custom boss, attack profile).
 
 ## Three ways to add content
 1. **Rework a vanilla mob** (no Java, no art): add `data/minecraft/mob_behaviour/<mob>.json`.
@@ -30,7 +35,9 @@ ignored silently.
    - `host.only_tagged` limits the file to tagged mobs, e.g. a dungeon's spawns, and leaves world mobs vanilla.
 2. **New custom mob or boss.** Every one of these files is needed:
    - `src/main/resources/mobs_ld/entities/<mob>.json`: hitbox, base attributes, spawn egg, render options. This is
-     read at startup and registers the entity type, so a new mob needs a jar rebuild.
+     read at startup and registers the entity type `mobs_ld:<mob>`, so a new mob needs a jar rebuild. Unlike
+     behaviour files, a broken entity file stops the game from starting, on purpose, so server and client agree on
+     the entity list.
    - `src/main/resources/data/mobs_ld/mob_behaviour/<mob>.json`: the fight.
    - Art per `docs/models.md`:
      - `assets/mobs_ld/geo/entity/<mob>.geo.json`;
@@ -80,7 +87,7 @@ Only when the format can't express something.
 - Per change:
   - add a JUnit test in `src/test/java/...`, mirroring the existing ones (`ShippedBehavioursTest` loads every shipped
     file);
-  - document the field in `docs/behaviour.md`;
+  - document the field in `docs/behaviour.md` and add a line to `CHANGELOG.md`;
   - bump `mod_version` in `gradle.properties` when shipping.
 - Integrations are optional and never hard dependencies. DD Loot Stage's `loot_stage:damage_dealt` and Arenas_LD run
   tags are looked up by id or reflection; the mod must still load without them.
@@ -89,8 +96,9 @@ Only when the format can't express something.
 - Build: `./gradlew build` (compiles and runs all unit tests; the jar lands in `build/libs/`). It needs about 1.5 GB of
   free RAM.
 - Dev game: `./gradlew runClient` or `./gradlew runServer` (run folder `run/`).
-- Check JSON without a client: `./gradlew test` (`ShippedBehavioursTest` parses the shipped files). A broken file at
-  runtime is logged as `Invalid mob behaviour <id>: ...` and skipped.
+- Check JSON without a client: `./gradlew test`. `ShippedBehavioursTest` parses the shipped files and `ExamplesTest`
+  parses `docs/examples/`. A broken behaviour file at runtime is logged as `Invalid mob behaviour <id>: ...` and
+  skipped.
 - In game (op): `/mobs_ld` has these subcommands.
   - `ability <targets> <name>`: force an ability now.
   - `debug`: turns on the trace of decisions, hits and amounts. It goes to op chat and the server log.
@@ -103,6 +111,7 @@ Only when the format can't express something.
 - Say what was and wasn't verified in game. Unit tests check parsing, not how a fight feels.
 
 ## Don't
-- Don't hard-code balance numbers in Java, or invent JSON fields that `docs/behaviour.md` doesn't list.
+- Don't hard-code balance numbers in Java, and don't write JSON fields that `docs/behaviour.md` doesn't list (see
+  above: they are silently ignored).
 - Don't copy code or art from mods you have no rights to. Reading them for ideas is fine.
 - Don't commit build output, `run/`, or baked files you didn't copy in on purpose. Commit only when asked.

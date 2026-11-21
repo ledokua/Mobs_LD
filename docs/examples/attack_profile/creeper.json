@@ -1,0 +1,7 @@
+{
+  "entity": "minecraft:creeper",
+  "attacks": [
+    { "match": { "damage_type": "#minecraft:is_explosion" }, "multiply": 0.35 }
+  ],
+  "cap_of_target_max_health": 0.4
+}

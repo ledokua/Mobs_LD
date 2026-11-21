@@ -1,0 +1,47 @@
+{
+  "movement": { "style": "standoff", "distance": 2.5 },
+  "global_cooldown": 0.8,
+  "stagger": { "clip": "stagger", "duration": 2.0, "recover": 1.0 },
+  "abilities": {
+    "cleave": {
+      "duration": 1.8, "cooldown": [3, 4], "weight": 3,
+      "range": { "max": 4.5 },
+      "events": [
+        { "type": "hit", "at": 1.1, "telegraph": { "from": 0.4 },
+          "shape": { "type": "cone", "radius": 4.5, "angle": 100 },
+          "hit": { "amount": 10.0, "knockback": 0.5 } }
+      ]
+    },
+    "charge": {
+      "duration": 3.5, "cooldown": 12, "initial_cooldown": 6, "weight": 2,
+      "range": { "min": 6, "max": 20 },
+      "events": [
+        { "type": "dash", "at": 1.2, "speed": 0.9, "overshoot": 4, "max_distance": 24, "width": "body",
+          "on_wall": "stagger",
+          "telegraph": { "from": 0.4, "style": "sweep", "arrow": true },
+          "hit": { "amount": 14.0, "knockback": 1.0, "knock_up": 0.3 } }
+      ]
+    },
+    "call_guards": {
+      "duration": 2.0, "cooldown": 30, "initial_cooldown": 15, "weight": 1,
+      "skip_when_full": true,
+      "events": [
+        { "type": "fx", "at": 0.0, "message": { "key": "mobs_ld.cue.example_brute.call_guards", "where": "actionbar" } },
+        { "type": "summon", "at": 1.5, "entity": "minecraft:zombie",
+          "count": { "min": 2, "max": 3, "per_extra_player": 1, "cap": 6 },
+          "max_alive": 6,
+          "placement": { "around": "self", "radius": [3, 6], "ground": true },
+          "telegraph": { "from": 0.5, "radius": 0.9 },
+          "loot": false, "xp": false, "bound": true }
+      ]
+    }
+  },
+  "phases": [
+    { "below_health": 1.0, "bar": { "color": "yellow" } },
+    { "below_health": 0.5, "bar": { "color": "red" },
+      "attack_speed": 1.15,
+      "ready_in": { "call_guards": 3 } }
+  ],
+  "boss": { "bar": { "color": "yellow", "overlay": "progress" }, "leash": 32, "reset_after": 15,
+            "engage_on": "players" }
+}

@@ -3,9 +3,14 @@
   "id": "mobs_ld",
   "version": "${version}",
   "name": "Mobs_LD",
-  "description": "Mobs for dungeons",
-  "authors": [],
-  "contact": {},
+  "description": "Data-driven mobs and bosses: JSON ability timelines with telegraphs, phases and boss rules, a threat system, and reworks of vanilla mobs (Wither, Warden).",
+  "authors": [
+    "LeDok"
+  ],
+  "contact": {
+    "sources": "https://github.com/ledokua/Mobs_LD",
+    "issues": "https://github.com/ledokua/Mobs_LD/issues"
+  },
   "license": "MIT",
   "icon": "assets/mobs_ld/icon.png",
   "environment": "*",

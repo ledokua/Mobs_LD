@@ -1,0 +1,28 @@
+{
+  "host": { "only_tagged": ["mobs_ld_example"] },
+  "movement": { "style": "standoff", "distance": 1.5 },
+  "global_cooldown": 0.6,
+  "abilities": {
+    "overhead_slam": {
+      "duration": 1.6, "cooldown": [4, 6], "weight": 3,
+      "range": { "max": 3.5 },
+      "events": [
+        { "type": "hit", "at": 1.0, "telegraph": { "from": 0.3 },
+          "shape": { "type": "rectangle", "width": 1.6, "length": 3.5 },
+          "hit": { "damage": 1.5, "knockback": 0.6 } }
+      ]
+    },
+    "stomp": {
+      "duration": 1.8, "cooldown": 10, "initial_cooldown": 5, "weight": 1,
+      "range": { "max": 4 },
+      "events": [
+        { "type": "fx", "at": 0.0, "sound": { "id": "minecraft:entity.zombie.ambient", "pitch": 0.6 } },
+        { "type": "hit", "at": 1.2, "telegraph": { "from": 0.4, "color": "#8A5A00" },
+          "shape": { "type": "circle", "radius": 3.5 },
+          "hit": { "damage": 1.0, "knock_up": 0.4,
+                   "effects": [ { "id": "minecraft:slowness", "duration": 3, "amplifier": 1 } ] } },
+        { "type": "fx", "at": 1.2, "particles": { "id": "minecraft:explosion", "at": "ground", "count": 3, "spread": 1.5 } }
+      ]
+    }
+  }
+}
