@@ -6,6 +6,8 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.BeamLane;
+import net.ledok.mobs_ld.mob.combat.PaladinBarriers;
 import net.ledok.mobs_ld.network.ModNetworking;
 import net.ledok.mobs_ld.network.SpellVfxKind;
 import net.ledok.mobs_ld.network.SpellVfxPayload;
@@ -18,6 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -28,10 +31,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * which render smooth 3D geometry and local particles on their own. When {@code windup > 0} and the ability is
  * interrupted before impact ({@code at + windup}), a 4-byte cancel packet tells clients to fade the charge out cleanly.
  *
- * <p>With {@code origin: "locked"}, the effect automatically binds to the locked {@link HitEvent} zones or
- * {@link DashEvent} corridor whose impact / start occurs at {@code at + windup}, inheriting their exact locked
+ * <p>With {@code origin: "locked"}, the effect binds to the locked hit or grab zones, dash corridor, or leap landing
+ * whose impact / start occurs at {@code at + windup}, inheriting their exact locked
  * position, facing, and default dimensions (radius, length, width, angle, ray count) even when their flat ground
  * telegraphs are hidden ({@code "telegraph": { "show": false, "from": ... }}).
+ * An interceptable beam or a leap sends its impact separately so the effect follows the actual hit or landing.
  */
 public record VfxEvent(
         double at,
@@ -169,50 +173,88 @@ public record VfxEvent(
     @Override
     public Instance start(AbilityRun run) {
         List<SentVfx> sent = new ArrayList<>();
-        Runnable emit = () -> emitAll(run, sent);
+        OptionalDouble confirmedImpact = confirmedImpact(run);
+        boolean resolveImpact = confirmedImpact.isPresent();
+        Runnable emit = () -> emitAll(run, sent, resolveImpact ? Stage.WINDUP : Stage.FULL);
         if (origin == VfxOrigin.LOCKED) {
             // Defer until the end of this tick so HitEvent / DashEvent at the same beat have already locked their zones
             // regardless of JSON ordering.
-            run.afterEvents(emit);
+            if (!resolveImpact || windup > 0.0) {
+                run.afterEvents(emit);
+            }
         } else {
             emit.run();
         }
         return new Instance() {
             @Override
+            public boolean readyToFinish(AbilityRun run, double scheduledEnd) {
+                return Instance.super.readyToFinish(run, confirmedImpact.orElse(scheduledEnd));
+            }
+
+            @Override
+            public void finish(AbilityRun run) {
+                if (resolveImpact) {
+                    run.afterEvents(() -> emitAll(run, new ArrayList<>(), Stage.IMPACT));
+                }
+            }
+
+            @Override
             public void cancel(AbilityRun run) {
-                if (windup <= 0.0 || sent.isEmpty()) {
-                    return;
+                if (windup > 0.0) {
+                    cancelSent(run, sent);
                 }
-                ServerLevel level = run.level();
-                for (SentVfx item : sent) {
-                    ModNetworking.sendVfxCancel(level, item.origin(), item.id());
-                }
-                sent.clear();
             }
         };
     }
 
-    private void emitAll(AbilityRun run, List<SentVfx> sent) {
+    private OptionalDouble confirmedImpact(AbilityRun run) {
+        if (origin != VfxOrigin.LOCKED) {
+            return OptionalDouble.empty();
+        }
+        boolean barriers = PaladinBarriers.available();
+        return run.ability().events().stream()
+                .filter(event -> event instanceof LeapEvent
+                        || (barriers && event instanceof HitEvent hit && hit.blockedByBarrier()))
+                .mapToDouble(AbilityEvent::end)
+                .filter(impact -> FxEvent.sameMoment(impact, end()))
+                .max();
+    }
+
+    private static void cancelSent(AbilityRun run, List<SentVfx> sent) {
+        for (SentVfx item : sent) {
+            ModNetworking.sendVfxCancel(run.level(), item.origin(), item.id());
+        }
+        sent.clear();
+    }
+
+    private void emitAll(AbilityRun run, List<SentVfx> sent, Stage stage) {
         if (run.cutOff()) {
             return;
         }
         double speed = Math.max(0.1, run.speed());
-        float realWindup = (float) (windup / speed);
-        float realDuration = (float) (duration / speed);
+        float realWindup = stage == Stage.IMPACT ? 0.0F : (float) (windup / speed);
+        float realDuration = (float) (switch (stage) {
+            case FULL -> duration;
+            case WINDUP -> windup;
+            case IMPACT -> duration - windup;
+        } / speed);
         Mob mob = run.mob();
         ServerLevel level = run.level();
         int sourceId = mob.getId();
 
         if (origin == VfxOrigin.LOCKED) {
-            List<ResolvedAnchor> anchors = resolveLocked(run);
-            if (!anchors.isEmpty()) {
+            List<ResolvedAnchor> anchors = resolveLocked(run, stage);
+            if (!anchors.isEmpty() || stage != Stage.FULL) {
                 int emitted = 0;
                 for (ResolvedAnchor anchor : anchors) {
                     if (emitted >= MAX_LOCKED_SPAWNS) {
                         break;
                     }
-                    broadcast(level, sourceId, anchor, realWindup, realDuration, sent);
+                    broadcast(level, sourceId, anchor, realWindup, realDuration, sent, stage);
                     emitted++;
+                }
+                if (emitted > 0 && stage != Stage.IMPACT) {
+                    watchLockedVfx(run, sent);
                 }
                 return;
             }
@@ -229,13 +271,33 @@ public record VfxEvent(
                 dimensions.width().orElse(defaultWidth()),
                 dimensions.height().orElse(defaultHeight()),
                 dimensions.angle().orElse(defaultAngle()),
-                dimensions.count().orElse(defaultCount()));
-        broadcast(level, sourceId, anchor, realWindup, realDuration, sent);
+                dimensions.count().orElse(defaultCount()), false);
+        broadcast(level, sourceId, anchor, realWindup, realDuration, sent, stage);
+    }
+
+    private void watchLockedVfx(AbilityRun run, List<SentVfx> sent) {
+        boolean barrierRoll = kind == SpellVfxKind.ROLL_TRAIL && PaladinBarriers.available();
+        for (AbilityEvent event : run.ability().events()) {
+            if (event instanceof LeapEvent leap && FxEvent.sameMoment(leap.end(), end())
+                    && run.lockedLeap(leap).isPresent()) {
+                run.onLockedVfxCancel(leap, () -> cancelSent(run, sent));
+            } else if (barrierRoll && event instanceof DashEvent dash && dash.onBarrier().isPresent()
+                    && FxEvent.sameMoment(dash.at(), end())) {
+                run.onLockedVfxCancel(dash, () -> cancelSent(run, sent));
+            }
+        }
     }
 
     private void broadcast(ServerLevel level, int sourceId, ResolvedAnchor anchor, float realWindup, float realDuration,
-                           List<SentVfx> sent) {
+                           List<SentVfx> sent, Stage stage) {
         int id = NEXT_ID.incrementAndGet();
+        int flags = SpellVfxPayload.packFlags(dimensions.reverse(), dimensions.particles());
+        if (stage == Stage.WINDUP) {
+            flags |= SpellVfxPayload.FLAG_WINDUP_ONLY;
+        }
+        if (anchor.lockedBeam) {
+            flags |= SpellVfxPayload.FLAG_LOCKED_BEAM;
+        }
         SpellVfxPayload payload = new SpellVfxPayload(
                 id,
                 sourceId,
@@ -255,31 +317,47 @@ public record VfxEvent(
                 (float) anchor.angle,
                 (float) dimensions.tilt(),
                 (byte) Mth.clamp(anchor.count, 1, 24),
-                SpellVfxPayload.packFlags(dimensions.reverse(), dimensions.particles())
+                (byte) flags
         );
         ModNetworking.sendVfx(level, anchor.pos, payload);
         sent.add(new SentVfx(id, anchor.pos));
     }
 
     /**
-     * Collects locked {@link HitEvent} zones and {@link DashEvent} corridors matching {@code at + windup}, inheriting
-     * their exact world position, facing, and shape dimensions for any dimension omitted from JSON.
+     * Collects locked zones matching {@code at + windup}, inheriting their world position, facing, and shape.
      */
-    private List<ResolvedAnchor> resolveLocked(AbilityRun run) {
+    private List<ResolvedAnchor> resolveLocked(AbilityRun run, Stage stage) {
         double impact = at + windup;
         List<ResolvedAnchor> anchors = new ArrayList<>();
         for (AbilityEvent event : run.ability().events()) {
             if (event instanceof HitEvent hit && FxEvent.sameMoment(hit.at(), impact)) {
                 for (AbilityRun.HitZone zone : run.lockedZones(hit)) {
-                    anchors.add(fromHitZone(zone));
+                    List<BeamLane> clipped = stage == Stage.IMPACT ? run.interceptedBeam(zone) : List.of();
+                    if (clipped.isEmpty()) {
+                        anchors.add(fromHitZone(zone));
+                    } else {
+                        for (BeamLane lane : clipped) {
+                            if (lane.length() > 0.0) {
+                                anchors.add(fromBeamLane(lane));
+                            }
+                        }
+                    }
                 }
             } else if (event instanceof GrabEvent grab && FxEvent.sameMoment(grab.at(), impact)) {
                 run.lockedGrab(grab).ifPresent(zone -> anchors.add(fromHitZone(zone)));
+            } else if (event instanceof LeapEvent leap && FxEvent.sameMoment(leap.end(), impact)) {
+                run.lockedLeap(leap).ifPresent(zone -> anchors.add(fromHitZone(zone)));
             } else if (event instanceof DashEvent dash && FxEvent.sameMoment(dash.at(), impact)) {
                 run.lockedDash(dash).ifPresent(lock -> anchors.add(fromDashLock(run, lock)));
             }
         }
         return anchors;
+    }
+
+    private ResolvedAnchor fromBeamLane(BeamLane lane) {
+        Vec3 pos = lane.origin().add(0, placement.up(), 0);
+        return new ResolvedAnchor(pos, lane.yaw(), lane.length(), lane.length(), lane.width(),
+                dimensions.height().orElse(defaultHeight()), dimensions.angle().orElse(defaultAngle()), 1, true);
     }
 
     private ResolvedAnchor fromHitZone(AbilityRun.HitZone zone) {
@@ -328,7 +406,8 @@ public record VfxEvent(
                 dimensions.width().orElse(width),
                 dimensions.height().orElse(defaultHeight()),
                 dimensions.angle().orElse(angle),
-                dimensions.count().orElse(count)
+                dimensions.count().orElse(count),
+                false
         );
     }
 
@@ -345,7 +424,8 @@ public record VfxEvent(
                 dimensions.width().orElse(lock.width()),
                 dimensions.height().orElse(defaultHeight()),
                 dimensions.angle().orElse(defaultAngle()),
-                dimensions.count().orElse(defaultCount())
+                dimensions.count().orElse(defaultCount()),
+                false
         );
     }
 
@@ -477,6 +557,8 @@ public record VfxEvent(
     private record SentVfx(int id, Vec3 origin) {
     }
 
+    private enum Stage { FULL, WINDUP, IMPACT }
+
     private record ResolvedAnchor(
             Vec3 pos,
             float yaw,
@@ -485,7 +567,8 @@ public record VfxEvent(
             double width,
             double height,
             double angle,
-            int count
+            int count,
+            boolean lockedBeam
     ) {
     }
 }

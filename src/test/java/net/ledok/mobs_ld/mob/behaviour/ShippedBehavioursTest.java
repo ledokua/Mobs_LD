@@ -17,6 +17,8 @@ import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
+import net.ledok.mobs_ld.mob.behaviour.event.TraceEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.VfxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.combat.SummonStats;
@@ -25,6 +27,7 @@ import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.warden.WardenHostOptions;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherHostOptions;
+import net.ledok.mobs_ld.network.SpellVfxKind;
 import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
@@ -127,12 +130,37 @@ class ShippedBehavioursTest {
         assertTrue(charge.events().contains(new ClipEvent(roll.at(), "roll_loop")));
         assertTrue(roll.until().isEmpty());
         String recovery = roll.onStop().orElseThrow();
+        assertEquals(roll.onStop(), roll.onBarrier());
         assertEquals("roll_end", runt.abilities().get(recovery).clipOr(recovery));
-        var pounce = runt.abilities().get("pounce").events().stream()
+        var pounceAbility = runt.abilities().get("pounce");
+        var pounce = pounceAbility.events().stream()
                 .filter(LeapEvent.class::isInstance).map(LeapEvent.class::cast).findFirst().orElseThrow();
         assertEquals(0.5, pounce.at());
         assertEquals(1.1, pounce.end());
-        assertEquals(new Shape.Cone(2.7, 110), hits(runt.abilities().get("slash")).getFirst().shape());
+        assertFalse(pounce.telegraph().show());
+        assertTrue(pounceAbility.events().stream().anyMatch(event -> event instanceof VfxEvent vfx
+                && vfx.kind() == SpellVfxKind.GROUND_FRACTURE && vfx.origin() == VfxEvent.VfxOrigin.LOCKED
+                && FxEvent.sameMoment(pounce.begin(), vfx.begin()) && FxEvent.sameMoment(pounce.end(), vfx.end())));
+
+        var slashAbility = runt.abilities().get("slash");
+        var slash = hits(slashAbility).getFirst();
+        assertEquals(new Shape.Cone(2.7, 110), slash.shape());
+        assertFalse(slash.telegraph().show());
+        assertTrue(slashAbility.events().stream().anyMatch(event -> event instanceof VfxEvent vfx
+                && vfx.kind() == SpellVfxKind.SLASH_ARC && vfx.origin() == VfxEvent.VfxOrigin.LOCKED
+                && FxEvent.sameMoment(slash.begin(), vfx.begin()) && FxEvent.sameMoment(slash.end(), vfx.end())));
+    }
+
+    @Test
+    void gorefistMarksItsChopAndAppliesSplintersOnTheSweep() throws Exception {
+        MobBehaviour gorefist = load("/data/mobs_ld/mob_behaviour/gorefist.json");
+        HitEvent chop = hits(gorefist.abilities().get("vertical")).getFirst();
+        assertEquals(Telegraph.Style.FISSURE, chop.telegraph().style());
+        assertEquals(1.1, chop.at());
+        var sweep = gorefist.abilities().get("horizontal").events().stream()
+                .filter(TraceEvent.class::isInstance).map(TraceEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(List.of(new HitSpec.EffectSpec(ResourceLocation.fromNamespaceAndPath("mobs_ld", "amethyst_splinters"),
+                6.0, 0)), sweep.hit().effects());
     }
 
     @Test
@@ -145,9 +173,15 @@ class ShippedBehavioursTest {
         assertEquals(new Shape.Rectangle(3, 15, 0), hit.shape());
         assertEquals(3.5, hit.height().orElseThrow());
         assertEquals(1.2, hit.at());
+        assertEquals(Telegraph.Style.FISSURE, hit.telegraph().style());
+        assertEquals(List.of(new HitSpec.EffectSpec(ResourceLocation.fromNamespaceAndPath("mobs_ld", "sandbound"),
+                1.5, 0)), hit.hit().effects());
         assertEquals(2.7, slam.duration());
         assertTrue(slam.noRepeat());
         assertTrue(colossus.abilities().get("horizontal_slam").noRepeat());
+        assertTrue(colossus.abilities().get("horizontal_slam").events().stream()
+                .anyMatch(event -> event instanceof VfxEvent vfx && vfx.kind() == SpellVfxKind.SAND_SWEEP
+                        && vfx.origin() == VfxEvent.VfxOrigin.LOCKED && vfx.at() == 0.95));
         assertTrue(slam.events().stream().anyMatch(event -> event instanceof SandstoneSpikesEvent spikes
                 && spikes.matches(hit)));
     }

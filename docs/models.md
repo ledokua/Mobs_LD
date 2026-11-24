@@ -90,7 +90,8 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
 - Blockbench **Sound** keyframes: effect = a sound event id (`minecraft:entity.iron_golem.attack` or a
   `mobs_ld:` sound we add).
 - Blockbench **Particle** keyframes: effect = particle id, locator = the name of an `fx_`/`hit_` marker bone.
-  Simple particle types only (`minecraft:explosion`, `minecraft:flame`, ...). Optional *Script* field for a burst:
+  Use a simple particle type such as `minecraft:explosion` or `minecraft:flame`, or use `minecraft:block`
+  with `block=minecraft:amethyst_block` in the *Script* field. Optional burst settings:
   `count=12; spread=0.6; spread_y=0.4; speed=0.05` - particles, horizontal scatter around the marker, upward
   scatter (default 0, so ground impacts stay on the ground), random velocity. Default: one particle.
   Big sprites (`explosion` is ~2 blocks) at a hit marker burst right where the victim stands: keep counts low.
@@ -98,6 +99,8 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
   - `shake(<strength>, <radius>)` - camera shake for nearby players (strength 0.1-1.0, radius blocks), e.g.
     `shake(0.3, 12)`. The older `shake 0.3 12` still works in game, but Blockbench's Molang check flags it as an
     error, so prefer the call form.
+  - `blade_trail(fx_blade_right, hit_blade_right, 0.4, C995FF)` draws a ribbon between the named live markers
+    for 0.4 animation seconds in the specified RGB color. Place the cue just before the blade begins its swing.
 
 ## Hand-off
 

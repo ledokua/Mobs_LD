@@ -9,7 +9,8 @@ public record AttackDisplayConfig(
     public enum AnimationStyle {
         GROW,
         DEFAULT,
-        SWEEP
+        SWEEP,
+        FISSURE
     }
 
     public AttackDisplayConfig(AnimationStyle animationStyle, int prepareColor, int invokeColor) {

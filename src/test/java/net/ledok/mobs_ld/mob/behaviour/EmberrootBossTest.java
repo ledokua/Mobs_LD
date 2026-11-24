@@ -180,9 +180,29 @@ class EmberrootBossTest {
         assertEquals(Optional.of(30.0), crossfireRays.get(1).rotate());
         assertTrue(crossfireRays.get(1).turnBody());
 
+        for (String name : List.of("furnace_blast", "furnace_crossfire")) {
+            MobBehaviour.Ability furnace = emberroot.abilities().get(name);
+            List<HitEvent> pulses = furnace.events().stream().filter(HitEvent.class::isInstance)
+                    .map(HitEvent.class::cast).toList();
+            assertEquals(2, pulses.size());
+            for (HitEvent pulse : pulses) {
+                assertTrue(pulse.blockedByBarrier());
+                assertTrue(furnace.events().stream().anyMatch(e -> e instanceof VfxEvent visual
+                        && visual.kind() == SpellVfxKind.CINDER_ERUPTION && visual.origin() == VfxEvent.VfxOrigin.LOCKED
+                        && FxEvent.sameMoment(pulse.at(), visual.end())), "Missing matching visual for " + name);
+            }
+        }
+
         assertTrue(emberroot.abilities().get("roll_crush_p2").events().stream()
                 .anyMatch(e -> e instanceof ChainEvent c && c.to().equals("roll_crush_follow") && c.tauntWins()));
         assertEquals(0, emberroot.abilities().get("roll_crush_follow").weight());
+        for (String name : List.of("roll_crush", "roll_crush_p2", "roll_crush_follow")) {
+            DashEvent roll = emberroot.abilities().get(name).events().stream()
+                    .filter(DashEvent.class::isInstance).map(DashEvent.class::cast).findFirst().orElseThrow();
+            assertEquals(Optional.of("roll_barrier_recover"), roll.onBarrier());
+            assertTrue(roll.onStop().isEmpty());
+        }
+        assertEquals("hurt", emberroot.abilities().get("roll_barrier_recover").clipOr("roll_barrier_recover"));
         assertEquals(2, emberroot.abilities().get("rib_backlash").behind().orElseThrow().players());
 
         JsonObject enUs = readJson("/assets/mobs_ld/lang/en_us.json").getAsJsonObject();

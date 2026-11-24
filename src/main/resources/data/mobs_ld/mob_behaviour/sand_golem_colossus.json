@@ -27,7 +27,8 @@
           "depth": 1.0,
           "telegraph": {
             "from": 0.4,
-            "style": "sweep"
+            "style": "fissure",
+            "color": "#C99657"
           },
           "shape": {
             "type": "rectangle",
@@ -36,7 +37,10 @@
           },
           "hit": {
             "amount": 8.0,
-            "knockback": 0.5
+            "knockback": 0.5,
+            "effects": [
+              { "id": "mobs_ld:sandbound", "duration": 1.5 }
+            ]
           }
         },
         {
@@ -62,7 +66,8 @@
           "height": 1.75,
           "depth": 0.75,
           "telegraph": {
-            "from": 0.25
+            "from": 0.25,
+            "color": "#967B56"
           },
           "shape": {
             "type": "cone",
@@ -73,6 +78,18 @@
             "amount": 6.0,
             "knockback": 0.4
           }
+        },
+        {
+          "type": "vfx",
+          "kind": "sand_sweep",
+          "at": 0.95,
+          "origin": "locked",
+          "duration": 0.38,
+          "height": 0.58,
+          "color": "#C4965D",
+          "secondary_color": "#EAD5AB",
+          "reverse": true,
+          "particles": false
         }
       ]
     },

@@ -34,6 +34,8 @@ public record SpellVfxPayload(
 ) implements CustomPacketPayload {
     public static final int FLAG_REVERSE = 1;
     public static final int FLAG_PARTICLES = 1 << 1;
+    public static final int FLAG_WINDUP_ONLY = 1 << 2;
+    public static final int FLAG_LOCKED_BEAM = 1 << 3;
 
     public static final Type<SpellVfxPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(MobsLdMod.MOD_ID, "spell_vfx"));
@@ -58,6 +60,14 @@ public record SpellVfxPayload(
 
     public boolean particles() {
         return (flags & FLAG_PARTICLES) != 0;
+    }
+
+    public boolean windupOnly() {
+        return (flags & FLAG_WINDUP_ONLY) != 0;
+    }
+
+    public boolean lockedBeam() {
+        return (flags & FLAG_LOCKED_BEAM) != 0;
     }
 
     public int countUnsigned() {

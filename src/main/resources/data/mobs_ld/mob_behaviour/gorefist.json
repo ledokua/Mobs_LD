@@ -27,7 +27,9 @@
           "type": "hit",
           "at": 1.1,
           "telegraph": {
-            "from": 0.4
+            "from": 0.4,
+            "style": "fissure",
+            "color": "#9864BF"
           },
           "shape": {
             "type": "rectangle",
@@ -65,7 +67,7 @@
             "knockback": 0.9,
             "effects": [
               {
-                "id": "spell_engine:bleed",
+              "id": "mobs_ld:amethyst_splinters",
                 "duration": 6
               }
             ]
@@ -114,7 +116,9 @@
           "type": "hit",
           "at": 1.7,
           "telegraph": {
-            "from": 1.15
+            "from": 1.15,
+            "style": "fissure",
+            "color": "#9864BF"
           },
           "shape": {
             "type": "rectangle",

@@ -112,7 +112,7 @@ class NamelessKingBossTest {
     }
 
     @Test
-    void behaviourValidatesAndMaintainsFourWayVfxDisjointness() throws Exception {
+    void behaviourValidatesAndBossesUseDistinctVfx() throws Exception {
         MobBehaviour king = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
                         readJson("/data/mobs_ld/mob_behaviour/nameless_king.json"))
                 .getOrThrow(msg -> new AssertionError("nameless_king behaviour: " + msg));
@@ -254,16 +254,23 @@ class NamelessKingBossTest {
                 SpellVfxKind.TEMPEST_CYCLONE, SpellVfxKind.THUNDER_SPEAR_DIVE, SpellVfxKind.STORM_NOVA);
         assertEquals(expectedKingKinds, kingKinds, "Nameless King must use all 6 exclusive storm/lightning VFX kinds");
 
-        // Strict 4-way pairwise VFX separation across Midra (12), Amber Brute (6), Emberroot (6), Nameless King (6).
+        // Each boss owns distinct VFX, including the Colossus's sand sweep.
         Set<SpellVfxKind> midraKinds = collectVfxKinds(midra);
         Set<SpellVfxKind> bruteKinds = collectVfxKinds(brute);
         Set<SpellVfxKind> emberKinds = collectVfxKinds(ember);
         assertTrue(Collections.disjoint(kingKinds, midraKinds), "Nameless King must not repeat Midra's VFX");
         assertTrue(Collections.disjoint(kingKinds, bruteKinds), "Nameless King must not repeat Amber Brute's VFX");
         assertTrue(Collections.disjoint(kingKinds, emberKinds), "Nameless King must not repeat Emberroot's VFX");
+        MobBehaviour colossus = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                readJson("/data/mobs_ld/mob_behaviour/sand_golem_colossus.json")).getOrThrow();
+        Set<SpellVfxKind> colossusKinds = collectVfxKinds(colossus);
+        assertEquals(Set.of(SpellVfxKind.SAND_SWEEP), colossusKinds);
+        for (Set<SpellVfxKind> bossKinds : List.of(midraKinds, bruteKinds, emberKinds, kingKinds)) {
+            assertTrue(Collections.disjoint(colossusKinds, bossKinds), "The Colossus must have its own VFX");
+        }
         assertEquals(SpellVfxKind.values().length,
-                midraKinds.size() + bruteKinds.size() + emberKinds.size() + kingKinds.size(),
-                "Every SpellVfxKind must belong uniquely to exactly one of the four custom bosses");
+                midraKinds.size() + bruteKinds.size() + emberKinds.size() + kingKinds.size() + colossusKinds.size(),
+                "Every SpellVfxKind must belong uniquely to a boss");
     }
 
     @Test

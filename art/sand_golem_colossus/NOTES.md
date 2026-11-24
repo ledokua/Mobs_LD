@@ -12,6 +12,8 @@ The Colossus is a level 0–10 Desert Temple boss. The model uses sandstone, gol
 
 The ground slam reaches a target whose feet are up to 3.5 blocks above the lane's origin or 1 block below. The horizontal sweep reaches 1.75 blocks above or 0.75 below.
 
+The slam lane uses sandstone-colored fissures on the same terrain as its spikes. The sweep leaves a low sand crescent. Ground-slam hits apply Sandbound for 1.5 seconds, slowing movement by 10%. Sand sheds from the shoulder and elbow markers during recovery.
+
 The first husk call opens after eight seconds and after the Colossus finishes either slam. When both slams are available, it favors changing attacks over repeating its last move.
 
 Each husk spawns with 10% of the Colossus's current max health (20 HP at baseline). Its own attack scales by the boss's current attack damage divided by 8. It also gains the boss's armor above 6 and copies its DD Loot Stage damage multiplier when available.

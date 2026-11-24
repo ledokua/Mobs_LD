@@ -9,6 +9,7 @@ import net.ledok.mobs_ld.entity.attack.AttackZone;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.ledok.mobs_ld.mob.combat.DashLane;
 import net.ledok.mobs_ld.mob.combat.MobCombat;
+import net.ledok.mobs_ld.mob.combat.PaladinBarriers;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringRepresentable;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Charge in a straight line toward where the aim target stood when the dash locked, {@code overshoot} blocks past
@@ -45,10 +47,12 @@ import java.util.UUID;
  * @param push                which way {@code hit}'s knockback shoves: away from the body, or sideways out of the lane
  * @param staggerMinDistance  a wall only staggers after this much travel; closer, the dash just stops
  * @param onStop              optional recovery ability when the dash reaches the end of its lane or stops early
+ * @param onBarrier           optional recovery ability when a hostile Paladins barrier intercepts the dash
  */
 public record DashEvent(double at, Optional<Double> until, Optional<Double> speed, double maxDistance, double overshoot,
                         Width width, Optional<Double> height, Push push, Optional<HitSpec> hit, WallRule onWall,
-                        double staggerMinDistance, Telegraph telegraph, Optional<String> onStop) implements AbilityEvent {
+                        double staggerMinDistance, Telegraph telegraph, Optional<String> onStop,
+                        Optional<String> onBarrier) implements AbilityEvent {
     private static final double DEFAULT_LEAD = 0.5;
     /** A {@code speed} dash's event ends this long after the longest lane would be covered (rounding to ticks). */
     private static final double END_MARGIN = 0.1;
@@ -60,6 +64,8 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
     private static final double SEARCH_MARGIN = 1.5;
     /** Blocks per tick the height drive may always move, even on a slow dash. */
     private static final double MIN_CLIMB = 0.4;
+    /** Leave a small gap to the barrier's collision box when stopping. */
+    private static final double BARRIER_GAP = 0.001;
 
     public static final MapCodec<DashEvent> CODEC = RecordCodecBuilder.<DashEvent>mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("at").forGetter(DashEvent::at),
@@ -74,7 +80,8 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
             WallRule.CODEC.optionalFieldOf("on_wall", WallRule.STAGGER).forGetter(DashEvent::onWall),
             Codec.doubleRange(0.0, 256.0).optionalFieldOf("stagger_min_distance", 4.0).forGetter(DashEvent::staggerMinDistance),
             Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(DashEvent::telegraph),
-            Codec.STRING.optionalFieldOf("on_stop").forGetter(DashEvent::onStop)
+            Codec.STRING.optionalFieldOf("on_stop").forGetter(DashEvent::onStop),
+            Codec.STRING.optionalFieldOf("on_barrier").forGetter(DashEvent::onBarrier)
     ).apply(i, DashEvent::new)).validate(DashEvent::validate);
 
     private static DataResult<DashEvent> validate(DashEvent event) {
@@ -165,7 +172,7 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
 
     @Override
     public List<String> chains() {
-        return onStop.stream().toList();
+        return Stream.concat(onStop.stream(), onBarrier.stream()).distinct().toList();
     }
 
     @Override
@@ -189,6 +196,7 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                 : null;
         Set<UUID> struck = new HashSet<>();
         DashLane.Sweep<UUID> sweep = new DashLane.Sweep<>(lane, halfDepth);
+        boolean canBeIntercepted = onBarrier.isPresent() && PaladinBarriers.available();
         if (MobCombat.isDebug()) {
             run.combat().trace(String.format("%s: dash locked, %.1f blocks long, %.1f wide", run.name(), lane.length(),
                     lane.width()));
@@ -197,6 +205,9 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
         return new Instance() {
             private boolean started;
             private boolean stopped;
+            private boolean intercepted;
+            private PaladinBarriers.DashContact pendingContact;
+            private double contactAlong;
             /** The body's height span at the previous check, so contact covers its vertical move too. */
             private double bottomBefore;
             private double topBefore;
@@ -207,7 +218,8 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                 if (stopped || run.seconds() < at) {
                     return;
                 }
-                double now = along(mob.position());
+                Vec3 position = mob.position();
+                double now = along(position);
                 AABB body = mob.getBoundingBox();
                 if (!started) {
                     started = true;
@@ -217,7 +229,25 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                 }
                 sweep.check(now);
                 double step = Math.min(perTick(run, lane), Math.max(0.0, lane.length() - now));
-                touch(run, body, step);
+                if (pendingContact != null) {
+                    // Vanilla has now applied the shortened move, including any intervening block collisions.
+                    if (now >= contactAlong - BARRIER_GAP) {
+                        touch(run, body, 0.0, along(pendingContact.point()));
+                        hitBarrier(run, pendingContact);
+                        return;
+                    }
+                    pendingContact = null;
+                }
+                double back = Mth.clamp(-across(position), -step, step); // back onto the drawn centre line
+                double climb = Math.max(step, MIN_CLIMB);
+                double vy = targetY.isPresent() ? Mth.clamp(targetY.get() - mob.getY(), -climb, climb) : run.sidewaysY();
+                Vec3 movement = new Vec3(forward.x * step + right.x * back, vy, forward.z * step + right.z * back);
+                var barrier = canBeIntercepted ? PaladinBarriers.dashContact(run, body, movement) : Optional.<PaladinBarriers.DashContact>empty();
+                if (barrier.isPresent() && barrier.get().fraction() == 0.0) {
+                    hitBarrier(run, barrier.get());
+                    return;
+                }
+                touch(run, body, step, barrier.map(contact -> along(contact.point())).orElse(Double.POSITIVE_INFINITY));
                 bottomBefore = body.minY;
                 topBefore = body.maxY;
                 // Blocks and the world border only: a dashing body passes through entities (see markDashing).
@@ -229,17 +259,20 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                     halt();
                     return;
                 }
-                double back = Mth.clamp(-across(mob.position()), -step, step); // back onto the drawn centre line
-                double climb = Math.max(step, MIN_CLIMB);
-                double vy = targetY.isPresent() ? Mth.clamp(targetY.get() - mob.getY(), -climb, climb) : run.sidewaysY();
-                run.moveBody(forward.x * step + right.x * back, vy, forward.z * step + right.z * back);
+                if (barrier.isPresent()) {
+                    pendingContact = barrier.get();
+                    movement = movement.scale(Math.max(0.0, pendingContact.fraction() - BARRIER_GAP / movement.length()));
+                    contactAlong = along(position.add(movement));
+                }
+                run.moveBody(movement.x, movement.y, movement.z);
                 run.combat().markDashing();
                 moves++;
             }
 
             @Override
             public boolean readyToFinish(AbilityRun run, double scheduledEnd) {
-                return (stopped && onStop.isPresent()) || Instance.super.readyToFinish(run, scheduledEnd);
+                return intercepted || (pendingContact == null
+                        && ((stopped && onStop.isPresent()) || Instance.super.readyToFinish(run, scheduledEnd)));
             }
 
             @Override
@@ -248,10 +281,10 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                     double now = along(mob.position());
                     AABB body = mob.getBoundingBox();
                     sweep.check(now);
-                    touch(run, body, 0.0);
+                    touch(run, body, 0.0, Double.POSITIVE_INFINITY);
                 }
                 halt();
-                onStop.ifPresent(run::chainFacing);
+                (intercepted ? onBarrier : onStop).ifPresent(run::chainFacing);
             }
 
             @Override
@@ -265,7 +298,7 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
              * {@link DashLane.Sweep#LOOKAHEAD} blocks ahead of the body's front (plus the coming step), so the sweep
              * knows where they were before the body reaches them.
              */
-            private void touch(AbilityRun run, AABB body, double step) {
+            private void touch(AbilityRun run, AABB body, double step, double hitBefore) {
                 if (hit.isEmpty()) {
                     return;
                 }
@@ -283,16 +316,29 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
                         continue;
                     }
                     Vec3 position = victim.position();
+                    double along = along(position);
+                    if (along >= hitBefore) {
+                        continue;
+                    }
                     double across = across(position);
                     AABB box = victim.getBoundingBox();
                     boolean level = box.maxY >= bottom && box.minY <= top;
-                    if (!sweep.meets(victim.getUUID(), along(position), across) || !level) {
+                    if (!sweep.meets(victim.getUUID(), along, across) || !level) {
                         continue;
                     }
                     struck.add(victim.getUUID()); // once per dash, even when a dodge's i-frames block this one
                     Vec3 from = push == Push.SIDE ? position.subtract(right.scale(DashLane.sideSign(across))) : mob.position();
                     hit.get().apply(run, victim, from);
                 }
+            }
+
+            private void hitBarrier(AbilityRun run, PaladinBarriers.DashContact contact) {
+                intercepted = true;
+                halt();
+                run.clear(marker);
+                run.cancelLockedVfx(DashEvent.this);
+                PaladinBarriers.playImpact(run, contact.point());
+                run.combat().trace(run.name() + ": stopped by a barrier");
             }
 
             private void hitWall(AbilityRun run, double travelled) {

@@ -2661,15 +2661,35 @@
 					"locator": "fx_fist_right",
 					"pre_effect_script": "count=8; spread=0.55; spread_y=0.22; speed=0.035;"
 				},
+				"1.48": {
+					"effect": "minecraft:block",
+					"locator": "fx_elbow_right",
+					"pre_effect_script": "block=minecraft:sand; count=6; spread=0.28; spread_y=0.10; speed=0.03;"
+				},
 				"1.55": {
 					"effect": "minecraft:dust_plume",
 					"locator": "fx_fist_left",
 					"pre_effect_script": "count=8; spread=0.55; spread_y=0.22; speed=0.035;"
 				},
+				"1.58": {
+					"effect": "minecraft:block",
+					"locator": "fx_elbow_left",
+					"pre_effect_script": "block=minecraft:sand; count=6; spread=0.28; spread_y=0.10; speed=0.03;"
+				},
 				"1.65": {
 					"effect": "minecraft:dust_plume",
 					"locator": "fx_chest",
 					"pre_effect_script": "count=8; spread=0.55; spread_y=0.22; speed=0.035;"
+				},
+				"1.72": {
+					"effect": "minecraft:block",
+					"locator": "fx_shoulder_right",
+					"pre_effect_script": "block=minecraft:sand; count=6; spread=0.28; spread_y=0.10; speed=0.03;"
+				},
+				"1.81": {
+					"effect": "minecraft:block",
+					"locator": "fx_shoulder_left",
+					"pre_effect_script": "block=minecraft:sand; count=6; spread=0.28; spread_y=0.10; speed=0.03;"
 				}
 			},
 			"timeline": {
