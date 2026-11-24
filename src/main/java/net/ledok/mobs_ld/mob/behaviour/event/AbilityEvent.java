@@ -29,6 +29,7 @@ public interface AbilityEvent {
             Map.entry("look", LookEvent.CODEC),
             Map.entry("fx", FxEvent.CODEC),
             Map.entry(SandstoneSpikesEvent.ID, SandstoneSpikesEvent.CODEC),
+            Map.entry("vfx", VfxEvent.CODEC),
             Map.entry("projectile", ProjectileEvent.CODEC),
             Map.entry("shoot", ShootEvent.CODEC),
             Map.entry("telegraph", TelegraphEvent.CODEC),

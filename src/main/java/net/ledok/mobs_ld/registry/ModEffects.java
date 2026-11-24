@@ -1,6 +1,9 @@
 package net.ledok.mobs_ld.registry;
 
 import net.ledok.mobs_ld.MobsLdMod;
+import net.ledok.mobs_ld.effect.AmberMireEffect;
+import net.ledok.mobs_ld.effect.CharredRootsEffect;
+import net.ledok.mobs_ld.effect.FrenziedBurnEffect;
 import net.ledok.mobs_ld.effect.ProvokeEffect;
 import net.ledok.mobs_ld.effect.TauntEffect;
 import net.minecraft.core.Holder;
@@ -21,6 +24,24 @@ public final class ModEffects {
     public static final Holder<MobEffect> TAUNT = register(
             "taunt",
             new TauntEffect(MobEffectCategory.BENEFICIAL, 0xE0641E)
+    );
+
+    /** Midra's custom boss debuff: golden Frenzied Flame scorch with custom burning-eye HUD icon. */
+    public static final Holder<MobEffect> FRENZIED_BURN = register(
+            "frenzied_burn",
+            new FrenziedBurnEffect()
+    );
+
+    /** Amber Brute's custom boss debuff: sticky golden tree resin with custom amber-crystal HUD icon. */
+    public static final Holder<MobEffect> AMBER_MIRE = register(
+            "amber_mire",
+            new AmberMireEffect()
+    );
+
+    /** Emberroot's custom boss debuff: smoldering tangled roots with custom charred-root HUD icon. */
+    public static final Holder<MobEffect> CHARRED_ROOTS = register(
+            "charred_roots",
+            new CharredRootsEffect()
     );
 
     private static Holder<MobEffect> register(String name, MobEffect effect) {

@@ -79,7 +79,12 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
 
     @Override
     public double begin() {
-        return telegraph.show() ? telegraph.start(at, DEFAULT_LEAD) : at;
+        if (telegraph.show()) {
+            return telegraph.start(at, DEFAULT_LEAD);
+        }
+        // A hidden telegraph with an explicit `from` still locks its zones at `from` without spawning ground visuals,
+        // so custom `vfx` events (origin: locked) align pixel-for-pixel with the actual server hitbox.
+        return telegraph.from().map(from -> Math.min(at, from)).orElse(at);
     }
 
     @Override
@@ -87,18 +92,18 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         return at;
     }
 
-    /** Only an untelegraphed hit needs the run to turn ahead of it; a telegraphed one turns itself (see start). */
+    /** Only a hit that does not lock ahead of time needs the run to turn ahead of it; an early-locked one turns itself. */
     @Override
     public Optional<Double> preAim() {
-        return telegraphed() ? Optional.empty() : aimSide;
+        return lockedEarly() ? Optional.empty() : aimSide;
     }
 
     @Override
     public Instance start(AbilityRun run) {
         // The zone locks here, but the body only turns into it just before the impact: an earlier beat may still be
-        // swinging along the old facing. Without a telegraph the run has already been turning; keep following.
-        boolean telegraphed = telegraphed();
-        float aimed = aimSide.isEmpty() ? run.yaw() : telegraphed ? run.aimFor(aimSide.get()) : run.reaim(aimSide.get());
+        // swinging along the old facing. Without an early lock the run has already been turning; keep following.
+        boolean locked = lockedEarly();
+        float aimed = aimSide.isEmpty() ? run.yaw() : locked ? run.aimFor(aimSide.get()) : run.reaim(aimSide.get());
         float yaw = zoneYaw(aimed, run.lockedYaw());
         List<AbilityRun.HitZone> zones = new ArrayList<>();
         for (Vec3 base : bases(run)) {
@@ -113,7 +118,7 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         double down = depth.orElse(run.combat().reachDown());
         AttackPreview.Locked preview = AttackPreview.lock(run, zones, up, down, at);
         AbilityRun.Marker marker = null;
-        if (telegraphed && !zones.isEmpty()) {
+        if (telegraph.show() && locked && !zones.isEmpty()) {
             List<AbilityRun.Zone> drawn = new ArrayList<>(zones.size());
             for (AbilityRun.HitZone zone : zones) {
                 drawn.add(AbilityRun.zoneOf(zone.origin(), yaw, shape, telegraph));
@@ -122,7 +127,7 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         }
         AbilityRun.Marker drawnMarker = marker;
         return new Instance() {
-            private boolean turned = !telegraphed || aimSide.isEmpty();
+            private boolean turned = !locked || aimSide.isEmpty();
 
             @Override
             public void tick(AbilityRun run) {
@@ -208,7 +213,7 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         return Mth.wrapDegrees(from + rotate.get().floatValue());
     }
 
-    private boolean telegraphed() {
-        return telegraph.show() && begin() < at;
+    private boolean lockedEarly() {
+        return begin() < at;
     }
 }

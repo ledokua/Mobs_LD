@@ -7,12 +7,15 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.ledok.mobs_ld.mob.MobDeclaration;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.ChainEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.ChaseEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.ClipEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.TraceEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.VfxEvent;
 import net.minecraft.SharedConstants;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.Bootstrap;
@@ -167,7 +170,9 @@ class ShippedAssetsTest {
                 checkTrace(trace, ability.clipOr(name), clips, bones, tracks, context);
             }
         }
-        if (cues.size() == 1 && !extendsPose(opening)) {
+        // An unconditional chain deliberately replaces the current clip with the follow-up's clip.
+        boolean chains = ability.events().stream().anyMatch(event -> event instanceof ChainEvent chain && !chain.ifReady());
+        if (cues.size() == 1 && !chains && !extendsPose(opening)) {
             assertTrue(length(opening) <= runEnd + EPSILON, context + " ends at " + runEnd
                     + "s before its " + length(opening) + "s opening animation finishes");
         }
@@ -177,10 +182,18 @@ class ShippedAssetsTest {
                 var cue = cues.entrySet().stream().filter(entry -> entry.getKey() <= event.end() + EPSILON)
                         .max(Map.Entry.comparingByKey()).orElseThrow();
                 double poseEnd = cue.getKey() + length(cue.getValue());
-                assertTrue(extendsPose(cue.getValue()) || event.end() <= poseEnd + EPSILON,
+                assertTrue(extendsPose(cue.getValue()) || event.end() <= poseEnd + EPSILON
+                                || hasLockedVisualWarning(event, ability.events()),
                         context + " " + event.type() + " at " + event.end() + "s plays after its pose ends at " + poseEnd + "s");
             }
         }
+    }
+
+    /** A delayed area hit can have a separate warning anchored to the already locked hit zones. */
+    private static boolean hasLockedVisualWarning(AbilityEvent event, List<AbilityEvent> timeline) {
+        return event instanceof HitEvent hit && timeline.stream().anyMatch(beat -> beat instanceof VfxEvent vfx
+                && vfx.origin() == VfxEvent.VfxOrigin.LOCKED && vfx.windup() > 0.0
+                && vfx.begin() + EPSILON >= hit.begin() && FxEvent.sameMoment(vfx.end(), hit.at()));
     }
 
     private static boolean extendsPose(JsonObject clip) {

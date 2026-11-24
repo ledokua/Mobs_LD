@@ -135,8 +135,8 @@ The `telegraph` block (also used by `dash`):
 
 | field | default | meaning |
 |---|---|---|
-| `show` | true | false = no ground warning |
-| `from` | shortly before the impact | when it appears |
+| `show` | true | false = no flat ground warning drawn. If `from` is also set alongside `show: false`, a `hit` or `dash` still locks its zones / corridor silently at `from` so a paired `vfx` event (`origin: "locked"`) aligns pixel-for-pixel with the server hitbox without spawning any ground telegraph entity |
+| `from` | shortly before the impact | when the warning appears (or when zones / dash lane lock silently when `show: false`) |
 | `color` | `#B01818` | `#RRGGBB`; the impact flash is a brighter shade |
 | `style` | `grow` | how it fills until the impact: `grow` (the whole shape at once, growing from its origin: rectangles widen, circles and cones grow) or `sweep` (rectangles and dash strips fill along their length, from the origin toward the far end; cones grow their radius; circles as `grow`) |
 | `arrow` | false | rectangles (and dash strips) get an arrowhead past their far end, 1.5 times as wide as the rectangle at its base and 0.75 times its width long: a direction marking only, outside the area, nobody standing in it is hit. Other shapes ignore it |
@@ -415,7 +415,7 @@ chunk unload that kept only the add, the summoner gone through a portal or disca
   the exposure.
 
 ### `cloud`
-`at`, `origin`, `radius`, `duration`, `effects` - a lingering area-effect cloud.
+`at`, `origin`, `radius`, `duration`, `effects` - a lingering area-effect cloud. Custom `BossStatusEffect` entries (`mobs_ld:frenzied_burn`, `mobs_ld:amber_mire`, `mobs_ld:charred_roots`) automatically emit their themed ground particle instead of generic potion swirls.
 
 ### `effect`
 `at`, `radius` (0 = the mob itself), `effects` - buffs on self or debuffs on enemies around. With `"on": "aim"`
@@ -479,6 +479,32 @@ All parts are optional and sent from the server (no client mod code).
   beat's hits have run, whatever the event order. An `along` fx with no `hit` landing at its `at` is an error.
 - `message`: a translation key (`assets/<namespace>/lang/*.json`) shown in the action bar of every player within 64
   blocks or on the mob's threat table. The action bar, because Arenas_LD's timed runs hide boss bars.
+
+### `vfx` - custom client-side 3D spell effects
+```json
+{ "type": "vfx", "at": 0.42, "kind": "lance_lunge", "origin": "locked", "windup": 0.36, "duration": 1.05,
+  "color": "#FF5A00", "secondary_color": "#FFF6C4" }
+```
+Spawns a procedural 3D visual spell effect on nearby clients via a single compact S2C packet (`mobs_ld:spell_vfx`). The
+server spawns no visual entities and performs no per-tick work for it; all smooth sub-tick geometry rendering and local
+particles run client-side (capped at 128 concurrent effects and cleared on disconnect). Timings are automatically scaled
+by the phase's `attack_speed`. If an ability is interrupted during `windup`, a 4-byte cancel packet fades the charging
+visual out cleanly.
+
+| field | default | meaning |
+|---|---|---|
+| `at` | required | seconds into the ability when the effect starts (windup start, or impact when `windup: 0`) |
+| `kind` | required | 3D archetype: `slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`, `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`, `root_tendrils`, `cinder_eruption`, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace` |
+| `origin` | `self` | `self` (mob ground position), `target` (locked aim position), or `locked`: binds to every locked `hit` zone or `dash` corridor whose impact / start lands at `at + windup` (inheriting exact position, facing, and default shape dimensions — including `each_fighter` + `lead` and dynamic dash lengths) |
+| `windup` | 0 | telegraph / charge phase in ability seconds; impact visual begins at `at + windup` |
+| `duration` | required | total lifetime in ability seconds (must be greater than `windup`) |
+| `color` / `secondary_color` | `#F08C00` / `#FFF3B0` | primary outer flame/energy hex colour and incandescent core/accent colour |
+| `offset` / `side` / `up` | 0 / 0 / 0 | local forward, right, and vertical offsets from the anchor |
+| `rotate` | - | degrees added to `lockedYaw` (or the locked zone's facing when `origin: "locked"`) |
+| `radius` / `length` / `width` / `height` / `angle` / `count` | inherited or archetype default | optional geometric overrides (omitted values inherit from the matched locked shape/dash when `origin: "locked"`) |
+| `tilt` | 0 | roll tilt in degrees for `slash_arc` (`0` = horizontal, `90` = vertical overhead cleave) |
+| `reverse` | false | reverses sweep or spin direction (`slash_arc`, `sweeping_beam`, `vortex_slash`) |
+| `particles` | true | whether the client spawns local particles along the 3D spell geometry |
 
 ### `projectile` - skull volley
 ```json

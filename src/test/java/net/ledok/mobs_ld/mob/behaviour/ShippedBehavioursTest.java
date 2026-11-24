@@ -65,6 +65,9 @@ class ShippedBehavioursTest {
     void ldMobsLoad() throws Exception {
         load("/data/mobs_ld/mob_behaviour/gorefist.json");
         load("/data/mobs_ld/mob_behaviour/rot_wart.json");
+        load("/data/mobs_ld/mob_behaviour/midra.json");
+        load("/data/mobs_ld/mob_behaviour/amber_brute.json");
+        load("/data/mobs_ld/mob_behaviour/emberroot.json");
     }
 
     @Test

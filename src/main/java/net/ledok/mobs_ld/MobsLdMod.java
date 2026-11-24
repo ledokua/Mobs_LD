@@ -13,6 +13,7 @@ import net.ledok.mobs_ld.mob.combat.AttackPreview;
 import net.ledok.mobs_ld.mob.combat.CombatEvents;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
+import net.ledok.mobs_ld.network.ModNetworking;
 import net.ledok.mobs_ld.network.SandstoneSpikesPayload;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
@@ -28,6 +29,7 @@ public class MobsLdMod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(SandstoneSpikesPayload.TYPE, SandstoneSpikesPayload.CODEC);
         AttackPreview.register();
         ModAttributes.register();
+        ModNetworking.register();
         ModEntities.register();
         MobDeclarations.register();
         WitherAdapter.register(); // host adapters and their host types, before any datapack is read

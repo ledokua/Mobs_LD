@@ -1,5 +1,67 @@
 # Changelog
 
+## Unreleased
+- **New custom raid boss: Emberroot** (`mobs_ld:emberroot`):
+  - Data-driven `LdMob` charred-wood furnace raid boss built for 3–6 player encounters (`mobs_ld/entities/emberroot.json`:
+    `640 HP`, `10` armor, `4` toughness) with GeckoLib 4 model (8 marker bones including live `fx_core`), all 14 original
+    animations (`damdge` mapped to `hurt`, arm bracing added to `lazer_attack` and `attack_shoulder`), emissive molten
+    glowmask, and overheated Phase 2/3 variant.
+  - Three-phase raid fight (`data/mobs_ld/mob_behaviour/emberroot.json`) with secondary `target_slots` (`cinder_prey`
+    spread & `ember_mark` lowest-threat), 5 dedicated `min_players: 3` raid-wide mechanics (`root_cascade` 3-wave
+    `each_fighter` creeping roots, `cataclysm_drum` 3-ring arena seismic dance + personal eruptions, `subterranean_hunt`
+    marking `top_damage` amid `each_fighter` decoy mounds, `furnace_crossfire` 6-ray volcanic cinder star + `30°`
+    rotation, and chained `roll_crush_p2 -> roll_crush_follow` with `taunt_wins`), reworked frontline/flank/in-out core
+    abilities, solo/duo fallbacks (`max_players: 2`), custom `mobs_ld:ember_blight` damage type, and `cinder_mark` stacks.
+  - 6 exclusive vanilla-RPG 3D VFX archetypes (`root_tendrils`, `cinder_eruption` supporting both single chest blasts
+    and 6-ray raid stars, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace`) with zero overlap with Midra or
+    Amber Brute, pre-baked hit tracks (`data/mobs_ld/hit_tracks/emberroot.json`), English design doc
+    (`docs/design/emberroot.md`), and `en_us` / `uk_ua` localization.
+- **Custom boss status effects & pixel-art HUD icons:**
+  - Added `BossStatusEffect` (`mobs_ld:frenzied_burn`, `mobs_ld:amber_mire`, `mobs_ld:charred_roots`) with handcrafted
+    18×18 Minecraft pixel-art HUD icons (`assets/mobs_ld/textures/mob_effect/*.png`), custom afflicted-entity particles
+    (`small_flame`, `falling_honey`, `smoke`), and matching ground `cloud` particles (`CloudEvent`).
+- **Smoother Minecraft-style boss animations:**
+  - Refined all 45 animation clips across Midra (20), Amber Brute (11), and Emberroot (14) to use hybrid GeckoLib 4
+    `catmullrom` splines on flowing motion with crisp `linear` impact hit-stops, eliminated all 205 action-layer
+    boundary snaps, and re-baked `hit_tracks/{midra,amber_brute,emberroot}.json`.
+- **New custom boss: Amber Brute** (`mobs_ld:amber_brute`):
+  - Data-driven `LdMob` woodland/amber colossus (`mobs_ld/entities/amber_brute.json`) with GeckoLib 4 model (`head`
+    look-at, 8 marker bones), all 7 original animations plus 4 physics-matched combat clips (`knuckle_sweep`,
+    `double_rake`, `tremor_stomp`, `crystal_roar`), warm crystal glowmask, and Phase 2 illuminated-visor variant.
+  - Distinct vanilla-RPG two-phase fight (`data/mobs_ld/mob_behaviour/amber_brute.json`): animation-driven left-claw
+    and right-knuckle `trace` attacks, heavy fist slams with `vulnerable` fist-pullout openings, cascading 4-spire
+    tectonic crystal fault lines (`crystal_fissure`), `each_fighter` amber geode snare traps (`amber_snare`), low
+    tumbling amber shard fans (`knuckle_sweep`), boot-stomp + crystal resonance rings, sticky resin puddles, Phase 2
+    hardened projectile resistance (`0.75x`), `mobs_ld:amber_shatter` damage type, and `amber_resin` stacks.
+  - 6 new restrained vanilla-RPG 3D VFX archetypes (`amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`,
+    `resonance_ring`, `claw_rake`) with zero overlap with Midra's VFX, pre-baked hit tracks
+    (`data/mobs_ld/hit_tracks/amber_brute.json`), English design doc (`docs/design/amber_brute.md`), and `en_us` /
+    `uk_ua` localization.
+- **Custom client-side 3D spell VFX (`"type": "vfx"` ability event & silent telegraph locking):**
+  - Optional data-driven `"vfx"` event backed by compact one-shot S2C networking (`mobs_ld:spell_vfx` /
+    `mobs_ld:spell_vfx_cancel`) and a shader-safe client-side 3D renderer with 17 procedural spell archetypes
+    (`slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`,
+    `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`,
+    `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`) and local client particles — zero server visual
+    entities and zero server tick overhead.
+  - Hidden telegraphs (`"show": false`) with an explicit `"from"` on `hit` and `dash` now lock their hitboxes / dash
+    corridors silently at `from`, allowing `"vfx"` events with `"origin": "locked"` to align pixel-for-pixel with the
+    server hitbox (including `each_fighter` + `lead` and dynamic dash length) without drawing flat ground boxes or
+    arrows. Off by default; existing shipped mobs are untouched.
+- **New custom boss: Midra, Lord of Frenzied Flame** (`mobs_ld:midra`):
+  - Data-driven `LdMob` entity (`mobs_ld/entities/midra.json`) with GeckoLib 4 model, 20 animations with client-side
+    ember/flame/camera-shake keyframes, emissive glowmask, and Phase 2 incandescent texture + glowmask variant.
+  - Three-phase fight (`data/mobs_ld/mob_behaviour/midra.json`) covering all 20 animations with full custom 3D Frenzied
+    Flame spell visuals across every attack (no flat ground boxes or arrows): tilted fiery greatsword crescent slashes,
+    3D helical lance-lunge dash, Madness Grab, twin-ring 360° whirlwind + rear backlash, Damnation Plunge with 6
+    erupting magma fissure curtains, continuous sweeping volumetric Frenzy Beam, plummeting Frenzied Flame meteors
+    (`each_fighter`), levitating Frenzied Sun dome detonation, and Meteoric Crater Slam with explicit `vulnerable`
+    punish windows.
+  - Custom damage type `mobs_ld:frenzied_flame` (`#minecraft:bypasses_shield`, `#spell_engine:evadable`, burning
+    feedback) and `frenzy` hit stacks (`+10%` per stack, max 5, 18 s).
+  - Pre-baked hit tracks (`data/mobs_ld/hit_tracks/midra.json`), English design doc (`docs/design/midra.md`), and
+    `en_us` / `uk_ua` localization.
+
 ## 1.7.11
 - A creeper running a behaviour never fuses or explodes (nor can it be lit); its attacks are its abilities.
 - The Sand Golem Colossus holds its ground-slam pose during recovery and lights its chest ankh. It completes a

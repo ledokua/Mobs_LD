@@ -29,6 +29,29 @@ public final class ModDamageTypes {
      * damage multipliers ({@code #loot_stage:unscaled}). The summoner's own {@code damage_taken} rules still apply.
      */
     public static final ResourceKey<DamageType> MINION_LINK = key("minion_link");
+    /**
+     * Midra's Frenzied Flame sorcery and magma eruptions (beam, burst, flame rain, ground wave, plunge fissures; his
+     * physical greatsword strikes stay {@code minecraft:mob_attack}). Armour and Protection reduce it; shields do not
+     * block it ({@code #minecraft:bypasses_shield}); Spell Engine evasion can dodge it
+     * ({@code #spell_engine:evadable}); deliberately outside {@code #minecraft:is_fire} so Fire Resistance potions
+     * do not trivialize the boss, while {@code "effects": "burning"} keeps fiery hurt feedback.
+     */
+    public static final ResourceKey<DamageType> FRENZIED_FLAME = key("frenzied_flame");
+    /**
+     * Amber Brute's crystalline earth eruptions and shattering amber shards (spires, geode traps, shard sprays,
+     * resonance rings; his physical claw swipes and heavy fist slams stay {@code minecraft:mob_attack}). Armour and
+     * Protection reduce it; ground eruptions bypass shields ({@code #minecraft:bypasses_shield}); Spell Engine evasion
+     * can dodge it ({@code #spell_engine:evadable}); scales normally with {@code damage_dealt}.
+     */
+    public static final ResourceKey<DamageType> AMBER_SHATTER = key("amber_shatter");
+    /**
+     * Emberroot's molten furnace blasts, erupting charred roots, and split-ribcage cinder waves (his physical claw
+     * swipes, shoulder barges, hammer slams, and boulder rolls stay {@code minecraft:mob_attack}). Armour and
+     * Protection reduce it; shields do not block it ({@code #minecraft:bypasses_shield}); Spell Engine evasion can
+     * dodge it ({@code #spell_engine:evadable}); deliberately outside {@code #minecraft:is_fire} so Fire Resistance
+     * potions do not trivialize the boss, while {@code "effects": "burning"} keeps fiery hurt feedback.
+     */
+    public static final ResourceKey<DamageType> EMBER_BLIGHT = key("ember_blight");
 
     private ModDamageTypes() {
     }

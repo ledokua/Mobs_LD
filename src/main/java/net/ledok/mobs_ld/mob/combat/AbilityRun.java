@@ -6,6 +6,7 @@ import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
@@ -54,6 +55,8 @@ public final class AbilityRun {
      * {@code origin: each_fighter}), for particles drawn along them.
      */
     private final Map<HitEvent, List<HitZone>> hitZones = new IdentityHashMap<>();
+    /** Locked dash geometry (origin, facing, length, width), for {@code vfx} events anchored to a dash. */
+    private final Map<DashEvent, DashLock> dashLocks = new IdentityHashMap<>();
     /** Victims a {@code once} hit of this run has already struck (see {@link #strikeOnce}). */
     private final Set<UUID> struckOnce = new HashSet<>();
     /** Work left for the end of this tick, once every event due now has run (see {@link #afterEvents}). */
@@ -357,6 +360,16 @@ public final class AbilityRun {
         return hitZones.getOrDefault(event, List.of());
     }
 
+    /** A {@code dash} event locked its lane: kept for {@link #lockedDash}. */
+    public void noteDash(DashEvent event, DashLock lock) {
+        dashLocks.put(event, lock);
+    }
+
+    /** Where {@code event}'s dash locked; empty if it has not started (yet) in this run. */
+    public Optional<DashLock> lockedDash(DashEvent event) {
+        return Optional.ofNullable(dashLocks.get(event));
+    }
+
     /**
      * Damage taken multiplier from the {@code vulnerable} windows open now (1 = none): every such event between its
      * {@code at} and {@code until}.
@@ -621,6 +634,10 @@ public final class AbilityRun {
 
     /** Where a {@code hit} event's area locked: its origin on the ground, its facing and its shape. */
     public record HitZone(Shape shape, Vec3 origin, float yaw) {
+    }
+
+    /** Where a {@code dash} event's lane locked: its origin, facing, length, and width. */
+    public record DashLock(Vec3 origin, float yaw, double length, double width) {
     }
 
     /** A live telegraph on the ground (one or more zones). */
