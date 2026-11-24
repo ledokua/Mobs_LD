@@ -30,6 +30,8 @@ public interface AbilityEvent {
             Map.entry("fx", FxEvent.CODEC),
             Map.entry(SandstoneSpikesEvent.ID, SandstoneSpikesEvent.CODEC),
             Map.entry("projectile", ProjectileEvent.CODEC),
+            Map.entry("shoot", ShootEvent.CODEC),
+            Map.entry("telegraph", TelegraphEvent.CODEC),
             Map.entry("chain", ChainEvent.CODEC),
             Map.entry("clip", ClipEvent.CODEC),
             Map.entry("vulnerable", VulnerableEvent.CODEC),

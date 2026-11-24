@@ -189,6 +189,23 @@
       "duration": 2.5,
       "weight": 0
     },
+    "enrage_exit": {
+      "clip": "enrage_exit",
+      "duration": 0.8,
+      "weight": 0,
+      "events": [
+        {
+          "type": "chain",
+          "at": 0.8,
+          "to": "enrage_exhaust"
+        }
+      ]
+    },
+    "enrage_exhaust": {
+      "clip": "enrage_exhaust",
+      "duration": 2.2,
+      "weight": 0
+    },
     "summon_rot_warts": {
       "duration": 1.6,
       "cooldown": 25,
@@ -231,6 +248,11 @@
             "up": 2.6,
             "spread": 1.5,
             "max_alive": 6
+          },
+          {
+            "type": "chain",
+            "at": 1.8,
+            "to": "enrage_exit"
           }
         ]
       },
@@ -246,8 +268,7 @@
           "kind": "melee",
           "multiplier": 0.34
         }
-      ],
-      "texture": "phase2"
+      ]
     }
   ],
   "boss": {
@@ -259,7 +280,7 @@
     "soft_enrage": {
       "after": 420,
       "damage_multiplier": 2.0,
-      "clip": "enrage"
+      "clip": "soft_enrage"
     }
   }
 }

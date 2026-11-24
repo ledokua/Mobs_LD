@@ -50,11 +50,13 @@ import java.util.function.Supplier;
  * @param knockUp    upward launch speed (0.4 is about a jump)
  * @param stacks     a landed hit puts one stack on the victim that makes this mob's later hits on them stronger (see
  *                   {@link Stacks}); ability hits only (not skulls)
+ * @param ignite     seconds the victim burns once the hit lands (0 = no fire); an existing longer burn is kept
  */
 public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional<ResourceLocation> damageType,
-                      List<EffectSpec> effects, double knockback, double knockUp, Optional<Stacks> stacks) {
+                      List<EffectSpec> effects, double knockback, double knockUp, Optional<Stacks> stacks,
+                      double ignite) {
     public static final HitSpec DEFAULT = new HitSpec(Optional.empty(), Optional.empty(), Optional.empty(), List.of(),
-            0.4, 0.0, Optional.empty());
+            0.4, 0.0, Optional.empty(), 0.0);
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<EntityType<?>> NO_ATTACK_DAMAGE = new HashSet<>();
     private static final Set<ResourceLocation> UNKNOWN_TYPES = new HashSet<>();
@@ -67,7 +69,8 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
             EffectSpec.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(HitSpec::effects),
             Codec.DOUBLE.optionalFieldOf("knockback", 0.4).forGetter(HitSpec::knockback),
             Codec.DOUBLE.optionalFieldOf("knock_up", 0.0).forGetter(HitSpec::knockUp),
-            Stacks.CODEC.optionalFieldOf("stacks").forGetter(HitSpec::stacks)
+            Stacks.CODEC.optionalFieldOf("stacks").forGetter(HitSpec::stacks),
+            Codec.doubleRange(0.0, 3600.0).optionalFieldOf("ignite", 0.0).forGetter(HitSpec::ignite)
     ).apply(i, HitSpec::new)).validate(HitSpec::validate);
 
     private static DataResult<HitSpec> validate(HitSpec spec) {
@@ -133,10 +136,16 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
         return true;
     }
 
-    /** Puts this hit's effects on {@code victim}, credited to {@code source} (call only once the hit has landed). */
+    /**
+     * Puts this hit's effects and fire on {@code victim}, credited to {@code source} (call only once the hit has
+     * landed). Fire immunity and Fire Resistance work as for any burn.
+     */
     public void applyEffects(LivingEntity victim, Entity source) {
         for (EffectSpec effect : effects) {
             effect.instance().ifPresent(instance -> victim.addEffect(instance, source));
+        }
+        if (ignite > 0.0) {
+            victim.igniteForTicks((int) Math.round(ignite * 20.0));
         }
     }
 

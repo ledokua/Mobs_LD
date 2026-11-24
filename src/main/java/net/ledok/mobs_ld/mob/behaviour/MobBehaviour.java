@@ -428,6 +428,7 @@ public record MobBehaviour(
             Optional<Integer> maxPlayers,
             Optional<When> when,
             boolean includeUnreachable,
+            List<String> onlyTagged,
             List<AbilityEvent> events
     ) {
         /**
@@ -451,12 +452,13 @@ public record MobBehaviour(
 
         /** The Warden rework's M3 conditions: who must be fighting, and where, for the ability to be usable. */
         private record Conditions(Optional<Integer> minPlayers, Optional<Integer> maxPlayers, Optional<When> when,
-                                  boolean includeUnreachable) {
+                                  boolean includeUnreachable, List<String> onlyTagged) {
             static final MapCodec<Conditions> CODEC = RecordCodecBuilder.<Conditions>mapCodec(i -> i.group(
                     Codec.intRange(0, 64).optionalFieldOf("min_players").forGetter(Conditions::minPlayers),
                     Codec.intRange(0, 64).optionalFieldOf("max_players").forGetter(Conditions::maxPlayers),
                     When.CODEC.optionalFieldOf("when").forGetter(Conditions::when),
-                    Codec.BOOL.optionalFieldOf("include_unreachable", false).forGetter(Conditions::includeUnreachable)
+                    Codec.BOOL.optionalFieldOf("include_unreachable", false).forGetter(Conditions::includeUnreachable),
+                    Codec.STRING.listOf().optionalFieldOf("only_tagged", List.of()).forGetter(Conditions::onlyTagged)
             ).apply(i, Conditions::new)).validate(c -> c.minPlayers().isPresent() && c.maxPlayers().isPresent()
                     && c.maxPlayers().get() < c.minPlayers().get()
                     ? DataResult.error(() -> "An ability's max_players (" + c.maxPlayers().get() + ") is below its "
@@ -465,7 +467,7 @@ public record MobBehaviour(
 
             static Conditions of(Ability ability) {
                 return new Conditions(ability.minPlayers(), ability.maxPlayers(), ability.when(),
-                        ability.includeUnreachable());
+                        ability.includeUnreachable(), ability.onlyTagged());
             }
         }
 
@@ -504,7 +506,23 @@ public record MobBehaviour(
                 core.initialCooldown(), core.weight(), core.range(), core.target(), core.trackUntil(),
                 core.forceAfter(), core.aimSide(), core.invulnerable(), core.skipWhenFull(), scheduling.fixedSpeed(),
                 scheduling.cooldownGroup(), scheduling.noRepeat(), scheduling.afterAbilities(), conditions.minPlayers(), conditions.maxPlayers(),
-                conditions.when(), conditions.includeUnreachable(), core.events())));
+                conditions.when(), conditions.includeUnreachable(), conditions.onlyTagged(), core.events())));
+
+        /**
+         * Whether a mob with these entity tags may use it ({@code only_tagged}: at least one of them; empty = any mob),
+         * e.g. {@code ["arenas_ld_run_mob"]} for a move only an Arenas_LD run's boss has.
+         */
+        public boolean allowsTags(java.util.Set<String> tags) {
+            if (onlyTagged.isEmpty()) {
+                return true;
+            }
+            for (String tag : onlyTagged) {
+                if (tags.contains(tag)) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public String clipOr(String key) {
             return clip.isEmpty() ? key : clip;

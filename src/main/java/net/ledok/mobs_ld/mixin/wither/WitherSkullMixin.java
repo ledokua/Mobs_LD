@@ -15,7 +15,10 @@ import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.WitherSkull;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -123,10 +126,50 @@ public abstract class WitherSkullMixin extends AbstractHurtingProjectile {
      */
     @Override
     public void tick() {
+        if (!level().isClientSide() && mobs_ld$wideHit()) {
+            return;
+        }
         super.tick();
         if (!isRemoved() && mobs_ld$specName() != null) {
             hurtMarked = true;
         }
+    }
+
+    /**
+     * A spec with {@code hit_radius} hits a target its path passes within that many blocks of (its own body is a
+     * point to vanilla), before vanilla moves it this tick: the first target along this tick's path is hit as if
+     * struck directly (the spec's hit, then its splash). True if the skull is gone.
+     */
+    @Unique
+    private boolean mobs_ld$wideHit() {
+        Skulls.Shot shot = mobs_ld$shot();
+        if (shot == null || shot.spec().hitRadius() <= 0.0) {
+            return false;
+        }
+        double radius = shot.spec().hitRadius();
+        Vec3 from = position();
+        Vec3 to = from.add(getDeltaMovement());
+        Entity first = null;
+        int firstStep = Integer.MAX_VALUE;
+        for (Entity target : level().getEntities(this, new AABB(from, to).inflate(radius + 1.0), this::canHitEntity)) {
+            AABB box = target.getBoundingBox();
+            for (int step = 0; step <= 4 && step < firstStep; step++) {
+                Vec3 point = from.lerp(to, step / 4.0);
+                double dx = Math.max(Math.max(box.minX - point.x, 0.0), point.x - box.maxX);
+                double dy = Math.max(Math.max(box.minY - point.y, 0.0), point.y - box.maxY);
+                double dz = Math.max(Math.max(box.minZ - point.z, 0.0), point.z - box.maxZ);
+                if (dx * dx + dy * dy + dz * dz <= radius * radius) {
+                    first = target;
+                    firstStep = step;
+                    break;
+                }
+            }
+        }
+        if (first == null) {
+            return false;
+        }
+        onHit(new EntityHitResult(first));
+        return isRemoved();
     }
 
     /** Through the owner, its adds and undead allies (non-player {@code #wither_friends}), as if they were not there. */

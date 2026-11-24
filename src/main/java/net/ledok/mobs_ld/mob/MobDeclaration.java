@@ -62,13 +62,17 @@ public record MobDeclaration(
      *                           ground speed. 0 plays the clip at authored speed.
      * @param scale              uniform model scale applied on top of the authored true-size model
      * @param shadowRadius       ground shadow radius in blocks; empty = half the hitbox width
+     * @param actionTextures     texture variant suffixes used while the named action clips play
      */
-    public record Render(double walkBlocksPerCycle, float scale, Optional<Float> shadowRadius) {
-        public static final Render DEFAULT = new Render(0.0, 1.0F, Optional.empty());
+    public record Render(double walkBlocksPerCycle, float scale, Optional<Float> shadowRadius,
+                         Map<String, String> actionTextures) {
+        public static final Render DEFAULT = new Render(0.0, 1.0F, Optional.empty(), Map.of());
         public static final Codec<Render> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.optionalFieldOf("walk_blocks_per_cycle", 0.0).forGetter(Render::walkBlocksPerCycle),
                 Codec.FLOAT.optionalFieldOf("scale", 1.0F).forGetter(Render::scale),
-                Codec.FLOAT.optionalFieldOf("shadow_radius").forGetter(Render::shadowRadius)
+                Codec.FLOAT.optionalFieldOf("shadow_radius").forGetter(Render::shadowRadius),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("action_textures", Map.of())
+                        .forGetter(Render::actionTextures)
         ).apply(i, Render::new));
     }
 

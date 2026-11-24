@@ -699,7 +699,7 @@ public final class MobCombat {
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
-            if ((active != null && !active.allows(name))
+            if ((active != null && !active.allows(name)) || !ability.allowsTags(mob.getTags())
                     || !prerequisiteMet(ability)
                     || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                     || (ability.skipWhenFull() && summonsFull(ability)) || !behindHolds(name, ability, now)) {
@@ -782,7 +782,7 @@ public final class MobCombat {
         }
         MobBehaviour.Phase active = activePhase(behaviour);
         long now = mob.level().getGameTime();
-        return (active == null || active.allows(name))
+        return (active == null || active.allows(name)) && ability.allowsTags(mob.getTags())
                 && prerequisiteMet(ability)
                 && AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                 && !(ability.skipWhenFull() && summonsFull(ability));

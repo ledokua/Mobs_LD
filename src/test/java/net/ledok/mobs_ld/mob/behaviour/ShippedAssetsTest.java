@@ -63,7 +63,7 @@ class ShippedAssetsTest {
     private static void checkMob(String mob, Path declarationFile) throws IOException {
         String context = "mobs_ld:" + mob;
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mobs_ld", mob);
-        MobDeclaration.codec(id).parse(JsonOps.INSTANCE, read(declarationFile))
+        MobDeclaration declaration = MobDeclaration.codec(id).parse(JsonOps.INSTANCE, read(declarationFile))
                 .getOrThrow(error -> new AssertionError(context + " declaration: " + error));
         Path geometry = RESOURCES.resolve("assets/mobs_ld/geo/entity/" + mob + ".geo.json");
         Path animation = RESOURCES.resolve("assets/mobs_ld/animations/entity/" + mob + ".animation.json");
@@ -82,6 +82,7 @@ class ShippedAssetsTest {
         for (var entry : clips.animations().entrySet()) {
             checkAnimation(entry.getValue().getAsJsonObject(), bones, context + "/" + entry.getKey());
         }
+        declaration.render().actionTextures().keySet().forEach(clip -> clips.require(clip, context + " action_textures"));
 
         Path track = RESOURCES.resolve("data/mobs_ld/hit_tracks/" + mob + ".json");
         JsonObject tracks = Files.isRegularFile(track) ? checkTracks(track, geometry, animation, clips, bones, context)

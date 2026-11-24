@@ -17,6 +17,10 @@
     "secondary": 8378600
   },
   "render": {
-    "walk_blocks_per_cycle": 2.0
+    "walk_blocks_per_cycle": 2.0,
+    "action_textures": {
+      "enrage": "phase2",
+      "enrage_exit": "phase2"
+    }
   }
 }

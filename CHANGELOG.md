@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.7.11
+- A creeper running a behaviour never fuses or explodes (nor can it be lit); its attacks are its abilities.
 - The Sand Golem Colossus holds its ground-slam pose during recovery and lights its chest ankh. It completes a
   slam or sweep before its first husk call, and calls three husks solo plus one per additional fighter, up to ten.
 - Summoned husks take 10% of the Colossus's max health and inherit its attack scaling, bonus armor, and
@@ -9,9 +10,26 @@
 - `/mobs_ld debug preview` outlines locked area-hit zones and shows the impact tick and hit targets for operators.
 - The build checks shipped mob clips, ability timing, marker bones, and baked hit-track freshness.
 
+## 1.7.10
+- `shoot`: the drawn line stops where the shot would first hit a block (a low wall under the shot's path does not
+  cut it).
+
+## 1.7.9
+- `telegraph.repeat` and `projectile.directions.step`: lines drawn and fired one after another, clockwise.
+- Skull spec `hit_radius`: skulls that hit anything passing within that many blocks of their path.
+
 ## 1.7.8
 - Telegraphs follow the terrain: each part is laid on the floor under it (stairs, slabs, steps), joined by walls at
   height changes, and left out where the floor is outside the hit's height band (the band is now sent to clients).
+- `shoot` event: fires any projectile (arrow, small fireball, ...) down a line drawn on the ground first.
+- `telegraph` event: draws a shape that deals nothing (e.g. the paths of a volley).
+- `projectile.directions`: skulls fired along fixed directions around the mob (matching a `rays` shape).
+- `hover.home`: fly back to the mob's home (an Arenas_LD arena's spawn point).
+- Ability `only_tagged`: an ability only mobs with one of these tags may use.
+
+## 1.7.7
+- `hit.ignite`: seconds the victim burns once a hit lands (ability hits and skulls).
+- `config/mobs_ld_damage.json` is written at startup.
 
 ## 1.7.6
 - **Attack profiles** (`data/<ns>/mobs_ld/attack_profiles/*.json`): resize any mob's hits on players before
@@ -20,7 +38,7 @@
   - Matches: damage type or tag, direct entity, ability, or a hit with no attacker near a mob of the type.
 - **Hit caps** (`config/mobs_ld_damage.json`, off by default; a profile can set its own): one mob hit takes at most a
   share of the player's max health. The cap applies after damage scaling and before armour.
-- `/mobs_ld damage config` reloads the caps. The config file is written at startup.
+- `/mobs_ld damage config` reloads the caps.
 - Shipped with no profiles and caps off, so nothing changes until a server adds a profile table.
 
 ## 1.7.5

@@ -53,6 +53,8 @@ geometries per file, per-cube textures from different files.
 - Optional emissive layer: `<mob>_glowmask.png` (GeckoLib's naming), same size/UV; fully transparent except
   glowing pixels (eyes, cracks, embers). Rendered full-bright.
 - Optional damage/phase variants: `<mob>_phase2.png` etc., same UV.
+- To use a variant only during an action, set `render.action_textures` in the entity declaration. For example,
+  `{"enrage": "phase2", "enrage_exit": "phase2"}` uses the `_phase2` texture for those two clips.
 
 ## Animations
 
