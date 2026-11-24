@@ -20,49 +20,33 @@
       {
         "type": "fx",
         "at": 0.0,
-        "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.65, "volume": 2.5 },
-        "message": { "key": "mobs_ld.cue.midra.intro", "where": "actionbar" }
-      },
-      {
-        "type": "vfx",
-        "at": 0.35,
-        "kind": "eye_charge",
-        "up": 4.35,
-        "radius": 1.5,
-        "duration": 1.45,
-        "color": "#F08C00",
-        "secondary_color": "#FFF4B8"
+        "sound": {
+          "id": "minecraft:block.respawn_anchor.charge",
+          "pitch": 0.65,
+          "volume": 2.5
+        },
+        "message": {
+          "key": "mobs_ld.cue.midra.intro",
+          "where": "actionbar"
+        }
       },
       {
         "type": "fx",
         "at": 1.48,
-        "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.6, "volume": 2.5 }
+        "sound": {
+          "id": "minecraft:entity.blaze.ambient",
+          "pitch": 0.6,
+          "volume": 2.5
+        }
       },
       {
         "type": "fx",
         "at": 1.72,
-        "sound": { "id": "minecraft:entity.wither.spawn", "pitch": 0.85, "volume": 2.5 }
-      },
-      {
-        "type": "vfx",
-        "at": 1.72,
-        "kind": "flame_pillar",
-        "radius": 2.8,
-        "height": 8.5,
-        "duration": 1.45,
-        "color": "#FF4800",
-        "secondary_color": "#FFF8CC"
-      },
-      {
-        "type": "vfx",
-        "at": 1.72,
-        "kind": "shockwave_ring",
-        "width": 0.8,
-        "radius": 7.5,
-        "height": 2.2,
-        "duration": 0.9,
-        "color": "#F08C00",
-        "secondary_color": "#FFD028"
+        "sound": {
+          "id": "minecraft:entity.wither.spawn",
+          "pitch": 0.85,
+          "volume": 2.5
+        }
       }
     ]
   },
@@ -73,68 +57,94 @@
       {
         "type": "fx",
         "at": 0.0,
-        "sound": { "id": "minecraft:entity.blaze.death", "pitch": 0.55, "volume": 3.0 },
-        "message": { "key": "mobs_ld.cue.midra.death", "where": "actionbar" }
-      },
-      {
-        "type": "vfx",
-        "at": 0.15,
-        "kind": "eye_charge",
-        "up": 4.1,
-        "radius": 1.7,
-        "duration": 1.25,
-        "color": "#FF4800",
-        "secondary_color": "#FFD028"
+        "sound": {
+          "id": "minecraft:entity.blaze.death",
+          "pitch": 0.55,
+          "volume": 3.0
+        },
+        "message": {
+          "key": "mobs_ld.cue.midra.death",
+          "where": "actionbar"
+        }
       },
       {
         "type": "fx",
         "at": 1.4,
-        "sound": { "id": "minecraft:block.fire.extinguish", "pitch": 0.7, "volume": 2.2 },
-        "particles": { "id": "minecraft:large_smoke", "at": "heads", "count": 20, "spread": 0.6, "speed": 0.04 }
+        "sound": {
+          "id": "minecraft:block.fire.extinguish",
+          "pitch": 0.7,
+          "volume": 2.2
+        },
+        "particles": {
+          "id": "minecraft:large_smoke",
+          "at": "heads",
+          "count": 20,
+          "spread": 0.6,
+          "speed": 0.04
+        }
       },
       {
         "type": "fx",
         "at": 2.95,
-        "sound": { "id": "minecraft:entity.wither.break_block", "pitch": 0.65, "volume": 2.2 },
-        "particles": { "id": "minecraft:ash", "at": "self", "count": 36, "spread": 1.4, "speed": 0.03 }
-      },
-      {
-        "type": "vfx",
-        "at": 2.95,
-        "kind": "shockwave_ring",
-        "width": 0.5,
-        "radius": 6.0,
-        "height": 1.5,
-        "duration": 0.8,
-        "color": "#B83200",
-        "secondary_color": "#F08C00"
+        "sound": {
+          "id": "minecraft:entity.wither.break_block",
+          "pitch": 0.65,
+          "volume": 2.2
+        },
+        "particles": {
+          "id": "minecraft:ash",
+          "at": "self",
+          "count": 36,
+          "spread": 1.4,
+          "speed": 0.03
+        }
       }
     ]
   },
   "abilities": {
     "attack": {
       "duration": 2.5,
-      "cooldown": [4.5, 5.5],
+      "cooldown": [
+        4.5,
+        5.5
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 5.2 },
-      "track_until": 0.55,
+      "range": {
+        "max": 5.2
+      },
+      "track_until": 0.5,
       "events": [
         {
           "type": "fx",
           "at": 0.45,
-          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.75, "volume": 1.8 }
+          "sound": {
+            "id": "minecraft:entity.blaze.ambient",
+            "pitch": 0.75,
+            "volume": 1.8
+          }
         },
         {
           "type": "fx",
           "at": 1.05,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.9, "volume": 1.8 }
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.9,
+            "volume": 1.8
+          }
         },
         {
           "type": "hit",
           "at": 1.3,
-          "shape": { "type": "rectangle", "width": 2.4, "length": 5.5 },
-          "telegraph": { "show": false, "from": 0.5 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.4,
+            "length": 5.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.5
+          },
           "hit": {
             "amount": 16.0,
             "damage_type": "minecraft:mob_attack",
@@ -170,43 +180,69 @@
         {
           "type": "fx",
           "at": 1.3,
-          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.7, "volume": 2.4 }
+          "sound": {
+            "id": "minecraft:entity.iron_golem.attack",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         }
       ]
     },
     "swipe": {
       "duration": 2.1,
-      "cooldown": [4.5, 6.0],
+      "cooldown": [
+        4.5,
+        6.0
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 4.8 },
-      "track_until": 0.38,
+      "range": {
+        "max": 4.8
+      },
+      "track_until": 0.3,
       "events": [
         {
           "type": "fx",
           "at": 0.6,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 1.15, "volume": 1.6 }
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 1.15,
+            "volume": 1.6
+          }
         },
         {
           "type": "hit",
-          "at": 1.0,
-          "shape": { "type": "cone", "radius": 5.0, "angle": 130 },
-          "telegraph": { "show": false, "from": 0.35 },
+          "at": 1.08,
+          "shape": {
+            "type": "cone",
+            "radius": 5.0,
+            "angle": 130
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.3
+          },
           "hit": {
             "amount": 12.0,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.6,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.35,
+          "at": 0.3,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 1.55,
-          "windup": 0.65,
-          "duration": 1.25,
+          "windup": 0.78,
+          "duration": 1.38,
           "tilt": -10,
           "reverse": true,
           "color": "#F08C00",
@@ -214,29 +250,49 @@
         },
         {
           "type": "fx",
-          "at": 1.0,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.65, "volume": 2.2 }
+          "at": 1.08,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.65,
+            "volume": 2.2
+          }
         }
       ]
     },
     "backhand_cleave": {
       "duration": 2.0,
-      "cooldown": [4.0, 5.5],
+      "cooldown": [
+        4.0,
+        5.5
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 4.6 },
-      "track_until": 0.34,
+      "range": {
+        "max": 4.6
+      },
+      "track_until": 0.28,
       "events": [
         {
           "type": "fx",
           "at": 0.56,
-          "sound": { "id": "minecraft:entity.player.attack.strong", "pitch": 0.75, "volume": 1.6 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.strong",
+            "pitch": 0.75,
+            "volume": 1.6
+          }
         },
         {
           "type": "hit",
-          "at": 0.96,
-          "shape": { "type": "cone", "radius": 4.8, "angle": 120 },
-          "telegraph": { "show": false, "from": 0.32 },
+          "at": 1.06,
+          "shape": {
+            "type": "cone",
+            "radius": 4.8,
+            "angle": 120
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.28
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "minecraft:mob_attack",
@@ -245,42 +301,62 @@
         },
         {
           "type": "vfx",
-          "at": 0.32,
+          "at": 0.28,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 1.6,
-          "windup": 0.64,
-          "duration": 1.2,
+          "windup": 0.78,
+          "duration": 1.34,
           "tilt": 12,
           "color": "#E85D04",
           "secondary_color": "#FFF4B8"
         },
         {
           "type": "fx",
-          "at": 0.96,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.8, "volume": 2.0 }
+          "at": 1.06,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.8,
+            "volume": 2.0
+          }
         }
       ]
     },
     "uppercut_slash": {
       "duration": 2.3,
-      "cooldown": [6.5, 8.0],
+      "cooldown": [
+        6.5,
+        8.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 4.8 },
-      "track_until": 0.45,
+      "range": {
+        "max": 4.8
+      },
+      "track_until": 0.34,
       "events": [
         {
           "type": "fx",
           "at": 0.65,
-          "sound": { "id": "minecraft:block.lava.pop", "pitch": 0.8, "volume": 2.0 }
+          "sound": {
+            "id": "minecraft:block.lava.pop",
+            "pitch": 0.8,
+            "volume": 2.0
+          }
         },
         {
           "type": "hit",
           "at": 1.12,
           "height": 5.0,
-          "shape": { "type": "rectangle", "width": 2.2, "length": 5.5 },
-          "telegraph": { "show": false, "from": 0.42 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.2,
+            "length": 5.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.34
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "minecraft:mob_attack",
@@ -290,12 +366,12 @@
         },
         {
           "type": "vfx",
-          "at": 0.42,
+          "at": 0.34,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 2.3,
-          "windup": 0.7,
-          "duration": 1.3,
+          "windup": 0.78,
+          "duration": 1.38,
           "radius": 5.5,
           "angle": 110,
           "tilt": 78,
@@ -305,30 +381,46 @@
         },
         {
           "type": "hit",
-          "at": 1.56,
+          "at": 1.82,
           "offset": 3.0,
           "height": 7.0,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 2.4 },
-          "telegraph": { "show": false, "from": 1.12 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.02
+          },
           "hit": {
             "amount": 9.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.85,
             "knock_up": 0.35,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.12,
+          "at": 1.02,
           "kind": "flame_pillar",
           "origin": "locked",
-          "windup": 0.44,
-          "duration": 1.15,
+          "windup": 0.8,
+          "duration": 1.51,
           "height": 6.4,
           "color": "#FF6A00",
           "secondary_color": "#FFF4B8"
@@ -336,33 +428,57 @@
         {
           "type": "fx",
           "at": 1.12,
-          "sound": { "id": "minecraft:entity.player.attack.crit", "pitch": 0.7, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.crit",
+            "pitch": 0.7,
+            "volume": 2.2
+          }
         },
         {
           "type": "fx",
-          "at": 1.56,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.78, "volume": 2.2 }
+          "at": 1.82,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.78,
+            "volume": 2.2
+          }
         }
       ]
     },
     "combo": {
       "duration": 3.4,
-      "cooldown": [9.0, 11.0],
+      "cooldown": [
+        9.0,
+        11.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 5.0 },
-      "track_until": 0.28,
+      "range": {
+        "max": 5.0
+      },
+      "track_until": 0.22,
       "events": [
         {
           "type": "fx",
           "at": 0.45,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 1.1, "volume": 1.8 }
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 1.1,
+            "volume": 1.8
+          }
         },
         {
           "type": "hit",
-          "at": 0.85,
-          "shape": { "type": "cone", "radius": 4.8, "angle": 115 },
-          "telegraph": { "show": false, "from": 0.25 },
+          "at": 0.98,
+          "shape": {
+            "type": "cone",
+            "radius": 4.8,
+            "angle": 115
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.22
+          },
           "hit": {
             "amount": 10.0,
             "damage_type": "minecraft:mob_attack",
@@ -371,12 +487,12 @@
         },
         {
           "type": "vfx",
-          "at": 0.25,
+          "at": 0.22,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 1.5,
-          "windup": 0.6,
-          "duration": 1.15,
+          "windup": 0.76,
+          "duration": 1.31,
           "tilt": -14,
           "reverse": true,
           "color": "#E85D04",
@@ -384,36 +500,56 @@
         },
         {
           "type": "fx",
-          "at": 0.85,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.7, "volume": 2.0 }
+          "at": 0.98,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.7,
+            "volume": 2.0
+          }
         },
         {
           "type": "fx",
           "at": 1.5,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.75, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.75,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
           "at": 2.15,
           "aim_side": 0.0,
           "offset": 2.0,
-          "shape": { "type": "circle", "radius": 4.2 },
-          "telegraph": { "show": false, "from": 1.35 },
+          "shape": {
+            "type": "circle",
+            "radius": 4.2
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.3
+          },
           "hit": {
             "amount": 16.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "knock_up": 0.35,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.35,
+          "at": 1.3,
           "kind": "nova_dome",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.55,
+          "windup": 0.85,
+          "duration": 1.6,
           "height": 3.5,
           "color": "#FF5500",
           "secondary_color": "#FFF4B8"
@@ -421,23 +557,39 @@
         {
           "type": "fx",
           "at": 2.15,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.85, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.85,
+            "volume": 2.2
+          }
         }
       ]
     },
     "triple_waltz": {
-      "duration": 3.6,
-      "cooldown": [9.0, 11.0],
+      "duration": 4.12,
+      "cooldown": [
+        9.0,
+        11.0
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 5.2 },
-      "track_until": 0.25,
+      "range": {
+        "max": 5.2
+      },
+      "track_until": 0.2,
       "events": [
         {
           "type": "hit",
-          "at": 0.78,
-          "shape": { "type": "cone", "radius": 4.8, "angle": 120 },
-          "telegraph": { "show": false, "from": 0.2 },
+          "at": 0.95,
+          "shape": {
+            "type": "cone",
+            "radius": 4.8,
+            "angle": 120
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.2
+          },
           "hit": {
             "amount": 9.0,
             "damage_type": "minecraft:mob_attack",
@@ -450,8 +602,8 @@
           "kind": "slash_arc",
           "origin": "locked",
           "height": 1.5,
-          "windup": 0.58,
-          "duration": 1.1,
+          "windup": 0.75,
+          "duration": 1.27,
           "tilt": -18,
           "reverse": true,
           "color": "#F08C00",
@@ -459,15 +611,26 @@
         },
         {
           "type": "fx",
-          "at": 0.78,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.7, "volume": 2.0 }
+          "at": 0.95,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.7,
+            "volume": 2.0
+          }
         },
         {
           "type": "hit",
-          "at": 1.52,
+          "at": 1.83,
           "aim_side": 0.0,
-          "shape": { "type": "cone", "radius": 4.8, "angle": 120 },
-          "telegraph": { "show": false, "from": 0.95 },
+          "shape": {
+            "type": "cone",
+            "radius": 4.8,
+            "angle": 120
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.08
+          },
           "hit": {
             "amount": 10.0,
             "damage_type": "minecraft:mob_attack",
@@ -476,47 +639,68 @@
         },
         {
           "type": "vfx",
-          "at": 0.95,
+          "at": 1.08,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 1.65,
-          "windup": 0.57,
-          "duration": 1.1,
+          "windup": 0.75,
+          "duration": 1.28,
           "tilt": 18,
           "color": "#FF5500",
           "secondary_color": "#FFF4B8"
         },
         {
           "type": "fx",
-          "at": 1.52,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.85, "volume": 2.0 }
+          "at": 1.83,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.85,
+            "volume": 2.0
+          }
         },
         {
           "type": "fx",
           "at": 2.15,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.7, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.7,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
-          "at": 2.48,
+          "at": 2.8,
           "aim_side": 0.0,
-          "shape": { "type": "rectangle", "width": 2.6, "length": 6.2 },
-          "telegraph": { "show": false, "from": 1.75 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.6,
+            "length": 6.2
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.98
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.85,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.75,
+          "at": 1.98,
           "kind": "slash_arc",
           "origin": "locked",
           "height": 2.6,
-          "windup": 0.73,
-          "duration": 1.45,
+          "windup": 0.82,
+          "duration": 1.54,
           "radius": 6.2,
           "angle": 112,
           "tilt": 90,
@@ -525,123 +709,187 @@
         },
         {
           "type": "vfx",
-          "at": 2.48,
+          "at": 2.8,
           "kind": "flame_wave",
           "origin": "locked",
           "length": 6.4,
           "angle": 42,
           "height": 2.8,
-          "duration": 0.7,
+          "duration": 0.65,
           "color": "#FF5500",
-          "secondary_color": "#FFF4B8"
+          "secondary_color": "#FFF4B8",
+          "windup": 0.0
         },
         {
           "type": "fx",
-          "at": 2.48,
-          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.65, "volume": 2.6 }
+          "at": 2.8,
+          "sound": {
+            "id": "minecraft:entity.iron_golem.attack",
+            "pitch": 0.65,
+            "volume": 2.6
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.85,
-          "until": 3.6,
+          "at": 3.17,
+          "until": 3.92,
           "multiplier": 1.2
         }
       ]
     },
     "thrust_lunge": {
-      "duration": 2.2,
-      "cooldown": [9.0, 12.0],
+      "duration": 2.6,
+      "cooldown": [
+        9.0,
+        12.0
+      ],
       "initial_cooldown": 5.0,
       "weight": 3,
       "no_repeat": true,
       "target": "farthest",
-      "range": { "min": 4.0, "max": 14.0 },
-      "track_until": 0.44,
+      "range": {
+        "min": 4.0,
+        "max": 14.0
+      },
+      "track_until": 0.32,
       "events": [
         {
           "type": "fx",
-          "at": 0.44,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 1.2, "volume": 1.8 }
+          "at": 0.32,
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 1.2,
+            "volume": 1.8
+          }
         },
         {
           "type": "fx",
-          "at": 0.82,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.85, "volume": 2.2 }
+          "at": 1.12,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.85,
+            "volume": 2.2
+          }
         },
         {
           "type": "dash",
-          "at": 0.82,
+          "at": 1.12,
           "speed": 1.75,
           "max_distance": 18.0,
           "overshoot": 3.5,
           "width": 3.2,
           "push": "side",
           "on_wall": "stop",
-          "telegraph": { "show": false, "from": 0.44 },
+          "telegraph": {
+            "show": false,
+            "from": 0.32
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.75,
             "knock_up": 0.3,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.44,
+          "at": 0.32,
           "kind": "lance_lunge",
           "origin": "locked",
-          "windup": 0.38,
-          "duration": 1.1,
+          "windup": 0.8,
+          "duration": 1.65,
           "height": 2.2,
           "color": "#FF5A00",
           "secondary_color": "#FFF6C4"
         },
         {
           "type": "fx",
-          "at": 1.08,
-          "sound": { "id": "minecraft:entity.player.attack.crit", "pitch": 0.65, "volume": 2.2 }
+          "at": 1.38,
+          "sound": {
+            "id": "minecraft:entity.player.attack.crit",
+            "pitch": 0.65,
+            "volume": 2.2
+          }
         },
         {
           "type": "vulnerable",
-          "at": 1.45,
-          "until": 2.15,
+          "at": 1.75,
+          "until": 2.45,
           "multiplier": 1.2
         }
       ]
     },
     "madness_grab": {
-      "duration": 2.8,
-      "cooldown": [13.0, 16.0],
+      "duration": 3.12,
+      "cooldown": [
+        13.0,
+        16.0
+      ],
       "initial_cooldown": 8.0,
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 4.4 },
-      "track_until": 0.22,
+      "range": {
+        "max": 4.4
+      },
+      "track_until": 0.2,
       "events": [
         {
           "type": "fx",
           "at": 0.2,
-          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.55, "volume": 2.4 },
-          "message": { "key": "mobs_ld.cue.midra.madness_grab", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:entity.blaze.ambient",
+            "pitch": 0.55,
+            "volume": 2.4
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.madness_grab",
+            "where": "actionbar"
+          }
         },
         {
           "type": "grab",
-          "at": 0.78,
-          "until": 2.15,
-          "shape": { "type": "cone", "radius": 4.4, "angle": 80 },
-          "telegraph": { "show": false, "from": 0.2 },
+          "at": 1.0,
+          "until": 2.59,
+          "shape": {
+            "type": "cone",
+            "radius": 4.4,
+            "angle": 80
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.2
+          },
           "max_victims": 1,
-          "hold": { "forward": 2.35, "up": 1.55, "lift": 0.65, "side": 0.0 },
+          "hold": {
+            "forward": 2.35,
+            "up": 1.55,
+            "lift": 0.65,
+            "side": 0.0
+          },
           "catch_hit": {
             "amount": 5.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.0,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ]
           },
           "tick_hit": {
@@ -651,10 +899,19 @@
               "damage_type": "mobs_ld:frenzied_flame",
               "knockback": 0.0,
               "effects": [
-                { "id": "mobs_ld:frenzied_burn", "duration": 4.5, "amplifier": 1 },
-                { "id": "minecraft:nausea", "duration": 2.5, "amplifier": 0 }
+                {
+                  "id": "mobs_ld:frenzied_burn",
+                  "duration": 4.5,
+                  "amplifier": 1
+                }
               ],
-              "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+              "stacks": {
+                "id": "frenzy",
+                "per_stack": 0.1,
+                "max": 5,
+                "duration": 18,
+                "min_players": 0
+              }
             }
           },
           "release_hit": {
@@ -662,11 +919,25 @@
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.0,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 5.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 5.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           },
-          "throw": { "forward": 1.45, "up": 0.58, "side": 0.0 },
+          "throw": {
+            "forward": 1.45,
+            "up": 0.58,
+            "side": 0.0
+          },
           "rescue_damage": 28.0,
           "on_catch_message": "mobs_ld.cue.midra.grab_caught",
           "on_rescue_message": "mobs_ld.cue.midra.grab_broken"
@@ -677,15 +948,15 @@
           "kind": "madness_grasp",
           "origin": "locked",
           "height": 2.3,
-          "windup": 0.58,
-          "duration": 2.05,
+          "windup": 0.8,
+          "duration": 2.25,
           "count": 5,
           "color": "#F08C00",
           "secondary_color": "#FFF4B8"
         },
         {
           "type": "vfx",
-          "at": 0.9,
+          "at": 1.12,
           "kind": "eye_charge",
           "offset": 0.6,
           "up": 4.1,
@@ -696,17 +967,25 @@
         },
         {
           "type": "fx",
-          "at": 1.2,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 1.35, "volume": 2.3 }
+          "at": 1.42,
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 1.35,
+            "volume": 2.3
+          }
         },
         {
           "type": "fx",
-          "at": 1.8,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.65, "volume": 2.5 }
+          "at": 2.02,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.65,
+            "volume": 2.5
+          }
         },
         {
           "type": "vfx",
-          "at": 2.15,
+          "at": 2.37,
           "kind": "flame_wave",
           "length": 5.4,
           "angle": 85,
@@ -717,13 +996,17 @@
         },
         {
           "type": "fx",
-          "at": 2.15,
-          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.8, "volume": 2.2 }
+          "at": 2.37,
+          "sound": {
+            "id": "minecraft:entity.iron_golem.attack",
+            "pitch": 0.8,
+            "volume": 2.2
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.28,
-          "until": 2.8,
+          "at": 2.5,
+          "until": 3.02,
           "multiplier": 1.25
         }
       ]
@@ -731,22 +1014,37 @@
     "whirlwind_slash": {
       "duration": 2.9,
       "cooldown_group": "whirlwind",
-      "cooldown": [10.0, 13.0],
+      "cooldown": [
+        10.0,
+        13.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 5.5 },
+      "range": {
+        "max": 5.5
+      },
       "track_until": 0.25,
       "events": [
         {
           "type": "fx",
           "at": 0.25,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.8, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.8,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
           "at": 1.1,
-          "shape": { "type": "circle", "radius": 5.2 },
-          "telegraph": { "show": false, "from": 0.25 },
+          "shape": {
+            "type": "circle",
+            "radius": 5.2
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.25
+          },
           "hit": {
             "amount": 10.0,
             "damage_type": "minecraft:mob_attack",
@@ -767,18 +1065,35 @@
         {
           "type": "fx",
           "at": 1.1,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.6, "volume": 2.5 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.6,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.65,
-          "shape": { "type": "ring", "inner": 2.8, "outer": 6.4 },
-          "telegraph": { "show": false, "from": 1.0 },
+          "at": 1.85,
+          "shape": {
+            "type": "ring",
+            "inner": 2.8,
+            "outer": 6.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.0
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.9,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -786,16 +1101,20 @@
           "at": 1.0,
           "kind": "shockwave_ring",
           "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.35,
+          "windup": 0.85,
+          "duration": 1.55,
           "height": 2.6,
           "color": "#FF5500",
           "secondary_color": "#FFF4B8"
         },
         {
           "type": "fx",
-          "at": 1.65,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.75, "volume": 2.5 }
+          "at": 1.85,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.75,
+            "volume": 2.5
+          }
         }
       ]
     },
@@ -806,20 +1125,36 @@
       "cooldown": 10.0,
       "weight": 6,
       "when": {
-        "behind": { "players": 1, "for": 3.5, "range": 5.0, "angle": 140, "height": 3.5 }
+        "behind": {
+          "players": 1,
+          "for": 3.5,
+          "range": 5.0,
+          "angle": 140,
+          "height": 3.5
+        }
       },
       "track_until": 0.0,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.65, "volume": 2.4 }
+          "sound": {
+            "id": "minecraft:entity.blaze.ambient",
+            "pitch": 0.65,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
           "at": 1.1,
-          "shape": { "type": "circle", "radius": 5.4 },
-          "telegraph": { "show": false, "from": 0.2 },
+          "shape": {
+            "type": "circle",
+            "radius": 5.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.2
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "minecraft:mob_attack",
@@ -841,18 +1176,35 @@
         {
           "type": "fx",
           "at": 1.1,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.6, "volume": 2.5 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.6,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.65,
-          "shape": { "type": "ring", "inner": 2.8, "outer": 6.6 },
-          "telegraph": { "show": false, "from": 1.0 },
+          "at": 1.85,
+          "shape": {
+            "type": "ring",
+            "inner": 2.8,
+            "outer": 6.6
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.0
+          },
           "hit": {
             "amount": 12.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 1.0,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -860,39 +1212,58 @@
           "at": 1.0,
           "kind": "shockwave_ring",
           "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.35,
+          "windup": 0.85,
+          "duration": 1.55,
           "height": 2.8,
           "color": "#FFD028",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 1.65,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.7, "volume": 2.5 }
+          "at": 1.85,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.7,
+            "volume": 2.5
+          }
         }
       ]
     },
     "sword_plunge_aoe": {
       "duration": 3.2,
-      "cooldown": [12.0, 15.0],
+      "cooldown": [
+        12.0,
+        15.0
+      ],
       "initial_cooldown": 6.0,
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 8.0 },
+      "range": {
+        "max": 8.0
+      },
       "track_until": 0.55,
       "events": [
         {
           "type": "fx",
           "at": 0.5,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.85, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 0.85,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
           "at": 1.38,
           "offset": 2.8,
-          "shape": { "type": "circle", "radius": 4.5 },
-          "telegraph": { "show": false, "from": 0.55 },
+          "shape": {
+            "type": "circle",
+            "radius": 4.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.55
+          },
           "hit": {
             "amount": 14.0,
             "damage_type": "minecraft:mob_attack",
@@ -914,19 +1285,38 @@
         {
           "type": "fx",
           "at": 1.38,
-          "sound": { "id": "minecraft:entity.wither.break_block", "pitch": 0.7, "volume": 2.6 }
+          "sound": {
+            "id": "minecraft:entity.wither.break_block",
+            "pitch": 0.7,
+            "volume": 2.6
+          }
         },
         {
           "type": "hit",
           "at": 2.15,
           "offset": 2.8,
-          "shape": { "type": "rays", "count": 6, "length": 14.0, "width": 2.0, "widen": 0.12 },
-          "telegraph": { "show": false, "from": 1.38 },
+          "shape": {
+            "type": "rays",
+            "count": 6,
+            "length": 14.0,
+            "width": 2.0,
+            "widen": 0.12
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.38
+          },
           "hit": {
             "amount": 13.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.5,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -943,7 +1333,11 @@
         {
           "type": "fx",
           "at": 2.15,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.8, "volume": 2.6 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.8,
+            "volume": 2.6
+          }
         },
         {
           "type": "cloud",
@@ -952,7 +1346,11 @@
           "radius": 3.0,
           "duration": 6.0,
           "effects": [
-            { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+            {
+              "id": "mobs_ld:frenzied_burn",
+              "duration": 3.0,
+              "amplifier": 0
+            }
           ]
         },
         {
@@ -966,22 +1364,38 @@
     "ground_wave_sweep": {
       "duration": 2.9,
       "cooldown_group": "ground_wave",
-      "cooldown": [10.0, 13.0],
+      "cooldown": [
+        10.0,
+        13.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 11.0 },
+      "range": {
+        "max": 11.0
+      },
       "track_until": 0.45,
       "events": [
         {
           "type": "fx",
           "at": 0.72,
-          "sound": { "id": "minecraft:block.lava.pop", "pitch": 0.75, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:block.lava.pop",
+            "pitch": 0.75,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
           "at": 1.35,
-          "shape": { "type": "cone", "radius": 5.0, "angle": 135 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.0,
+            "angle": 135
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "minecraft:mob_attack",
@@ -1004,35 +1418,56 @@
         {
           "type": "fx",
           "at": 1.35,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.65, "volume": 2.4 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.65,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 1.88,
-          "shape": { "type": "cone", "radius": 12.0, "angle": 95 },
-          "telegraph": { "show": false, "from": 1.15 },
+          "at": 2.0,
+          "shape": {
+            "type": "cone",
+            "radius": 12.0,
+            "angle": 95
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.12
+          },
           "hit": {
             "amount": 13.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.15,
+          "at": 1.12,
           "kind": "flame_wave",
           "origin": "locked",
-          "windup": 0.73,
-          "duration": 1.65,
+          "windup": 0.88,
+          "duration": 1.8,
           "height": 3.6,
           "color": "#F08C00",
           "secondary_color": "#FFF4B8"
         },
         {
           "type": "fx",
-          "at": 1.88,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.7, "volume": 2.6 }
+          "at": 2.0,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.7,
+            "volume": 2.6
+          }
         }
       ]
     },
@@ -1040,22 +1475,38 @@
       "clip": "ground_wave_sweep",
       "duration": 2.9,
       "cooldown_group": "ground_wave",
-      "cooldown": [9.0, 12.0],
+      "cooldown": [
+        9.0,
+        12.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 16.0 },
+      "range": {
+        "max": 16.0
+      },
       "track_until": 0.45,
       "events": [
         {
           "type": "fx",
           "at": 0.72,
-          "sound": { "id": "minecraft:block.lava.pop", "pitch": 0.72, "volume": 2.3 }
+          "sound": {
+            "id": "minecraft:block.lava.pop",
+            "pitch": 0.72,
+            "volume": 2.3
+          }
         },
         {
           "type": "hit",
           "at": 1.35,
-          "shape": { "type": "cone", "radius": 5.2, "angle": 140 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.2,
+            "angle": 140
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "minecraft:mob_attack",
@@ -1078,102 +1529,176 @@
         {
           "type": "fx",
           "at": 1.35,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.62, "volume": 2.5 }
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.62,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.88,
+          "at": 2.0,
           "rotate": -28.0,
           "once": true,
-          "shape": { "type": "cone", "radius": 16.0, "angle": 36 },
-          "telegraph": { "show": false, "from": 1.15 },
+          "shape": {
+            "type": "cone",
+            "radius": 16.0,
+            "angle": 36
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.12
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "hit",
-          "at": 1.88,
+          "at": 2.0,
           "rotate": 0.0,
           "once": true,
-          "shape": { "type": "cone", "radius": 16.0, "angle": 38 },
-          "telegraph": { "show": false, "from": 1.15 },
+          "shape": {
+            "type": "cone",
+            "radius": 16.0,
+            "angle": 38
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.12
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "hit",
-          "at": 1.88,
+          "at": 2.0,
           "rotate": 28.0,
           "once": true,
-          "shape": { "type": "cone", "radius": 16.0, "angle": 36 },
-          "telegraph": { "show": false, "from": 1.15 },
+          "shape": {
+            "type": "cone",
+            "radius": 16.0,
+            "angle": 36
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.12
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.15,
+          "at": 1.12,
           "kind": "flame_wave",
           "origin": "locked",
-          "windup": 0.73,
-          "duration": 1.7,
+          "windup": 0.88,
+          "duration": 1.85,
           "height": 3.8,
           "color": "#FF5A00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 1.88,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.65, "volume": 2.7 }
+          "at": 2.0,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.65,
+            "volume": 2.7
+          }
         }
       ]
     },
     "frenzy_beam": {
-      "duration": 3.8,
+      "duration": 4.13,
       "cooldown_group": "frenzy_beam",
-      "cooldown": [15.0, 18.0],
+      "cooldown": [
+        15.0,
+        18.0
+      ],
       "initial_cooldown": 10.0,
       "weight": 3,
       "no_repeat": true,
       "target": "farthest",
       "include_unreachable": true,
-      "range": { "min": 6.0, "max": 26.0, "above": 10.0, "below": 4.0 },
+      "range": {
+        "min": 6.0,
+        "max": 26.0,
+        "above": 10.0,
+        "below": 4.0
+      },
       "track_until": 0.45,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.8, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.midra.frenzy_beam", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 0.8,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.frenzy_beam",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
           "at": 0.0,
           "kind": "eye_charge",
-          "up": 4.25,
+          "up": 4.38,
           "radius": 1.6,
-          "duration": 1.25,
+          "duration": 1.4,
           "color": "#F08C00",
           "secondary_color": "#FFF8CC"
         },
@@ -1181,170 +1706,290 @@
           "type": "vfx",
           "at": 0.45,
           "kind": "sweeping_beam",
-          "up": 4.25,
+          "up": 4.38,
           "rotate": 0.0,
-          "windup": 0.72,
-          "duration": 2.55,
+          "windup": 0.9,
+          "duration": 2.75,
           "length": 26.0,
           "width": 1.75,
-          "height": 3.3,
+          "height": 3.25,
           "angle": 56.0,
           "color": "#FF5A00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "hit",
-          "at": 1.35,
+          "at": 1.53,
           "rotate": -22.0,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 26.0, "angle": 16.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 26.0,
+            "angle": 16.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 1.35,
-          "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 1.25, "volume": 2.4 }
+          "at": 1.53,
+          "sound": {
+            "id": "minecraft:entity.warden.sonic_boom",
+            "pitch": 1.25,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 1.68,
+          "at": 1.86,
           "rotate": -11.0,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 26.0, "angle": 16.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 26.0,
+            "angle": 16.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 1.68,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.65, "volume": 2.4 }
+          "at": 1.86,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.65,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.01,
+          "at": 2.19,
           "rotate": 0.0,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 26.0, "angle": 16.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 26.0,
+            "angle": 16.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.01,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.72, "volume": 2.4 }
+          "at": 2.19,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.72,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.34,
+          "at": 2.52,
           "rotate": 11.0,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 26.0, "angle": 16.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 26.0,
+            "angle": 16.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.34,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.78, "volume": 2.4 }
+          "at": 2.52,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.78,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.67,
+          "at": 2.85,
           "rotate": 22.0,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 26.0, "angle": 16.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "cone",
+            "radius": 26.0,
+            "angle": 16.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.45
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.67,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.7, "volume": 2.4 }
+          "at": 2.85,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         },
         {
           "type": "vulnerable",
-          "at": 3.05,
-          "until": 3.8,
+          "at": 3.23,
+          "until": 3.98,
           "multiplier": 1.25
         }
       ]
     },
     "frenzy_beam_p2": {
       "clip": "frenzy_beam",
-      "duration": 3.8,
+      "duration": 4.13,
       "cooldown_group": "frenzy_beam",
-      "cooldown": [13.0, 16.0],
+      "cooldown": [
+        13.0,
+        16.0
+      ],
       "weight": 3,
       "no_repeat": true,
       "target": "farthest",
       "include_unreachable": true,
-      "range": { "min": 6.0, "max": 28.0, "above": 10.0, "below": 4.0 },
+      "range": {
+        "min": 6.0,
+        "max": 28.0,
+        "above": 10.0,
+        "below": 4.0
+      },
       "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.9, "volume": 2.8 },
-          "message": { "key": "mobs_ld.cue.midra.frenzy_beam", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 0.9,
+            "volume": 2.8
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.frenzy_beam",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
           "at": 0.0,
           "kind": "eye_charge",
-          "up": 4.25,
+          "up": 4.38,
           "radius": 1.85,
-          "duration": 1.2,
+          "duration": 1.35,
           "color": "#FF4800",
           "secondary_color": "#FFF8CC"
         },
@@ -1352,165 +1997,291 @@
           "type": "vfx",
           "at": 0.4,
           "kind": "sweeping_beam",
-          "up": 4.25,
+          "up": 4.38,
           "rotate": 0.0,
-          "windup": 0.72,
-          "duration": 2.65,
+          "windup": 0.9,
+          "duration": 2.85,
           "length": 28.0,
           "width": 1.95,
-          "height": 3.3,
+          "height": 3.25,
           "angle": 66.0,
           "color": "#FF4800",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "hit",
-          "at": 1.27,
+          "at": 1.45,
           "rotate": -27.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 1.27,
-          "sound": { "id": "minecraft:entity.warden.sonic_boom", "pitch": 1.2, "volume": 2.6 }
+          "at": 1.45,
+          "sound": {
+            "id": "minecraft:entity.warden.sonic_boom",
+            "pitch": 1.2,
+            "volume": 2.6
+          }
         },
         {
           "type": "hit",
-          "at": 1.56,
+          "at": 1.74,
           "rotate": -16.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 1.56,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.65, "volume": 2.4 }
+          "at": 1.74,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.65,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 1.86,
+          "at": 2.04,
           "rotate": -5.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 1.86,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.7, "volume": 2.4 }
+          "at": 2.04,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.16,
+          "at": 2.34,
           "rotate": 5.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.16,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.76, "volume": 2.4 }
+          "at": 2.34,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.76,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.45,
+          "at": 2.63,
           "rotate": 16.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.45,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.82, "volume": 2.4 }
+          "at": 2.63,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.82,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.75,
+          "at": 2.93,
           "rotate": 27.5,
           "once": true,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "cone", "radius": 28.0, "angle": 17.0 },
-          "telegraph": { "show": false, "from": 0.4 },
+          "shape": {
+            "type": "cone",
+            "radius": 28.0,
+            "angle": 17.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 17.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.8,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "fx",
-          "at": 2.75,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.7, "volume": 2.4 }
+          "at": 2.93,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         },
         {
           "type": "vulnerable",
-          "at": 3.05,
-          "until": 3.8,
+          "at": 3.23,
+          "until": 3.98,
           "multiplier": 1.25
         }
       ]
@@ -1518,19 +2289,33 @@
     "flame_rain_cast": {
       "duration": 3.4,
       "cooldown_group": "flame_rain",
-      "cooldown": [18.0, 22.0],
+      "cooldown": [
+        18.0,
+        22.0
+      ],
       "initial_cooldown": 14.0,
       "weight": 2,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 34.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 34.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.65,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.9, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.midra.flame_rain", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 0.9,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.flame_rain",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -1545,81 +2330,107 @@
         {
           "type": "fx",
           "at": 1.15,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.6, "volume": 2.6 }
-        },
-        {
-          "type": "vfx",
-          "at": 1.15,
-          "kind": "flame_pillar",
-          "radius": 2.4,
-          "height": 9.0,
-          "duration": 1.3,
-          "color": "#FF5A00",
-          "secondary_color": "#FFF4B8"
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.6,
+            "volume": 2.6
+          }
         },
         {
           "type": "hit",
-          "at": 1.5,
+          "at": 1.55,
           "origin": "each_fighter",
           "lead": 0.4,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.8 },
-          "telegraph": { "show": false, "from": 0.7 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.65
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.3,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.7,
+          "at": 0.65,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.55,
+          "windup": 0.9,
+          "duration": 1.65,
           "height": 15.0,
           "color": "#FF5500",
           "secondary_color": "#FFF6C4"
         },
         {
           "type": "fx",
-          "at": 1.5,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.8, "volume": 2.4 }
+          "at": 1.55,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.8,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.35,
+          "at": 2.5,
           "origin": "each_fighter",
           "lead": 0.4,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.8 },
-          "telegraph": { "show": false, "from": 1.55 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.6
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.3,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.55,
+          "at": 1.6,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.55,
+          "windup": 0.9,
+          "duration": 1.65,
           "height": 15.0,
           "color": "#FF4800",
           "secondary_color": "#FFF6C4"
         },
         {
           "type": "fx",
-          "at": 2.35,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.7, "volume": 2.4 }
+          "at": 2.5,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         }
       ]
     },
@@ -1627,18 +2438,32 @@
       "clip": "flame_rain_cast",
       "duration": 3.4,
       "cooldown_group": "flame_rain",
-      "cooldown": [15.0, 19.0],
+      "cooldown": [
+        15.0,
+        19.0
+      ],
       "weight": 2,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 36.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 36.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.6,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 1.0, "volume": 2.8 },
-          "message": { "key": "mobs_ld.cue.midra.flame_rain", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 1.0,
+            "volume": 2.8
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.flame_rain",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -1653,64 +2478,86 @@
         {
           "type": "fx",
           "at": 1.15,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.6, "volume": 2.8 }
-        },
-        {
-          "type": "vfx",
-          "at": 1.15,
-          "kind": "flame_pillar",
-          "radius": 2.7,
-          "height": 10.0,
-          "duration": 1.45,
-          "color": "#FF4800",
-          "secondary_color": "#FFF8CC"
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.6,
+            "volume": 2.8
+          }
         },
         {
           "type": "hit",
-          "at": 1.4,
+          "at": 1.5,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.8 },
-          "telegraph": { "show": false, "from": 0.65 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.6
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.3,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.65,
+          "at": 0.6,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.75,
-          "duration": 1.45,
+          "windup": 0.9,
+          "duration": 1.6,
           "height": 15.0,
           "color": "#F08C00",
           "secondary_color": "#FFF6C4"
         },
         {
           "type": "fx",
-          "at": 1.4,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.85, "volume": 2.4 }
+          "at": 1.5,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.85,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.0,
+          "at": 2.15,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.8 },
-          "telegraph": { "show": false, "from": 1.25 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.25
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.3,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1718,31 +2565,47 @@
           "at": 1.25,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.75,
-          "duration": 1.45,
+          "windup": 0.9,
+          "duration": 1.6,
           "height": 15.0,
           "color": "#FF4800",
           "secondary_color": "#FFF6C4"
         },
         {
           "type": "fx",
-          "at": 2.0,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.78, "volume": 2.4 }
+          "at": 2.15,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.78,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.6,
+          "at": 2.75,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.8 },
-          "telegraph": { "show": false, "from": 1.85 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.85
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.3,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1750,32 +2613,48 @@
           "at": 1.85,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.75,
-          "duration": 1.45,
+          "windup": 0.9,
+          "duration": 1.6,
           "height": 15.0,
           "color": "#FFD028",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 2.6,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.7, "volume": 2.4 }
+          "at": 2.75,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         }
       ]
     },
     "frenzy_burst": {
-      "duration": 3.6,
-      "cooldown": [22.0, 26.0],
+      "duration": 3.8,
+      "cooldown": [
+        22.0,
+        26.0
+      ],
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 10.0 },
+      "range": {
+        "max": 10.0
+      },
       "track_until": 0.5,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 0.7, "volume": 3.0 },
-          "message": { "key": "mobs_ld.cue.midra.frenzy_burst", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 0.7,
+            "volume": 3.0
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.frenzy_burst",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -1790,14 +2669,21 @@
         {
           "type": "fx",
           "at": 1.1,
-          "sound": { "id": "minecraft:block.respawn_anchor.deplete", "pitch": 0.75, "volume": 2.6 }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.deplete",
+            "pitch": 0.75,
+            "volume": 2.6
+          }
         },
         {
           "type": "pull",
           "from": 0.55,
           "until": 1.3,
           "origin": "self",
-          "shape": { "type": "circle", "radius": 10.5 },
+          "shape": {
+            "type": "circle",
+            "radius": 10.5
+          },
           "mode": "inward",
           "strength": 0.14,
           "lift": 0.0,
@@ -1808,17 +2694,33 @@
         {
           "type": "hit",
           "at": 1.6,
-          "shape": { "type": "circle", "radius": 6.5 },
-          "telegraph": { "show": false, "from": 0.6 },
+          "shape": {
+            "type": "circle",
+            "radius": 6.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.6
+          },
           "hit": {
             "amount": 18.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 1.2,
             "knock_up": 0.55,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1845,18 +2747,35 @@
         {
           "type": "fx",
           "at": 1.6,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.65, "volume": 3.2 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.65,
+            "volume": 3.2
+          }
         },
         {
           "type": "hit",
-          "at": 2.25,
-          "shape": { "type": "ring", "inner": 6.5, "outer": 12.5 },
-          "telegraph": { "show": false, "from": 1.4 },
+          "at": 2.32,
+          "shape": {
+            "type": "ring",
+            "inner": 6.5,
+            "outer": 12.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.4
+          },
           "hit": {
             "amount": 13.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1864,16 +2783,20 @@
           "at": 1.4,
           "kind": "shockwave_ring",
           "origin": "locked",
-          "windup": 0.85,
-          "duration": 1.65,
+          "windup": 0.92,
+          "duration": 1.72,
           "height": 3.4,
           "color": "#FFD028",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 2.25,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.6, "volume": 2.8 }
+          "at": 2.32,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.6,
+            "volume": 2.8
+          }
         },
         {
           "type": "vulnerable",
@@ -1884,18 +2807,30 @@
       ]
     },
     "frenzy_nova_slam": {
-      "duration": 3.6,
-      "cooldown": [18.0, 22.0],
+      "duration": 3.85,
+      "cooldown": [
+        18.0,
+        22.0
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 14.0 },
+      "range": {
+        "max": 14.0
+      },
       "track_until": 0.85,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.75, "volume": 2.4 },
-          "message": { "key": "mobs_ld.cue.midra.nova_slam", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:entity.ravager.roar",
+            "pitch": 0.75,
+            "volume": 2.4
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.nova_slam",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -1910,20 +2845,36 @@
         {
           "type": "fx",
           "at": 1.25,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.65, "volume": 2.6 }
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.65,
+            "volume": 2.6
+          }
         },
         {
           "type": "hit",
           "at": 1.82,
           "offset": 1.5,
-          "shape": { "type": "circle", "radius": 5.5 },
-          "telegraph": { "show": false, "from": 0.85 },
+          "shape": {
+            "type": "circle",
+            "radius": 5.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.85
+          },
           "hit": {
             "amount": 20.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.9,
             "knock_up": 0.55,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1951,19 +2902,36 @@
         {
           "type": "fx",
           "at": 1.82,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.6, "volume": 3.4 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.6,
+            "volume": 3.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.35,
+          "at": 2.45,
           "offset": 1.5,
-          "shape": { "type": "ring", "inner": 5.5, "outer": 11.5 },
-          "telegraph": { "show": false, "from": 1.55 },
+          "shape": {
+            "type": "ring",
+            "inner": 5.5,
+            "outer": 11.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.55
+          },
           "hit": {
             "amount": 13.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.6,
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1971,21 +2939,25 @@
           "at": 1.55,
           "kind": "shockwave_ring",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.6,
+          "windup": 0.9,
+          "duration": 1.7,
           "height": 3.2,
           "color": "#FFD028",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 2.35,
-          "sound": { "id": "minecraft:entity.wither.break_block", "pitch": 0.65, "volume": 2.8 }
+          "at": 2.45,
+          "sound": {
+            "id": "minecraft:entity.wither.break_block",
+            "pitch": 0.65,
+            "volume": 2.8
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.4,
-          "until": 3.6,
+          "at": 2.5,
+          "until": 3.7,
           "multiplier": 1.25
         }
       ]
@@ -1993,20 +2965,35 @@
     "frenzy_barrage": {
       "clip": "flame_rain_cast",
       "duration": 3.4,
-      "cooldown": [9.0, 12.0],
+      "cooldown": [
+        9.0,
+        12.0
+      ],
       "initial_cooldown": 6.0,
       "weight": 3,
       "no_repeat": true,
       "target": "farthest",
       "include_unreachable": true,
-      "range": { "min": 5.5, "max": 30.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "min": 5.5,
+        "max": 30.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.35,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.respawn_anchor.charge", "pitch": 1.15, "volume": 2.4 },
-          "message": { "key": "mobs_ld.cue.midra.frenzy_barrage", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.charge",
+            "pitch": 1.15,
+            "volume": 2.4
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.frenzy_barrage",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -2020,21 +3007,37 @@
         },
         {
           "type": "hit",
-          "at": 1.05,
+          "at": 1.23,
           "origin": "target",
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.4 },
-          "telegraph": { "show": false, "from": 0.35 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.35
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.45,
             "knock_up": 0.3,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -2042,138 +3045,193 @@
           "at": 0.35,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.7,
-          "duration": 1.25,
+          "windup": 0.88,
+          "duration": 1.43,
           "height": 11.0,
           "color": "#FF5A00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 1.05,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.9, "volume": 2.3 }
+          "at": 1.23,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.9,
+            "volume": 2.3
+          }
         },
         {
           "type": "hit",
-          "at": 1.6,
+          "at": 1.8,
           "origin": "target",
           "aim_side": 0.0,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.4 },
-          "telegraph": { "show": false, "from": 0.9 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.92
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.45,
             "knock_up": 0.3,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.9,
+          "at": 0.92,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.7,
-          "duration": 1.25,
+          "windup": 0.88,
+          "duration": 1.43,
           "height": 12.0,
           "color": "#FF4800",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 1.6,
-          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.8, "volume": 2.4 }
+          "at": 1.8,
+          "sound": {
+            "id": "minecraft:entity.blaze.shoot",
+            "pitch": 0.8,
+            "volume": 2.4
+          }
         },
         {
           "type": "hit",
-          "at": 2.15,
+          "at": 2.38,
           "origin": "target",
           "aim_side": 0.0,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.6 },
-          "telegraph": { "show": false, "from": 1.45 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.6
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.5
+          },
           "hit": {
             "amount": 12.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.55,
             "knock_up": 0.35,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.45,
+          "at": 1.5,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.7,
-          "duration": 1.3,
+          "windup": 0.88,
+          "duration": 1.48,
           "height": 13.0,
           "color": "#FF3D00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 2.15,
-          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.85, "volume": 2.4 }
+          "at": 2.38,
+          "sound": {
+            "id": "minecraft:entity.ghast.shoot",
+            "pitch": 0.85,
+            "volume": 2.4
+          }
         }
       ]
     },
     "summon_wisps": {
       "clip": "frenzy_burst",
       "duration": 3.6,
-      "cooldown": [18.0, 22.0],
+      "cooldown": [
+        18.0,
+        22.0
+      ],
       "initial_cooldown": 10.0,
       "skip_when_full": true,
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 34.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 34.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.65, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.midra.summon_wisps", "where": "actionbar" }
-        },
-        {
-          "type": "vfx",
-          "at": 0.1,
-          "kind": "eye_charge",
-          "up": 4.35,
-          "radius": 2.0,
-          "duration": 1.35,
-          "color": "#FF5A00",
-          "secondary_color": "#FFF8CC"
-        },
-        {
-          "type": "vfx",
-          "at": 1.25,
-          "kind": "shockwave_ring",
-          "width": 1.0,
-          "radius": 6.8,
-          "height": 2.2,
-          "duration": 0.85,
-          "color": "#F08C00",
-          "secondary_color": "#FFF6C4"
+          "sound": {
+            "id": "minecraft:entity.blaze.ambient",
+            "pitch": 0.65,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.summon_wisps",
+            "where": "actionbar"
+          }
         },
         {
           "type": "summon",
           "at": 1.35,
           "entity": "mobs_ld:frenzy_wisp",
-          "count": { "min": 3, "max": 4, "per_extra_player": 1, "cap": 5 },
+          "count": {
+            "min": 3,
+            "max": 4,
+            "per_extra_player": 1,
+            "cap": 5
+          },
           "up": 2.4,
-          "max_alive": { "base": 5, "per_extra_player": 1, "cap": 7 },
+          "max_alive": {
+            "base": 5,
+            "per_extra_player": 1,
+            "cap": 7
+          },
           "per_type": true,
-          "placement": { "around": "self", "radius": [3.5, 7.0], "min_gap": 2.0, "clearance": 2, "ground": false },
+          "placement": {
+            "around": "self",
+            "radius": [
+              3.5,
+              7.0
+            ],
+            "min_gap": 2.0,
+            "clearance": 2,
+            "ground": false
+          },
           "loot": false,
           "xp": false,
           "bound": true
@@ -2181,7 +3239,11 @@
         {
           "type": "fx",
           "at": 1.35,
-          "sound": { "id": "minecraft:entity.wither.spawn", "pitch": 1.25, "volume": 2.2 }
+          "sound": {
+            "id": "minecraft:entity.wither.spawn",
+            "pitch": 1.25,
+            "volume": 2.2
+          }
         },
         {
           "type": "vulnerable",
@@ -2194,19 +3256,33 @@
     "madness_gaze": {
       "clip": "flame_rain_cast",
       "duration": 4.2,
-      "cooldown": [24.0, 28.0],
+      "cooldown": [
+        24.0,
+        28.0
+      ],
       "initial_cooldown": 16.0,
       "weight": 2,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 34.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 34.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.5,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:block.bell.resonate", "pitch": 0.55, "volume": 3.0 },
-          "message": { "key": "mobs_ld.cue.midra.madness_gaze", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:block.bell.resonate",
+            "pitch": 0.55,
+            "volume": 3.0
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.madness_gaze",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -2221,33 +3297,40 @@
         {
           "type": "fx",
           "at": 0.7,
-          "sound": { "id": "minecraft:block.bell.use", "pitch": 0.85, "volume": 2.8 }
-        },
-        {
-          "type": "vfx",
-          "at": 1.05,
-          "kind": "shockwave_ring",
-          "width": 1.1,
-          "radius": 12.0,
-          "height": 2.2,
-          "duration": 0.75,
-          "color": "#FFD028",
-          "secondary_color": "#FFF8CC"
+          "sound": {
+            "id": "minecraft:block.bell.use",
+            "pitch": 0.85,
+            "volume": 2.8
+          }
         },
         {
           "type": "fx",
           "at": 1.3,
-          "sound": { "id": "minecraft:block.respawn_anchor.deplete", "pitch": 0.62, "volume": 2.8 }
+          "sound": {
+            "id": "minecraft:block.respawn_anchor.deplete",
+            "pitch": 0.62,
+            "volume": 2.8
+          }
         },
         {
           "type": "listen",
           "from": 1.4,
           "until": 3.2,
           "range": 36.0,
-          "triggers": ["damage", "use_item", "sprint", "jump", "move"],
+          "triggers": [
+            "damage",
+            "use_item",
+            "sprint",
+            "jump",
+            "move"
+          ],
           "move_tolerance": 0.75,
           "particles": "minecraft:flame",
-          "sound": { "id": "minecraft:entity.ghast.scream", "pitch": 0.85, "volume": 2.5 },
+          "sound": {
+            "id": "minecraft:entity.ghast.scream",
+            "pitch": 0.85,
+            "volume": 2.5
+          },
           "chain_to": "thrust_lunge",
           "chain_at": 3.3,
           "hit": {
@@ -2256,9 +3339,19 @@
             "knockback": 0.7,
             "knock_up": 0.35,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -2271,20 +3364,34 @@
     },
     "frenzy_apocalypse": {
       "clip": "frenzy_burst",
-      "duration": 4.35,
-      "cooldown": [24.0, 28.0],
+      "duration": 4.6,
+      "cooldown": [
+        24.0,
+        28.0
+      ],
       "initial_cooldown": 14.0,
       "weight": 2,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 34.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 34.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.45,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.wither.spawn", "pitch": 0.72, "volume": 3.0 },
-          "message": { "key": "mobs_ld.cue.midra.frenzy_apocalypse", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:entity.wither.spawn",
+            "pitch": 0.72,
+            "volume": 3.0
+          },
+          "message": {
+            "key": "mobs_ld.cue.midra.frenzy_apocalypse",
+            "where": "actionbar"
+          }
         },
         {
           "type": "vfx",
@@ -2301,7 +3408,10 @@
           "from": 0.45,
           "until": 1.1,
           "origin": "self",
-          "shape": { "type": "circle", "radius": 14.0 },
+          "shape": {
+            "type": "circle",
+            "radius": 14.0
+          },
           "mode": "inward",
           "strength": 0.09,
           "lift": 0.0,
@@ -2314,16 +3424,35 @@
           "at": 1.65,
           "height": 5.5,
           "depth": 3.0,
-          "shape": { "type": "rays", "count": 8, "length": 30.0, "width": 2.1, "widen": 0.14 },
-          "telegraph": { "show": false, "from": 0.75 },
+          "shape": {
+            "type": "rays",
+            "count": 8,
+            "length": 30.0,
+            "width": 2.1,
+            "widen": 0.14
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.75
+          },
           "hit": {
             "amount": 14.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.65,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -2340,42 +3469,66 @@
         {
           "type": "fx",
           "at": 1.65,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.65, "volume": 3.0 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.65,
+            "volume": 3.0
+          }
         },
         {
           "type": "hit",
-          "at": 2.25,
+          "at": 2.3,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.7 },
-          "telegraph": { "show": false, "from": 1.45 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.7
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.4
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.4,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.45,
+          "at": 1.4,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.5,
+          "windup": 0.9,
+          "duration": 1.6,
           "height": 15.0,
           "color": "#FF5A00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 2.25,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.78, "volume": 2.6 }
+          "at": 2.3,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.78,
+            "volume": 2.6
+          }
         },
         {
           "type": "hit",
@@ -2384,16 +3537,35 @@
           "turn_body": true,
           "height": 5.5,
           "depth": 3.0,
-          "shape": { "type": "rays", "count": 8, "length": 30.0, "width": 2.1, "widen": 0.14 },
-          "telegraph": { "show": false, "from": 2.05 },
+          "shape": {
+            "type": "rays",
+            "count": 8,
+            "length": 30.0,
+            "width": 2.1,
+            "widen": 0.14
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.05
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.7,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
@@ -2410,42 +3582,66 @@
         {
           "type": "fx",
           "at": 2.95,
-          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.58, "volume": 3.1 }
+          "sound": {
+            "id": "minecraft:entity.generic.explode",
+            "pitch": 0.58,
+            "volume": 3.1
+          }
         },
         {
           "type": "hit",
-          "at": 3.45,
+          "at": 3.5,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 2.7 },
-          "telegraph": { "show": false, "from": 2.65 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.7
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.6
+          },
           "hit": {
             "amount": 12.0,
             "damage_type": "mobs_ld:frenzied_flame",
             "knockback": 0.45,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+            "stacks": {
+              "id": "frenzy",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 18,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 2.65,
+          "at": 2.6,
           "kind": "meteor_strike",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.5,
+          "windup": 0.9,
+          "duration": 1.6,
           "height": 15.0,
           "color": "#FF3D00",
           "secondary_color": "#FFF8CC"
         },
         {
           "type": "fx",
-          "at": 3.45,
-          "sound": { "id": "minecraft:item.firecharge.use", "pitch": 0.68, "volume": 2.7 }
+          "at": 3.5,
+          "sound": {
+            "id": "minecraft:item.firecharge.use",
+            "pitch": 0.68,
+            "volume": 2.7
+          }
         },
         {
           "type": "vulnerable",
@@ -2477,7 +3673,10 @@
         "frenzy_barrage",
         "summon_wisps"
       ],
-      "bar": { "color": "yellow", "overlay": "notched_10" }
+      "bar": {
+        "color": "yellow",
+        "overlay": "notched_10"
+      }
     },
     {
       "below_health": 0.55,
@@ -2510,8 +3709,15 @@
           {
             "type": "fx",
             "at": 0.0,
-            "sound": { "id": "minecraft:entity.wither.spawn", "pitch": 0.75, "volume": 3.0 },
-            "message": { "key": "mobs_ld.cue.midra.phase2", "where": "actionbar" }
+            "sound": {
+              "id": "minecraft:entity.wither.spawn",
+              "pitch": 0.75,
+              "volume": 3.0
+            },
+            "message": {
+              "key": "mobs_ld.cue.midra.phase2",
+              "where": "actionbar"
+            }
           },
           {
             "type": "vfx",
@@ -2526,17 +3732,33 @@
           {
             "type": "hit",
             "at": 1.6,
-            "shape": { "type": "circle", "radius": 7.0 },
-            "telegraph": { "show": false, "from": 0.55 },
+            "shape": {
+              "type": "circle",
+              "radius": 7.0
+            },
+            "telegraph": {
+              "show": false,
+              "from": 0.55
+            },
             "hit": {
               "amount": 16.0,
               "damage_type": "mobs_ld:frenzied_flame",
               "knockback": 1.2,
               "knock_up": 0.45,
               "effects": [
-                { "id": "mobs_ld:frenzied_burn", "duration": 4.5, "amplifier": 1 }
+                {
+                  "id": "mobs_ld:frenzied_burn",
+                  "duration": 4.5,
+                  "amplifier": 1
+                }
               ],
-              "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+              "stacks": {
+                "id": "frenzy",
+                "per_stack": 0.1,
+                "max": 5,
+                "duration": 18,
+                "min_players": 0
+              }
             }
           },
           {
@@ -2563,18 +3785,35 @@
           {
             "type": "fx",
             "at": 1.6,
-            "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.6, "volume": 3.4 }
+            "sound": {
+              "id": "minecraft:entity.generic.explode",
+              "pitch": 0.6,
+              "volume": 3.4
+            }
           },
           {
             "type": "hit",
             "at": 2.15,
-            "shape": { "type": "ring", "inner": 7.0, "outer": 13.0 },
-            "telegraph": { "show": false, "from": 1.35 },
+            "shape": {
+              "type": "ring",
+              "inner": 7.0,
+              "outer": 13.0
+            },
+            "telegraph": {
+              "show": false,
+              "from": 1.35
+            },
             "hit": {
               "amount": 12.0,
               "damage_type": "mobs_ld:frenzied_flame",
               "knockback": 0.8,
-              "stacks": { "id": "frenzy", "per_stack": 0.1, "max": 5, "duration": 18, "min_players": 0 }
+              "stacks": {
+                "id": "frenzy",
+                "per_stack": 0.1,
+                "max": 5,
+                "duration": 18,
+                "min_players": 0
+              }
             }
           },
           {
@@ -2591,17 +3830,39 @@
           {
             "type": "fx",
             "at": 2.15,
-            "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.6, "volume": 2.8 }
+            "sound": {
+              "id": "minecraft:entity.ghast.shoot",
+              "pitch": 0.6,
+              "volume": 2.8
+            }
           },
           {
             "type": "summon",
             "at": 2.35,
             "entity": "mobs_ld:frenzy_wisp",
-            "count": { "min": 3, "max": 4, "per_extra_player": 1, "cap": 5 },
+            "count": {
+              "min": 3,
+              "max": 4,
+              "per_extra_player": 1,
+              "cap": 5
+            },
             "up": 2.4,
-            "max_alive": { "base": 5, "per_extra_player": 1, "cap": 7 },
+            "max_alive": {
+              "base": 5,
+              "per_extra_player": 1,
+              "cap": 7
+            },
             "per_type": true,
-            "placement": { "around": "self", "radius": [4.0, 7.0], "min_gap": 2.0, "clearance": 2, "ground": false },
+            "placement": {
+              "around": "self",
+              "radius": [
+                4.0,
+                7.0
+              ],
+              "min_gap": 2.0,
+              "clearance": 2,
+              "ground": false
+            },
             "loot": false,
             "xp": false,
             "bound": true
@@ -2613,7 +3874,11 @@
             "radius": 4.0,
             "duration": 8.0,
             "effects": [
-              { "id": "mobs_ld:frenzied_burn", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:frenzied_burn",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ]
           }
         ]
@@ -2627,7 +3892,10 @@
       },
       "attack_speed": 1.12,
       "texture": "phase2",
-      "bar": { "color": "red", "overlay": "notched_10" }
+      "bar": {
+        "color": "red",
+        "overlay": "notched_10"
+      }
     },
     {
       "below_health": 0.25,
@@ -2657,19 +3925,40 @@
         "frenzy_beam_p2": 5.0
       },
       "cooldowns": {
-        "triple_waltz": [7.5, 9.5],
-        "frenzy_beam_p2": [10.0, 13.0],
-        "flame_rain_cast_p2": [12.0, 15.0],
-        "frenzy_burst": [18.0, 21.0],
-        "frenzy_nova_slam": [14.0, 17.0]
+        "triple_waltz": [
+          7.5,
+          9.5
+        ],
+        "frenzy_beam_p2": [
+          10.0,
+          13.0
+        ],
+        "flame_rain_cast_p2": [
+          12.0,
+          15.0
+        ],
+        "frenzy_burst": [
+          18.0,
+          21.0
+        ],
+        "frenzy_nova_slam": [
+          14.0,
+          17.0
+        ]
       },
       "attack_speed": 1.22,
       "texture": "phase2",
-      "bar": { "color": "red", "overlay": "notched_12" }
+      "bar": {
+        "color": "red",
+        "overlay": "notched_12"
+      }
     }
   ],
   "boss": {
-    "bar": { "color": "yellow", "overlay": "notched_10" },
+    "bar": {
+      "color": "yellow",
+      "overlay": "notched_10"
+    },
     "leash": 36,
     "reset_after": 15,
     "engage_on": "players",

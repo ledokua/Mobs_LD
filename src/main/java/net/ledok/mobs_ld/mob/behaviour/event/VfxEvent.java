@@ -222,7 +222,11 @@ public record VfxEvent(
         float yaw = placement.rotate()
                 .map(deg -> Mth.wrapDegrees(run.lockedYaw() + deg.floatValue()))
                 .orElse(run.yaw());
-        Vec3 pos = applyPlacement(run.groundAt(base), yaw);
+        // Preserve caster height for airborne mobs and vertically elevated self-anchored VFX (eye beams / charges)
+        // so beams fire from the mob's face rather than snapping down to the ground beneath them.
+        boolean preserveHeight = origin == VfxOrigin.SELF && (mob.isNoGravity() || placement.up() > 0.0);
+        Vec3 anchorBase = preserveHeight ? base : run.groundAt(base);
+        Vec3 pos = applyPlacement(anchorBase, yaw);
         ResolvedAnchor anchor = new ResolvedAnchor(pos, yaw,
                 dimensions.radius().orElse(defaultRadius()),
                 dimensions.length().orElse(defaultLength()),

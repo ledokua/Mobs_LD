@@ -17,17 +17,6 @@
     "duration": 0.85,
     "events": [
       {
-        "type": "vfx",
-        "at": 0.0,
-        "kind": "ground_fracture",
-        "radius": 2.4,
-        "height": 1.0,
-        "count": 6,
-        "duration": 0.8,
-        "color": "#D48E1A",
-        "secondary_color": "#FFF0A8"
-      },
-      {
         "type": "fx",
         "at": 0.1,
         "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.72, "volume": 1.8 }
@@ -37,7 +26,7 @@
   "abilities": {
     "monolith_pulse": {
       "clip": "attack",
-      "duration": 1.4,
+      "duration": 1.75,
       "cooldown": [5.5, 7.0],
       "initial_cooldown": 2.8,
       "weight": 3,
@@ -46,16 +35,16 @@
       "events": [
         {
           "type": "fx",
-          "at": 0.2,
+          "at": 0.15,
           "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 1.1, "volume": 1.4 }
         },
         {
           "type": "hit",
-          "at": 0.75,
+          "at": 1.05,
           "height": 3.5,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 4.4 },
-          "telegraph": { "show": false, "from": 0.2 },
+          "shape": { "type": "ring", "inner": 2.3, "outer": 5.6 },
+          "telegraph": { "show": false, "from": 0.15 },
           "hit": {
             "amount": 7.0,
             "damage_type": "mobs_ld:amber_shatter",
@@ -68,11 +57,11 @@
         },
         {
           "type": "vfx",
-          "at": 0.2,
+          "at": 0.15,
           "kind": "resonance_ring",
           "origin": "locked",
-          "windup": 0.55,
-          "duration": 1.05,
+          "windup": 0.9,
+          "duration": 1.45,
           "height": 1.8,
           "count": 8,
           "color": "#E3A21E",
@@ -80,7 +69,7 @@
         },
         {
           "type": "fx",
-          "at": 0.75,
+          "at": 1.05,
           "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.9, "volume": 1.6 }
         }
       ]
@@ -90,17 +79,6 @@
     "clip": "death",
     "duration": 0.8,
     "events": [
-      {
-        "type": "vfx",
-        "at": 0.0,
-        "kind": "ground_fracture",
-        "radius": 2.8,
-        "height": 1.2,
-        "count": 6,
-        "duration": 0.75,
-        "color": "#E6A61E",
-        "secondary_color": "#FFF8CC"
-      },
       {
         "type": "fx",
         "at": 0.05,

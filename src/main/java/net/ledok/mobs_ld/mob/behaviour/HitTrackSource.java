@@ -22,7 +22,19 @@ public final class HitTrackSource {
 
     private static String sha256(InputStream resource) throws IOException {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(resource.readAllBytes()));
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] raw = resource.readAllBytes();
+            // Normalize CRLF -> LF so asset fingerprints match across Windows and Unix git checkouts.
+            byte[] normalized = new byte[raw.length];
+            int out = 0;
+            for (int i = 0; i < raw.length; i++) {
+                if (raw[i] == '\r' && i + 1 < raw.length && raw[i + 1] == '\n') {
+                    continue;
+                }
+                normalized[out++] = raw[i];
+            }
+            digest.update(normalized, 0, out);
+            return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Java must support SHA-256", e);
         }

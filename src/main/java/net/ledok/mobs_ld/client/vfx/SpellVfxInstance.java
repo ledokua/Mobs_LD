@@ -155,31 +155,51 @@ final class SpellVfxInstance {
                 }
             }
             case SWEEPING_BEAM -> {
+                double sx = x;
+                double sy = y;
+                double sz = z;
+                if (sourceEntityId >= 0) {
+                    Entity src = level.getEntity(sourceEntityId);
+                    if (src instanceof net.ledok.mobs_ld.mob.LdMob mob && mob.isAlive()) {
+                        net.minecraft.world.phys.Vec3 eye = mob.markerPosition("fx_eye");
+                        if (eye == null) {
+                            eye = mob.getEyePosition();
+                        }
+                        if (eye.distanceToSqr(x, y, z) <= 64.0) {
+                            sx = eye.x;
+                            sy = eye.y;
+                            sz = eye.z;
+                        }
+                    }
+                }
                 if (inWindup) {
                     for (int i = 0; i < 3; i++) {
-                        double ox = (rand.nextDouble() - 0.5) * 1.4;
-                        double oy = (rand.nextDouble() - 0.5) * 1.4;
-                        double oz = (rand.nextDouble() - 0.5) * 1.4;
-                        level.addParticle(ParticleTypes.FLAME, x + ox, y + oy, z + oz, -ox * 0.12, -oy * 0.12, -oz * 0.12);
+                        double ox = (rand.nextDouble() - 0.5) * 1.1;
+                        double oy = (rand.nextDouble() - 0.5) * 1.1;
+                        double oz = (rand.nextDouble() - 0.5) * 1.1;
+                        level.addParticle(ParticleTypes.FLAME, sx + ox, sy + oy, sz + oz, -ox * 0.12, -oy * 0.12, -oz * 0.12);
                     }
                 } else if (ap < 0.9F) {
+                    boolean focused = angle <= 3.0F;
                     float half = angle * 0.5F;
                     float sweepP = Mth.clamp(ap / 0.92F, 0.0F, 1.0F);
-                    float deg = reverse ? Mth.lerp(sweepP, half, -half) : Mth.lerp(sweepP, -half, half);
+                    float deg = focused ? 0.0F : (reverse ? Mth.lerp(sweepP, half, -half) : Mth.lerp(sweepP, -half, half));
                     double bRad = Math.toRadians(yaw + deg);
                     double bfx = -Math.sin(bRad);
                     double bfz = Math.cos(bRad);
                     double kneeDist = Math.min(length * 0.28, 6.0);
-                    // Sparks and scorch embers along the steep descent and player-height horizontal beam track.
-                    for (int i = 0; i < 5; i++) {
-                        double dist = length * (0.12 + rand.nextDouble() * 0.88);
-                        double drop = dist <= kneeDist ? height * (dist / Math.max(0.1, kneeDist)) : height;
-                        double py = y - drop + (rand.nextDouble() - 0.5) * 0.45;
+                    // Sparks and scorch embers along the eye-fired beam track.
+                    for (int i = 0; i < (focused ? 3 : 5); i++) {
+                        double dist = length * (0.08 + rand.nextDouble() * 0.92);
+                        double drop = focused
+                                ? height * (dist / Math.max(0.1, length))
+                                : (dist <= kneeDist ? height * (dist / Math.max(0.1, kneeDist)) : height);
+                        double py = sy - drop + (rand.nextDouble() - 0.5) * 0.35;
                         level.addParticle(i == 0 ? ParticleTypes.LAVA : ParticleTypes.FLAME,
-                                x + bfx * dist + (rand.nextDouble() - 0.5) * 0.4,
+                                sx + bfx * dist + (rand.nextDouble() - 0.5) * 0.35,
                                 py,
-                                z + bfz * dist + (rand.nextDouble() - 0.5) * 0.4,
-                                (rand.nextDouble() - 0.5) * 0.08, 0.09, (rand.nextDouble() - 0.5) * 0.08);
+                                sz + bfz * dist + (rand.nextDouble() - 0.5) * 0.35,
+                                (rand.nextDouble() - 0.5) * 0.08, 0.07, (rand.nextDouble() - 0.5) * 0.08);
                     }
                 }
             }

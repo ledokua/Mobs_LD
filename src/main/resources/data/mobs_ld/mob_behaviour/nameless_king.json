@@ -7,14 +7,20 @@
       "rule": "spread",
       "range": 40,
       "line_of_sight": false,
-      "repick": [8, 11],
+      "repick": [
+        8,
+        11
+      ],
       "lost_after": 3
     },
     "thunder_mark": {
       "rule": "lowest_threat",
       "range": 40,
       "line_of_sight": false,
-      "repick": [9, 12],
+      "repick": [
+        9,
+        12
+      ],
       "offset": 4.0,
       "lost_after": 3
     }
@@ -37,41 +43,33 @@
       {
         "type": "fx",
         "at": 0.0,
-        "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.85, "volume": 2.8 },
-        "message": { "key": "mobs_ld.cue.nameless_king.intro", "where": "actionbar" }
-      },
-      {
-        "type": "vfx",
-        "at": 0.0,
-        "kind": "lightning_bolt",
-        "radius": 3.4,
-        "height": 14.0,
-        "count": 4,
-        "windup": 1.05,
-        "duration": 2.0,
-        "color": "#7CC8FF",
-        "secondary_color": "#FFE566"
+        "sound": {
+          "id": "minecraft:entity.lightning_bolt.thunder",
+          "pitch": 0.85,
+          "volume": 2.8
+        },
+        "message": {
+          "key": "mobs_ld.cue.nameless_king.intro",
+          "where": "actionbar"
+        }
       },
       {
         "type": "fx",
         "at": 1.05,
-        "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.82, "volume": 2.6 }
-      },
-      {
-        "type": "vfx",
-        "at": 1.05,
-        "kind": "storm_nova",
-        "radius": 6.2,
-        "height": 2.6,
-        "count": 8,
-        "duration": 1.25,
-        "color": "#7CC8FF",
-        "secondary_color": "#FFE566"
+        "sound": {
+          "id": "minecraft:entity.lightning_bolt.impact",
+          "pitch": 0.82,
+          "volume": 2.6
+        }
       },
       {
         "type": "fx",
         "at": 2.2,
-        "sound": { "id": "minecraft:item.trident.thunder", "pitch": 0.72, "volume": 2.2 }
+        "sound": {
+          "id": "minecraft:item.trident.thunder",
+          "pitch": 0.72,
+          "volume": 2.2
+        }
       }
     ]
   },
@@ -82,29 +80,33 @@
       {
         "type": "fx",
         "at": 0.0,
-        "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.65, "volume": 2.8 },
-        "message": { "key": "mobs_ld.cue.nameless_king.death", "where": "actionbar" }
+        "sound": {
+          "id": "minecraft:entity.lightning_bolt.thunder",
+          "pitch": 0.65,
+          "volume": 2.8
+        },
+        "message": {
+          "key": "mobs_ld.cue.nameless_king.death",
+          "where": "actionbar"
+        }
       },
       {
         "type": "fx",
         "at": 1.4,
-        "sound": { "id": "minecraft:entity.iron_golem.hurt", "pitch": 0.58, "volume": 2.4 }
+        "sound": {
+          "id": "minecraft:entity.iron_golem.hurt",
+          "pitch": 0.58,
+          "volume": 2.4
+        }
       },
       {
         "type": "fx",
         "at": 2.85,
-        "sound": { "id": "minecraft:block.anvil.land", "pitch": 0.55, "volume": 2.6 }
-      },
-      {
-        "type": "vfx",
-        "at": 2.85,
-        "kind": "storm_nova",
-        "radius": 4.8,
-        "height": 1.6,
-        "count": 6,
-        "duration": 0.9,
-        "color": "#6CA8D6",
-        "secondary_color": "#E6CF7A"
+        "sound": {
+          "id": "minecraft:block.anvil.land",
+          "pitch": 0.55,
+          "volume": 2.6
+        }
       }
     ]
   },
@@ -112,41 +114,67 @@
     "delayed_slash_r": {
       "clip": "slash_r",
       "duration": 2.0,
-      "cooldown": [4.2, 5.5],
+      "cooldown": [
+        4.2,
+        5.5
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 5.4 },
-      "track_until": 0.56,
+      "range": {
+        "max": 5.4
+      },
+      "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.56,
-          "sound": { "id": "minecraft:item.trident.return", "pitch": 0.78, "volume": 1.8 }
+          "sound": {
+            "id": "minecraft:item.trident.return",
+            "pitch": 0.78,
+            "volume": 1.8
+          }
         },
         {
           "type": "hit",
-          "at": 1.04,
+          "at": 1.16,
           "height": 4.4,
           "depth": 2.0,
-          "shape": { "type": "cone", "radius": 5.4, "angle": 125 },
-          "telegraph": { "show": false, "from": 0.56 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.4,
+            "angle": 125
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.75,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.56,
+          "at": 0.4,
           "kind": "spear_arc",
           "origin": "locked",
-          "windup": 0.48,
-          "duration": 0.98,
+          "windup": 0.76,
+          "duration": 1.26,
           "height": 1.8,
           "tilt": 12,
           "color": "#7CC8FF",
@@ -154,47 +182,73 @@
         },
         {
           "type": "fx",
-          "at": 1.04,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.75, "volume": 2.4 }
+          "at": 1.16,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.75,
+            "volume": 2.4
+          }
         }
       ]
     },
     "reverse_cleave": {
       "clip": "slash_l",
       "duration": 2.0,
-      "cooldown": [4.5, 6.0],
+      "cooldown": [
+        4.5,
+        6.0
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 5.4 },
-      "track_until": 0.52,
+      "range": {
+        "max": 5.4
+      },
+      "track_until": 0.36,
       "events": [
         {
           "type": "fx",
           "at": 0.52,
-          "sound": { "id": "minecraft:item.trident.return", "pitch": 0.88, "volume": 1.8 }
+          "sound": {
+            "id": "minecraft:item.trident.return",
+            "pitch": 0.88,
+            "volume": 1.8
+          }
         },
         {
           "type": "hit",
-          "at": 0.98,
+          "at": 1.12,
           "height": 4.4,
           "depth": 2.0,
-          "shape": { "type": "cone", "radius": 5.4, "angle": 120 },
-          "telegraph": { "show": false, "from": 0.52 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.4,
+            "angle": 120
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.36
+          },
           "hit": {
             "amount": 13.0,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.65,
             "knock_up": 0.42,
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.52,
+          "at": 0.36,
           "kind": "spear_arc",
           "origin": "locked",
-          "windup": 0.46,
-          "duration": 0.95,
+          "windup": 0.76,
+          "duration": 1.25,
           "height": 1.9,
           "tilt": -14,
           "reverse": true,
@@ -203,54 +257,81 @@
         },
         {
           "type": "fx",
-          "at": 0.98,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.85, "volume": 2.4 }
+          "at": 1.12,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.85,
+            "volume": 2.4
+          }
         }
       ]
     },
     "spear_thrust": {
       "clip": "thrust",
-      "duration": 2.1,
-      "cooldown": [7.0, 9.0],
+      "duration": 2.6,
+      "cooldown": [
+        7.0,
+        9.0
+      ],
       "initial_cooldown": 4.0,
       "weight": 3,
       "no_repeat": true,
-      "range": { "min": 3.5, "max": 12.5 },
-      "track_until": 0.42,
+      "range": {
+        "min": 3.5,
+        "max": 12.5
+      },
+      "track_until": 0.35,
       "events": [
         {
           "type": "fx",
-          "at": 0.42,
-          "sound": { "id": "minecraft:block.beacon.power_select", "pitch": 1.35, "volume": 2.0 }
+          "at": 0.35,
+          "sound": {
+            "id": "minecraft:block.beacon.power_select",
+            "pitch": 1.35,
+            "volume": 2.0
+          }
         },
         {
           "type": "dash",
-          "at": 0.82,
+          "at": 1.15,
           "speed": 1.65,
           "max_distance": 16.5,
           "overshoot": 3.5,
           "width": 3.1,
           "push": "side",
           "on_wall": "stop",
-          "telegraph": { "show": false, "from": 0.42 },
+          "telegraph": {
+            "show": false,
+            "from": 0.35
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.85,
             "knock_up": 0.48,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.42,
+          "at": 0.35,
           "kind": "thunder_spear_dive",
           "origin": "locked",
-          "windup": 0.4,
-          "duration": 1.05,
+          "windup": 0.8,
+          "duration": 1.55,
           "height": 2.1,
           "count": 4,
           "color": "#7CC8FF",
@@ -258,53 +339,79 @@
         },
         {
           "type": "fx",
-          "at": 0.85,
-          "sound": { "id": "minecraft:item.trident.riptide_3", "pitch": 1.05, "volume": 2.5 }
+          "at": 1.18,
+          "sound": {
+            "id": "minecraft:item.trident.riptide_3",
+            "pitch": 1.05,
+            "volume": 2.5
+          }
         },
         {
           "type": "vulnerable",
-          "at": 1.48,
-          "until": 2.05,
+          "at": 1.85,
+          "until": 2.45,
           "multiplier": 1.2
         }
       ]
     },
     "overhead_cleave": {
       "clip": "overhead_slam",
-      "duration": 2.4,
-      "cooldown": [6.5, 8.5],
+      "duration": 2.95,
+      "cooldown": [
+        6.5,
+        8.5
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 6.8 },
-      "track_until": 0.65,
+      "range": {
+        "max": 6.8
+      },
+      "track_until": 0.5,
       "events": [
         {
           "type": "fx",
-          "at": 0.65,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 1.35, "volume": 1.9 }
+          "at": 0.5,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 1.35,
+            "volume": 1.9
+          }
         },
         {
           "type": "hit",
           "at": 1.3,
           "height": 5.0,
           "depth": 2.0,
-          "shape": { "type": "rectangle", "width": 2.6, "length": 7.4 },
-          "telegraph": { "show": false, "from": 0.65 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.6,
+            "length": 7.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.5
+          },
           "hit": {
             "amount": 17.5,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.6,
             "slam_down": 1.0,
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.65,
+          "at": 0.5,
           "kind": "spear_arc",
           "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.3,
+          "windup": 0.8,
+          "duration": 1.45,
           "height": 2.4,
           "radius": 7.4,
           "angle": 115,
@@ -315,34 +422,54 @@
         {
           "type": "fx",
           "at": 1.3,
-          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.72, "volume": 2.5 }
+          "sound": {
+            "id": "minecraft:entity.iron_golem.attack",
+            "pitch": 0.72,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.7,
+          "at": 2.1,
           "offset": 5.2,
           "height": 5.5,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 3.0 },
-          "telegraph": { "show": false, "from": 1.25 },
+          "shape": {
+            "type": "circle",
+            "radius": 3.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.3
+          },
           "hit": {
             "amount": 12.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.45,
-            "knock_up": 0.62,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.25,
+          "at": 1.3,
           "kind": "lightning_bolt",
           "origin": "locked",
-          "windup": 0.45,
-          "duration": 1.15,
+          "windup": 0.8,
+          "duration": 1.5,
           "height": 11.5,
           "count": 3,
           "color": "#7CC8FF",
@@ -350,33 +477,49 @@
         },
         {
           "type": "fx",
-          "at": 1.7,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 1.0, "volume": 2.4 }
+          "at": 2.1,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 1.0,
+            "volume": 2.4
+          }
         },
         {
           "type": "vulnerable",
-          "at": 1.85,
-          "until": 2.38,
+          "at": 2.25,
+          "until": 2.8,
           "multiplier": 1.25
         }
       ]
     },
     "king_combo": {
       "clip": "triple_combo",
-      "duration": 3.5,
-      "cooldown": [8.5, 11.0],
+      "duration": 4.15,
+      "cooldown": [
+        8.5,
+        11.0
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 5.8 },
-      "track_until": 0.3,
+      "range": {
+        "max": 5.8
+      },
+      "track_until": 0.25,
       "events": [
         {
           "type": "hit",
-          "at": 0.78,
+          "at": 1.0,
           "height": 4.4,
           "depth": 2.0,
-          "shape": { "type": "cone", "radius": 5.2, "angle": 125 },
-          "telegraph": { "show": false, "from": 0.3 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.2,
+            "angle": 125
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.25
+          },
           "hit": {
             "amount": 10.5,
             "damage_type": "minecraft:mob_attack",
@@ -385,11 +528,11 @@
         },
         {
           "type": "vfx",
-          "at": 0.3,
+          "at": 0.25,
           "kind": "spear_arc",
           "origin": "locked",
-          "windup": 0.48,
-          "duration": 0.92,
+          "windup": 0.75,
+          "duration": 1.2,
           "height": 1.75,
           "tilt": 14,
           "color": "#7CC8FF",
@@ -397,31 +540,42 @@
         },
         {
           "type": "fx",
-          "at": 0.78,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.78, "volume": 2.2 }
+          "at": 1.0,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.78,
+            "volume": 2.2
+          }
         },
         {
           "type": "hit",
-          "at": 1.48,
+          "at": 1.96,
           "aim_side": 0.0,
           "height": 4.8,
           "depth": 2.0,
-          "shape": { "type": "cone", "radius": 5.4, "angle": 120 },
-          "telegraph": { "show": false, "from": 0.96 },
+          "shape": {
+            "type": "cone",
+            "radius": 5.4,
+            "angle": 120
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.2
+          },
           "hit": {
             "amount": 11.5,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.15,
-            "knock_up": 0.52
+            "knock_up": 0.42
           }
         },
         {
           "type": "vfx",
-          "at": 0.96,
+          "at": 1.2,
           "kind": "spear_arc",
           "origin": "locked",
-          "windup": 0.52,
-          "duration": 0.96,
+          "windup": 0.76,
+          "duration": 1.21,
           "height": 1.9,
           "tilt": -16,
           "reverse": true,
@@ -430,35 +584,56 @@
         },
         {
           "type": "fx",
-          "at": 1.48,
-          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.9, "volume": 2.3 }
+          "at": 1.96,
+          "sound": {
+            "id": "minecraft:entity.player.attack.sweep",
+            "pitch": 0.9,
+            "volume": 2.3
+          }
         },
         {
           "type": "hit",
-          "at": 2.46,
+          "at": 3.0,
           "aim_side": 0.0,
           "height": 5.2,
           "depth": 2.0,
-          "shape": { "type": "rectangle", "width": 2.8, "length": 7.2 },
-          "telegraph": { "show": false, "from": 1.86 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.8,
+            "length": 7.2
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.18
+          },
           "hit": {
             "amount": 16.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.05,
-            "knock_up": 0.58,
+            "knock_up": 0.42,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.86,
+          "at": 2.18,
           "kind": "thunder_spear_dive",
           "origin": "locked",
-          "windup": 0.6,
-          "duration": 1.3,
+          "windup": 0.82,
+          "duration": 1.52,
           "height": 2.2,
           "count": 4,
           "color": "#7CC8FF",
@@ -466,45 +641,68 @@
         },
         {
           "type": "fx",
-          "at": 2.46,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 0.92, "volume": 2.6 }
+          "at": 3.0,
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 0.92,
+            "volume": 2.6
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.85,
-          "until": 3.45,
+          "at": 3.35,
+          "until": 4.0,
           "multiplier": 1.25
         }
       ]
     },
     "storm_wave": {
       "clip": "storm_wave_aoe",
-      "duration": 2.8,
+      "duration": 3.05,
       "cooldown_group": "storm_wave",
-      "cooldown": [10.0, 13.0],
+      "cooldown": [
+        10.0,
+        13.0
+      ],
       "initial_cooldown": 6.0,
       "weight": 3,
       "no_repeat": true,
       "target": "slot:storm_prey",
       "include_unreachable": true,
-      "range": { "min": 3.0, "max": 18.0, "above": 6.0, "below": 4.0 },
-      "track_until": 0.7,
+      "range": {
+        "min": 3.0,
+        "max": 18.0,
+        "above": 6.0,
+        "below": 4.0
+      },
+      "track_until": 0.65,
       "events": [
         {
           "type": "fx",
           "at": 0.2,
-          "sound": { "id": "minecraft:item.elytra.flying", "pitch": 0.72, "volume": 2.2 },
-          "message": { "key": "mobs_ld.cue.nameless_king.storm_wave", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:item.elytra.flying",
+            "pitch": 0.72,
+            "volume": 2.2
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.storm_wave",
+            "where": "actionbar"
+          }
         },
         {
           "type": "pull",
           "from": 1.15,
           "until": 1.95,
           "origin": "self",
-          "shape": { "type": "cone", "radius": 13.5, "angle": 95 },
+          "shape": {
+            "type": "cone",
+            "radius": 13.5,
+            "angle": 95
+          },
           "mode": "outward",
           "strength": 0.24,
-          "lift": 0.14,
+          "lift": 0.0,
           "height": 6.0,
           "depth": 3.0,
           "follow_mob": false,
@@ -512,29 +710,46 @@
         },
         {
           "type": "hit",
-          "at": 1.48,
+          "at": 1.53,
           "height": 5.5,
           "depth": 3.0,
-          "shape": { "type": "cone", "radius": 13.0, "angle": 95 },
-          "telegraph": { "show": false, "from": 0.72 },
+          "shape": {
+            "type": "cone",
+            "radius": 13.0,
+            "angle": 95
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.65
+          },
           "hit": {
             "amount": 14.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.15,
             "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.72,
+          "at": 0.65,
           "kind": "storm_gale",
           "origin": "locked",
-          "windup": 0.76,
-          "duration": 1.75,
+          "windup": 0.88,
+          "duration": 1.87,
           "height": 2.8,
           "count": 5,
           "color": "#7CC8FF",
@@ -542,8 +757,12 @@
         },
         {
           "type": "fx",
-          "at": 1.48,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.62, "volume": 2.8 }
+          "at": 1.53,
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.62,
+            "volume": 2.8
+          }
         },
         {
           "type": "vulnerable",
@@ -555,31 +774,50 @@
     },
     "storm_wave_p2": {
       "clip": "storm_wave_aoe",
-      "duration": 2.8,
+      "duration": 3.05,
       "cooldown_group": "storm_wave",
-      "cooldown": [8.5, 11.5],
+      "cooldown": [
+        8.5,
+        11.5
+      ],
       "weight": 3,
       "no_repeat": true,
       "target": "slot:storm_prey",
       "include_unreachable": true,
-      "range": { "min": 3.0, "max": 22.0, "above": 7.0, "below": 4.0 },
-      "track_until": 0.7,
+      "range": {
+        "min": 3.0,
+        "max": 22.0,
+        "above": 7.0,
+        "below": 4.0
+      },
+      "track_until": 0.65,
       "events": [
         {
           "type": "fx",
           "at": 0.2,
-          "sound": { "id": "minecraft:item.elytra.flying", "pitch": 0.68, "volume": 2.4 },
-          "message": { "key": "mobs_ld.cue.nameless_king.storm_wave", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:item.elytra.flying",
+            "pitch": 0.68,
+            "volume": 2.4
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.storm_wave",
+            "where": "actionbar"
+          }
         },
         {
           "type": "pull",
           "from": 1.15,
           "until": 1.95,
           "origin": "self",
-          "shape": { "type": "cone", "radius": 18.0, "angle": 115 },
+          "shape": {
+            "type": "cone",
+            "radius": 18.0,
+            "angle": 115
+          },
           "mode": "outward",
           "strength": 0.26,
-          "lift": 0.16,
+          "lift": 0.0,
           "height": 6.5,
           "depth": 3.0,
           "follow_mob": false,
@@ -587,71 +825,122 @@
         },
         {
           "type": "hit",
-          "at": 1.48,
+          "at": 1.53,
           "rotate": -30.0,
           "once": true,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "cone", "radius": 18.5, "angle": 42 },
-          "telegraph": { "show": false, "from": 0.72 },
+          "shape": {
+            "type": "cone",
+            "radius": 18.5,
+            "angle": 42
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.65
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.2,
             "knock_up": 0.48,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "hit",
-          "at": 1.48,
+          "at": 1.53,
           "rotate": 0.0,
           "once": true,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "cone", "radius": 18.5, "angle": 46 },
-          "telegraph": { "show": false, "from": 0.72 },
+          "shape": {
+            "type": "cone",
+            "radius": 18.5,
+            "angle": 46
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.65
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.2,
             "knock_up": 0.48,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "hit",
-          "at": 1.48,
+          "at": 1.53,
           "rotate": 30.0,
           "once": true,
           "height": 6.0,
           "depth": 3.0,
-          "shape": { "type": "cone", "radius": 18.5, "angle": 42 },
-          "telegraph": { "show": false, "from": 0.72 },
+          "shape": {
+            "type": "cone",
+            "radius": 18.5,
+            "angle": 42
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.65
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.2,
             "knock_up": 0.48,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.72,
+          "at": 0.65,
           "kind": "storm_gale",
           "origin": "locked",
-          "windup": 0.76,
-          "duration": 1.8,
+          "windup": 0.88,
+          "duration": 1.92,
           "height": 3.2,
           "count": 7,
           "color": "#8AD2FF",
@@ -659,8 +948,12 @@
         },
         {
           "type": "fx",
-          "at": 1.48,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.58, "volume": 2.9 }
+          "at": 1.53,
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.58,
+            "volume": 2.9
+          }
         },
         {
           "type": "vulnerable",
@@ -672,30 +965,45 @@
     },
     "cyclone_spear": {
       "clip": "cyclone_spear_aoe",
-      "duration": 2.9,
+      "duration": 3.4,
       "cooldown_group": "cyclone",
-      "cooldown": [11.5, 14.5],
+      "cooldown": [
+        11.5,
+        14.5
+      ],
       "initial_cooldown": 7.0,
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 7.5 },
+      "range": {
+        "max": 7.5
+      },
       "track_until": 0.45,
       "events": [
         {
           "type": "fx",
           "at": 0.15,
-          "sound": { "id": "minecraft:entity.breeze.inhale", "pitch": 0.62, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.nameless_king.cyclone_spear", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:entity.breeze.inhale",
+            "pitch": 0.62,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.cyclone_spear",
+            "where": "actionbar"
+          }
         },
         {
           "type": "pull",
-          "from": 0.68,
-          "until": 1.68,
+          "from": 0.55,
+          "until": 1.95,
           "origin": "self",
-          "shape": { "type": "circle", "radius": 8.5 },
+          "shape": {
+            "type": "circle",
+            "radius": 8.5
+          },
           "mode": "orbit",
           "strength": 0.22,
-          "lift": 0.08,
+          "lift": 0.0,
           "height": 5.5,
           "depth": 2.5,
           "follow_mob": true,
@@ -703,26 +1011,38 @@
         },
         {
           "type": "hit",
-          "at": 1.18,
+          "at": 1.3,
           "height": 4.8,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 5.8 },
-          "telegraph": { "show": false, "from": 0.58 },
+          "shape": {
+            "type": "circle",
+            "radius": 5.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.48
+          },
           "hit": {
             "amount": 11.0,
             "damage_type": "minecraft:mob_attack",
             "knockback": 0.0,
             "pull": 0.45,
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.58,
+          "at": 0.48,
           "kind": "tempest_cyclone",
           "origin": "locked",
-          "windup": 0.6,
-          "duration": 2.0,
+          "windup": 0.82,
+          "duration": 2.22,
           "height": 4.2,
           "count": 6,
           "color": "#7CC8FF",
@@ -730,34 +1050,54 @@
         },
         {
           "type": "fx",
-          "at": 1.18,
-          "sound": { "id": "minecraft:item.trident.riptide_2", "pitch": 0.85, "volume": 2.5 }
+          "at": 1.3,
+          "sound": {
+            "id": "minecraft:item.trident.riptide_2",
+            "pitch": 0.85,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.74,
+          "at": 2.2,
           "height": 5.2,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 6.8 },
-          "telegraph": { "show": false, "from": 1.12 },
+          "shape": {
+            "type": "circle",
+            "radius": 6.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.35
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.05,
-            "knock_up": 0.72,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.12,
+          "at": 1.35,
           "kind": "storm_nova",
           "origin": "locked",
-          "windup": 0.62,
-          "duration": 1.35,
+          "windup": 0.85,
+          "duration": 1.58,
           "height": 3.0,
           "count": 6,
           "color": "#7CC8FF",
@@ -765,13 +1105,17 @@
         },
         {
           "type": "fx",
-          "at": 1.74,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.75, "volume": 2.7 }
+          "at": 2.2,
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.75,
+            "volume": 2.7
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.2,
-          "until": 2.85,
+          "at": 2.55,
+          "until": 3.25,
           "multiplier": 1.25
         }
       ]
@@ -783,24 +1127,37 @@
       "cooldown": 10.5,
       "weight": 6,
       "when": {
-        "behind": { "players": 1, "for": 2.8, "range": 5.5, "angle": 145, "height": 3.5 }
+        "behind": {
+          "players": 1,
+          "for": 2.8,
+          "range": 5.5,
+          "angle": 145,
+          "height": 3.5
+        }
       },
       "track_until": 0.0,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.breeze.inhale", "pitch": 0.7, "volume": 2.4 }
+          "sound": {
+            "id": "minecraft:entity.breeze.inhale",
+            "pitch": 0.7,
+            "volume": 2.4
+          }
         },
         {
           "type": "pull",
           "from": 0.6,
           "until": 1.5,
           "origin": "self",
-          "shape": { "type": "circle", "radius": 7.5 },
+          "shape": {
+            "type": "circle",
+            "radius": 7.5
+          },
           "mode": "orbit",
           "strength": 0.2,
-          "lift": 0.08,
+          "lift": 0.0,
           "height": 5.0,
           "depth": 2.5,
           "follow_mob": true,
@@ -811,17 +1168,33 @@
           "at": 1.55,
           "height": 5.0,
           "depth": 2.0,
-          "shape": { "type": "circle", "radius": 6.5 },
-          "telegraph": { "show": false, "from": 0.6 },
+          "shape": {
+            "type": "circle",
+            "radius": 6.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.6
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.1,
-            "knock_up": 0.68,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -839,7 +1212,11 @@
         {
           "type": "fx",
           "at": 1.55,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.72, "volume": 2.6 }
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.72,
+            "volume": 2.6
+          }
         },
         {
           "type": "vulnerable",
@@ -851,55 +1228,87 @@
     },
     "sky_dive": {
       "clip": "air_dive_thrust",
-      "duration": 3.2,
-      "cooldown": [13.0, 16.5],
+      "duration": 4.0,
+      "cooldown": [
+        13.0,
+        16.5
+      ],
       "initial_cooldown": 8.0,
       "weight": 3,
       "no_repeat": true,
       "target": "slot:thunder_mark",
       "include_unreachable": true,
-      "range": { "min": 5.5, "max": 24.0, "above": 8.0, "below": 5.0 },
-      "track_until": 0.9,
+      "range": {
+        "min": 5.5,
+        "max": 24.0,
+        "above": 8.0,
+        "below": 5.0
+      },
+      "track_until": 0.75,
       "events": [
         {
           "type": "fx",
           "at": 0.15,
-          "sound": { "id": "minecraft:entity.breeze.jump", "pitch": 0.62, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.nameless_king.sky_dive", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:entity.breeze.jump",
+            "pitch": 0.62,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.sky_dive",
+            "where": "actionbar"
+          }
         },
         {
           "type": "fx",
-          "at": 0.9,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 1.25, "volume": 2.2 }
+          "at": 0.75,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 1.25,
+            "volume": 2.2
+          }
         },
         {
           "type": "dash",
-          "at": 1.4,
+          "at": 1.55,
           "speed": 2.4,
           "max_distance": 27.0,
           "overshoot": 3.0,
           "width": 3.4,
           "push": "side",
           "on_wall": "stop",
-          "telegraph": { "show": false, "from": 0.9 },
+          "telegraph": {
+            "show": false,
+            "from": 0.75
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.95,
             "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.9,
+          "at": 0.75,
           "kind": "thunder_spear_dive",
           "origin": "locked",
-          "windup": 0.5,
-          "duration": 1.55,
+          "windup": 0.8,
+          "duration": 1.85,
           "height": 6.5,
           "count": 5,
           "color": "#7CC8FF",
@@ -907,34 +1316,54 @@
         },
         {
           "type": "fx",
-          "at": 1.4,
-          "sound": { "id": "minecraft:item.trident.riptide_3", "pitch": 0.85, "volume": 2.7 }
+          "at": 1.55,
+          "sound": {
+            "id": "minecraft:item.trident.riptide_3",
+            "pitch": 0.85,
+            "volume": 2.7
+          }
         },
         {
           "type": "hit",
-          "at": 2.26,
+          "at": 2.95,
           "height": 5.0,
           "depth": 2.5,
-          "shape": { "type": "circle", "radius": 4.8 },
-          "telegraph": { "show": false, "from": 1.96 },
+          "shape": {
+            "type": "circle",
+            "radius": 4.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.12
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.8,
-            "knock_up": 0.72,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.96,
+          "at": 2.12,
           "kind": "lightning_bolt",
           "origin": "locked",
-          "windup": 0.3,
-          "duration": 0.95,
+          "windup": 0.83,
+          "duration": 1.45,
           "height": 12.0,
           "count": 4,
           "color": "#7CC8FF",
@@ -942,57 +1371,89 @@
         },
         {
           "type": "fx",
-          "at": 2.26,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.9, "volume": 2.8 }
+          "at": 2.95,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.9,
+            "volume": 2.8
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.45,
-          "until": 3.15,
+          "at": 3.15,
+          "until": 3.85,
           "multiplier": 1.25
         }
       ]
     },
     "lightning_stake": {
       "clip": "lightning_slam_aoe",
-      "duration": 3.2,
-      "cooldown": [14.0, 17.5],
+      "duration": 3.6,
+      "cooldown": [
+        14.0,
+        17.5
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 12.0 },
-      "track_until": 0.68,
+      "range": {
+        "max": 12.0
+      },
+      "track_until": 0.6,
       "events": [
         {
           "type": "fx",
           "at": 0.25,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 0.8, "volume": 2.5 },
-          "message": { "key": "mobs_ld.cue.nameless_king.lightning_stake", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 0.8,
+            "volume": 2.5
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.lightning_stake",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
-          "at": 1.38,
+          "at": 1.45,
           "height": 5.5,
           "depth": 2.5,
-          "shape": { "type": "circle", "radius": 5.4 },
-          "telegraph": { "show": false, "from": 0.68 },
+          "shape": {
+            "type": "circle",
+            "radius": 5.4
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.6
+          },
           "hit": {
             "amount": 16.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.75,
-            "knock_up": 0.68,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 0.68,
+          "at": 0.6,
           "kind": "lightning_bolt",
           "origin": "locked",
-          "windup": 0.7,
-          "duration": 1.55,
+          "windup": 0.85,
+          "duration": 1.7,
           "height": 14.0,
           "count": 4,
           "color": "#7CC8FF",
@@ -1000,34 +1461,55 @@
         },
         {
           "type": "fx",
-          "at": 1.38,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.78, "volume": 2.8 }
+          "at": 1.45,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.78,
+            "volume": 2.8
+          }
         },
         {
           "type": "hit",
-          "at": 2.08,
+          "at": 2.38,
           "height": 5.5,
           "depth": 2.5,
-          "shape": { "type": "ring", "inner": 5.2, "outer": 12.8 },
-          "telegraph": { "show": false, "from": 1.38 },
+          "shape": {
+            "type": "ring",
+            "inner": 5.2,
+            "outer": 12.8
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.48
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.75,
-            "knock_up": 0.55,
+            "knock_up": 0.45,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.38,
+          "at": 1.48,
           "kind": "storm_nova",
           "origin": "locked",
-          "windup": 0.7,
-          "duration": 1.55,
+          "windup": 0.9,
+          "duration": 1.75,
           "height": 3.2,
           "count": 8,
           "color": "#7CC8FF",
@@ -1035,13 +1517,17 @@
         },
         {
           "type": "fx",
-          "at": 2.08,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 1.05, "volume": 2.7 }
+          "at": 2.38,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 1.05,
+            "volume": 2.7
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.45,
-          "until": 3.15,
+          "at": 2.75,
+          "until": 3.45,
           "multiplier": 1.25
         }
       ]
@@ -1050,34 +1536,35 @@
       "clip": "falling_bolt_cast",
       "duration": 3.4,
       "cooldown_group": "sky_bolt",
-      "cooldown": [14.0, 17.5],
+      "cooldown": [
+        14.0,
+        17.5
+      ],
       "initial_cooldown": 9.0,
       "max_players": 2,
       "weight": 3,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "min": 3.5, "max": 28.0, "above": 10.0, "below": 6.0 },
+      "range": {
+        "min": 3.5,
+        "max": 28.0,
+        "above": 10.0,
+        "below": 6.0
+      },
       "track_until": 1.06,
       "events": [
         {
           "type": "fx",
           "at": 0.35,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.78, "volume": 2.7 },
-          "message": { "key": "mobs_ld.cue.nameless_king.falling_bolt", "where": "actionbar" }
-        },
-        {
-          "type": "pull",
-          "from": 1.1,
-          "until": 1.9,
-          "origin": "each_fighter",
-          "shape": { "type": "circle", "radius": 3.6 },
-          "mode": "updraft",
-          "strength": 0.08,
-          "lift": 0.24,
-          "height": 6.0,
-          "depth": 3.0,
-          "follow_mob": false,
-          "reset_fall": true
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 0.78,
+            "volume": 2.7
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.falling_bolt",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
@@ -1086,17 +1573,33 @@
           "lead": 0.35,
           "height": 7.0,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 3.1 },
-          "telegraph": { "show": false, "from": 1.38 },
+          "shape": {
+            "type": "circle",
+            "radius": 3.1
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.38
+          },
           "hit": {
             "amount": 16.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.35,
             "slam_down": 1.05,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1114,7 +1617,11 @@
         {
           "type": "fx",
           "at": 2.38,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.85, "volume": 2.9 }
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.85,
+            "volume": 2.9
+          }
         },
         {
           "type": "vulnerable",
@@ -1128,35 +1635,35 @@
       "clip": "falling_bolt_cast",
       "duration": 4.3,
       "cooldown_group": "sky_bolt",
-      "cooldown": [16.5, 20.5],
+      "cooldown": [
+        16.5,
+        20.5
+      ],
       "initial_cooldown": 9.0,
       "min_players": 3,
       "weight": 4,
       "no_repeat": true,
       "fixed_speed": true,
       "include_unreachable": true,
-      "range": { "max": 38.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 38.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 1.06,
       "events": [
         {
           "type": "fx",
           "at": 0.25,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.72, "volume": 2.9 },
-          "message": { "key": "mobs_ld.cue.nameless_king.tempest_judgment", "where": "actionbar" }
-        },
-        {
-          "type": "pull",
-          "from": 1.08,
-          "until": 1.88,
-          "origin": "each_fighter",
-          "shape": { "type": "circle", "radius": 3.8 },
-          "mode": "updraft",
-          "strength": 0.08,
-          "lift": 0.25,
-          "height": 6.5,
-          "depth": 3.0,
-          "follow_mob": false,
-          "reset_fall": true
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 0.72,
+            "volume": 2.9
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.tempest_judgment",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
@@ -1165,17 +1672,33 @@
           "lead": 0.45,
           "height": 7.5,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 3.1 },
-          "telegraph": { "show": false, "from": 1.38 },
+          "shape": {
+            "type": "circle",
+            "radius": 3.1
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.38
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.35,
             "slam_down": 1.05,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1193,7 +1716,11 @@
         {
           "type": "fx",
           "at": 2.38,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.85, "volume": 2.9 }
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.85,
+            "volume": 2.9
+          }
         },
         {
           "type": "hit",
@@ -1202,17 +1729,33 @@
           "lead": 0.45,
           "height": 7.5,
           "depth": 3.0,
-          "shape": { "type": "circle", "radius": 3.2 },
-          "telegraph": { "show": false, "from": 2.42 },
+          "shape": {
+            "type": "circle",
+            "radius": 3.2
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.42
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.4,
             "slam_down": 1.05,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1230,7 +1773,11 @@
         {
           "type": "fx",
           "at": 3.38,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.95, "volume": 2.9 }
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.95,
+            "volume": 2.9
+          }
         },
         {
           "type": "vulnerable",
@@ -1243,48 +1790,62 @@
     "storm_nova": {
       "clip": "storm_nova_aoe",
       "duration": 3.4,
-      "cooldown": [15.5, 19.5],
+      "cooldown": [
+        15.5,
+        19.5
+      ],
       "weight": 3,
       "no_repeat": true,
-      "range": { "max": 9.0 },
+      "range": {
+        "max": 9.0
+      },
       "track_until": 0.55,
       "events": [
         {
           "type": "fx",
           "at": 0.2,
-          "sound": { "id": "minecraft:entity.breeze.charge", "pitch": 0.65, "volume": 2.7 },
-          "message": { "key": "mobs_ld.cue.nameless_king.storm_nova", "where": "actionbar" }
-        },
-        {
-          "type": "pull",
-          "from": 0.55,
-          "until": 1.35,
-          "origin": "self",
-          "shape": { "type": "circle", "radius": 8.5 },
-          "mode": "updraft",
-          "strength": 0.12,
-          "lift": 0.26,
-          "height": 6.5,
-          "depth": 2.5,
-          "follow_mob": true,
-          "reset_fall": true
+          "sound": {
+            "id": "minecraft:entity.breeze.charge",
+            "pitch": 0.65,
+            "volume": 2.7
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.storm_nova",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
           "at": 1.5,
           "height": 7.0,
           "depth": 2.5,
-          "shape": { "type": "circle", "radius": 8.5 },
-          "telegraph": { "show": false, "from": 0.55 },
+          "shape": {
+            "type": "circle",
+            "radius": 8.5
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.55
+          },
           "hit": {
             "amount": 18.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.25,
             "knock_up": 0.58,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.5, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.5,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1302,7 +1863,11 @@
         {
           "type": "fx",
           "at": 1.5,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.72, "volume": 3.0 }
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.72,
+            "volume": 3.0
+          }
         },
         {
           "type": "cloud",
@@ -1311,7 +1876,11 @@
           "radius": 4.2,
           "duration": 5.5,
           "effects": [
-            { "id": "mobs_ld:storm_static", "duration": 2.5, "amplifier": 0 }
+            {
+              "id": "mobs_ld:storm_static",
+              "duration": 2.5,
+              "amplifier": 0
+            }
           ]
         },
         {
@@ -1324,100 +1893,71 @@
     },
     "sunlight_spear": {
       "clip": "thrust",
-      "duration": 2.3,
+      "duration": 2.62,
       "cooldown_group": "sunlight_spear",
-      "cooldown": [8.0, 10.5],
+      "cooldown": [
+        8.0,
+        10.5
+      ],
       "initial_cooldown": 5.0,
       "weight": 3,
       "no_repeat": true,
       "target": "farthest",
       "include_unreachable": true,
-      "range": { "min": 5.5, "max": 32.0, "above": 10.0, "below": 6.0 },
-      "track_until": 0.45,
+      "range": {
+        "min": 5.5,
+        "max": 32.0,
+        "above": 10.0,
+        "below": 6.0
+      },
+      "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 1.15, "volume": 2.5 },
-          "message": { "key": "mobs_ld.cue.nameless_king.sunlight_spear", "where": "actionbar" }
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 1.15,
+            "volume": 2.5
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.sunlight_spear",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
-          "at": 1.1,
+          "at": 1.32,
           "height": 6.0,
           "depth": 3.5,
-          "shape": { "type": "rectangle", "width": 2.8, "length": 32.0 },
-          "telegraph": { "show": false, "from": 0.45 },
+          "shape": {
+            "type": "rectangle",
+            "width": 2.8,
+            "length": 32.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.4
+          },
           "hit": {
             "amount": 15.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.9,
             "knock_up": 0.25,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 0 }
-          }
-        },
-        {
-          "type": "vfx",
-          "at": 0.45,
-          "kind": "thunder_spear_dive",
-          "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.45,
-          "height": 2.2,
-          "count": 5,
-          "color": "#8AD2FF",
-          "secondary_color": "#FFE566"
-        },
-        {
-          "type": "fx",
-          "at": 1.1,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 1.05, "volume": 2.5 }
-        },
-        {
-          "type": "vulnerable",
-          "at": 1.65,
-          "until": 2.25,
-          "multiplier": 1.2
-        }
-      ]
-    },
-    "sunlight_spear_p2": {
-      "clip": "thrust",
-      "duration": 2.9,
-      "cooldown_group": "sunlight_spear",
-      "cooldown": [8.0, 10.5],
-      "weight": 3,
-      "no_repeat": true,
-      "target": "farthest",
-      "include_unreachable": true,
-      "range": { "min": 5.5, "max": 34.0, "above": 10.0, "below": 6.0 },
-      "track_until": 0.4,
-      "events": [
-        {
-          "type": "fx",
-          "at": 0.0,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 1.18, "volume": 2.6 },
-          "message": { "key": "mobs_ld.cue.nameless_king.sunlight_spear", "where": "actionbar" }
-        },
-        {
-          "type": "hit",
-          "at": 1.05,
-          "height": 6.0,
-          "depth": 3.5,
-          "shape": { "type": "rectangle", "width": 2.8, "length": 34.0 },
-          "telegraph": { "show": false, "from": 0.4 },
-          "hit": {
-            "amount": 14.5,
-            "damage_type": "mobs_ld:storm_lightning",
-            "knockback": 0.85,
-            "knock_up": 0.25,
-            "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
-            ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.12,
+              "max": 5,
+              "duration": 15,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1425,8 +1965,105 @@
           "at": 0.4,
           "kind": "thunder_spear_dive",
           "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.35,
+          "windup": 0.92,
+          "duration": 1.72,
+          "height": 2.2,
+          "count": 5,
+          "color": "#8AD2FF",
+          "secondary_color": "#FFE566"
+        },
+        {
+          "type": "fx",
+          "at": 1.32,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 1.05,
+            "volume": 2.5
+          }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.87,
+          "until": 2.47,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "sunlight_spear_p2": {
+      "clip": "thrust",
+      "duration": 3.44,
+      "cooldown_group": "sunlight_spear",
+      "cooldown": [
+        8.0,
+        10.5
+      ],
+      "weight": 3,
+      "no_repeat": true,
+      "target": "farthest",
+      "include_unreachable": true,
+      "range": {
+        "min": 5.5,
+        "max": 34.0,
+        "above": 10.0,
+        "below": 6.0
+      },
+      "track_until": 0.38,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.0,
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 1.18,
+            "volume": 2.6
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.sunlight_spear",
+            "where": "actionbar"
+          }
+        },
+        {
+          "type": "hit",
+          "at": 1.3,
+          "height": 6.0,
+          "depth": 3.5,
+          "shape": {
+            "type": "rectangle",
+            "width": 2.8,
+            "length": 34.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.38
+          },
+          "hit": {
+            "amount": 14.5,
+            "damage_type": "mobs_ld:storm_lightning",
+            "knockback": 0.85,
+            "knock_up": 0.25,
+            "effects": [
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
+            ],
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.12,
+              "max": 5,
+              "duration": 15,
+              "min_players": 0
+            }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.38,
+          "kind": "thunder_spear_dive",
+          "origin": "locked",
+          "windup": 0.92,
+          "duration": 1.62,
           "height": 2.2,
           "count": 5,
           "color": "#7CC8FF",
@@ -1434,36 +2071,57 @@
         },
         {
           "type": "fx",
-          "at": 1.05,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 1.08, "volume": 2.5 }
+          "at": 1.3,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 1.08,
+            "volume": 2.5
+          }
         },
         {
           "type": "hit",
-          "at": 1.9,
+          "at": 2.34,
           "aim_side": 0.0,
           "turn_body": true,
           "height": 6.0,
           "depth": 3.5,
-          "shape": { "type": "rectangle", "width": 3.0, "length": 34.0 },
-          "telegraph": { "show": false, "from": 1.25 },
+          "shape": {
+            "type": "rectangle",
+            "width": 3.0,
+            "length": 34.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.42
+          },
           "hit": {
             "amount": 15.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.0,
             "knock_up": 0.35,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.12,
+              "max": 5,
+              "duration": 15,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.25,
+          "at": 1.42,
           "kind": "thunder_spear_dive",
           "origin": "locked",
-          "windup": 0.65,
-          "duration": 1.45,
+          "windup": 0.92,
+          "duration": 1.72,
           "height": 2.4,
           "count": 6,
           "color": "#8AD2FF",
@@ -1471,13 +2129,17 @@
         },
         {
           "type": "fx",
-          "at": 1.9,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.95, "volume": 2.7 }
+          "at": 2.34,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.95,
+            "volume": 2.7
+          }
         },
         {
           "type": "vulnerable",
-          "at": 2.25,
-          "until": 2.85,
+          "at": 2.69,
+          "until": 3.29,
           "multiplier": 1.25
         }
       ]
@@ -1485,41 +2147,61 @@
     "summon_cloudlets": {
       "clip": "storm_nova_aoe",
       "duration": 3.4,
-      "cooldown": [18.0, 22.0],
+      "cooldown": [
+        18.0,
+        22.0
+      ],
       "initial_cooldown": 9.5,
       "skip_when_full": true,
       "weight": 2,
       "no_repeat": true,
-      "range": { "max": 36.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 36.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.92, "volume": 2.7 },
-          "message": { "key": "mobs_ld.cue.nameless_king.summon_cloudlets", "where": "actionbar" }
-        },
-        {
-          "type": "vfx",
-          "at": 0.25,
-          "kind": "storm_nova",
-          "radius": 6.5,
-          "height": 2.8,
-          "count": 8,
-          "windup": 0.85,
-          "duration": 1.75,
-          "color": "#7CC8FF",
-          "secondary_color": "#FFE566"
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 0.92,
+            "volume": 2.7
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.summon_cloudlets",
+            "where": "actionbar"
+          }
         },
         {
           "type": "summon",
           "at": 1.15,
           "entity": "mobs_ld:storm_cloudlet",
-          "count": { "min": 3, "max": 4, "per_extra_player": 1, "cap": 5 },
+          "count": {
+            "min": 3,
+            "max": 4,
+            "per_extra_player": 1,
+            "cap": 5
+          },
           "up": 3.5,
-          "max_alive": { "base": 5, "per_extra_player": 1, "cap": 7 },
+          "max_alive": {
+            "base": 5,
+            "per_extra_player": 1,
+            "cap": 7
+          },
           "per_type": true,
-          "placement": { "around": "self", "radius": [3.5, 7.5], "min_gap": 2.2, "clearance": 2, "ground": false },
+          "placement": {
+            "around": "self",
+            "radius": [
+              3.5,
+              7.5
+            ],
+            "min_gap": 2.2,
+            "clearance": 2,
+            "ground": false
+          },
           "loot": false,
           "xp": false,
           "bound": true
@@ -1527,7 +2209,11 @@
         {
           "type": "fx",
           "at": 1.15,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 0.95, "volume": 2.5 }
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 0.95,
+            "volume": 2.5
+          }
         },
         {
           "type": "vulnerable",
@@ -1540,102 +2226,150 @@
     "call_conductors": {
       "clip": "lightning_slam_aoe",
       "duration": 3.2,
-      "cooldown": [34.0, 40.0],
+      "cooldown": [
+        34.0,
+        40.0
+      ],
       "initial_cooldown": 18.0,
       "skip_when_full": true,
       "weight": 3,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 38.0, "above": 12.0, "below": 6.0 },
+      "range": {
+        "max": 38.0,
+        "above": 12.0,
+        "below": 6.0
+      },
       "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:item.trident.thunder", "pitch": 0.85, "volume": 2.9 },
-          "message": { "key": "mobs_ld.cue.nameless_king.call_conductors", "where": "actionbar" }
-        },
-        {
-          "type": "vfx",
-          "at": 0.25,
-          "kind": "lightning_bolt",
-          "radius": 2.8,
-          "height": 14.0,
-          "count": 4,
-          "windup": 0.85,
-          "duration": 1.8,
-          "color": "#8AD2FF",
-          "secondary_color": "#FFF099"
+          "sound": {
+            "id": "minecraft:item.trident.thunder",
+            "pitch": 0.85,
+            "volume": 2.9
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.call_conductors",
+            "where": "actionbar"
+          }
         },
         {
           "type": "summon",
           "at": 1.15,
           "entity": "mobs_ld:storm_rod",
-          "count": { "min": 2, "max": 3, "per_extra_player": 1, "cap": 4 },
-          "max_alive": { "base": 3, "per_extra_player": 1, "cap": 4 },
+          "count": {
+            "min": 2,
+            "max": 3,
+            "per_extra_player": 1,
+            "cap": 4
+          },
+          "max_alive": {
+            "base": 3,
+            "per_extra_player": 1,
+            "cap": 4
+          },
           "per_type": true,
-          "placement": { "around": "self", "radius": [7.0, 14.0], "min_gap": 5.5, "clearance": 3, "ground": true },
+          "placement": {
+            "around": "self",
+            "radius": [
+              7.0,
+              14.0
+            ],
+            "min_gap": 5.5,
+            "clearance": 3,
+            "ground": true
+          },
           "loot": false,
           "xp": false,
           "bound": true,
           "minion_link": {
-            "death_damage": { "of_minion_max_health": 0.45, "cap_of_summoner_max_health": 0.05 },
-            "all_dead": { "damage_taken": 1.3 }
+            "death_damage": {
+              "of_minion_max_health": 0.45,
+              "cap_of_summoner_max_health": 0.05
+            },
+            "all_dead": {
+              "damage_taken": 1.3
+            }
           }
         },
         {
           "type": "fx",
           "at": 1.15,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.9, "volume": 2.7 }
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.9,
+            "volume": 2.7
+          }
         }
       ]
     },
     "wrath_of_the_firstborn": {
       "clip": "storm_nova_aoe",
-      "duration": 4.6,
-      "cooldown": [24.0, 28.0],
+      "duration": 4.9,
+      "cooldown": [
+        24.0,
+        28.0
+      ],
       "initial_cooldown": 13.0,
       "weight": 2,
       "no_repeat": true,
       "include_unreachable": true,
-      "range": { "max": 38.0, "above": 14.0, "below": 6.0 },
+      "range": {
+        "max": 38.0,
+        "above": 14.0,
+        "below": 6.0
+      },
       "track_until": 0.4,
       "events": [
         {
           "type": "fx",
           "at": 0.0,
-          "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.65, "volume": 3.0 },
-          "message": { "key": "mobs_ld.cue.nameless_king.wrath_of_the_firstborn", "where": "actionbar" }
-        },
-        {
-          "type": "pull",
-          "from": 0.4,
-          "until": 1.05,
-          "origin": "self",
-          "shape": { "type": "circle", "radius": 12.0 },
-          "mode": "updraft",
-          "strength": 0.12,
-          "lift": 0.24,
-          "height": 7.0,
-          "depth": 3.0,
-          "follow_mob": true,
-          "reset_fall": true
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.thunder",
+            "pitch": 0.65,
+            "volume": 3.0
+          },
+          "message": {
+            "key": "mobs_ld.cue.nameless_king.wrath_of_the_firstborn",
+            "where": "actionbar"
+          }
         },
         {
           "type": "hit",
           "at": 1.55,
           "height": 6.5,
           "depth": 3.5,
-          "shape": { "type": "rays", "count": 6, "length": 34.0, "width": 2.3, "widen": 0.14 },
-          "telegraph": { "show": false, "from": 0.7 },
+          "shape": {
+            "type": "rays",
+            "count": 6,
+            "length": 34.0,
+            "width": 2.3,
+            "widen": 0.14
+          },
+          "telegraph": {
+            "show": false,
+            "from": 0.7
+          },
           "hit": {
             "amount": 14.0,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.75,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
@@ -1652,35 +2386,55 @@
         {
           "type": "fx",
           "at": 1.55,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.58, "volume": 2.9 }
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.58,
+            "volume": 2.9
+          }
         },
         {
           "type": "hit",
-          "at": 2.25,
+          "at": 2.32,
           "origin": "each_fighter",
           "lead": 0.45,
           "height": 8.0,
           "depth": 3.5,
-          "shape": { "type": "circle", "radius": 2.7 },
-          "telegraph": { "show": false, "from": 1.45 },
+          "shape": {
+            "type": "circle",
+            "radius": 2.7
+          },
+          "telegraph": {
+            "show": false,
+            "from": 1.4
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.4,
             "slam_down": 1.2,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 1.45,
+          "at": 1.4,
           "kind": "lightning_bolt",
           "origin": "locked",
-          "windup": 0.8,
-          "duration": 1.55,
+          "windup": 0.92,
+          "duration": 1.67,
           "height": 16.0,
           "count": 4,
           "color": "#8AD2FF",
@@ -1688,69 +2442,113 @@
         },
         {
           "type": "fx",
-          "at": 2.25,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.85, "volume": 2.9 }
+          "at": 2.32,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.85,
+            "volume": 2.9
+          }
         },
         {
           "type": "hit",
-          "at": 3.05,
+          "at": 3.25,
           "rotate": 30.0,
           "turn_body": true,
           "height": 6.5,
           "depth": 3.5,
-          "shape": { "type": "rays", "count": 6, "length": 34.0, "width": 2.3, "widen": 0.14 },
-          "telegraph": { "show": false, "from": 2.2 },
+          "shape": {
+            "type": "rays",
+            "count": 6,
+            "length": 34.0,
+            "width": 2.3,
+            "widen": 0.14
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.3
+          },
           "hit": {
             "amount": 14.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 0.85,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 4.0,
+                "amplifier": 1
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 2.2,
+          "at": 2.3,
           "kind": "storm_gale",
           "origin": "locked",
-          "windup": 0.85,
-          "duration": 1.75,
+          "windup": 0.95,
+          "duration": 1.85,
           "height": 3.6,
           "color": "#8AD2FF",
           "secondary_color": "#FFF099"
         },
         {
           "type": "fx",
-          "at": 3.05,
-          "sound": { "id": "minecraft:entity.wind_charge.wind_burst", "pitch": 0.54, "volume": 2.9 }
+          "at": 3.25,
+          "sound": {
+            "id": "minecraft:entity.wind_charge.wind_burst",
+            "pitch": 0.54,
+            "volume": 2.9
+          }
         },
         {
           "type": "hit",
-          "at": 3.65,
+          "at": 3.85,
           "height": 6.5,
           "depth": 3.5,
-          "shape": { "type": "ring", "inner": 5.5, "outer": 18.0 },
-          "telegraph": { "show": false, "from": 2.75 },
+          "shape": {
+            "type": "ring",
+            "inner": 5.5,
+            "outer": 18.0
+          },
+          "telegraph": {
+            "show": false,
+            "from": 2.85
+          },
           "hit": {
             "amount": 13.5,
             "damage_type": "mobs_ld:storm_lightning",
             "knockback": 1.0,
             "knock_up": 0.55,
             "effects": [
-              { "id": "mobs_ld:storm_static", "duration": 3.5, "amplifier": 0 }
+              {
+                "id": "mobs_ld:storm_static",
+                "duration": 3.5,
+                "amplifier": 0
+              }
             ],
-            "stacks": { "id": "storm_charge", "per_stack": 0.1, "max": 5, "duration": 16, "min_players": 0 }
+            "stacks": {
+              "id": "storm_charge",
+              "per_stack": 0.1,
+              "max": 5,
+              "duration": 16,
+              "min_players": 0
+            }
           }
         },
         {
           "type": "vfx",
-          "at": 2.75,
+          "at": 2.85,
           "kind": "storm_nova",
           "origin": "locked",
-          "windup": 0.9,
-          "duration": 1.8,
+          "windup": 1.0,
+          "duration": 1.9,
           "height": 3.8,
           "count": 10,
           "color": "#8AD2FF",
@@ -1758,13 +2556,17 @@
         },
         {
           "type": "fx",
-          "at": 3.65,
-          "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.68, "volume": 3.1 }
+          "at": 3.85,
+          "sound": {
+            "id": "minecraft:entity.lightning_bolt.impact",
+            "pitch": 0.68,
+            "volume": 3.1
+          }
         },
         {
           "type": "vulnerable",
-          "at": 3.9,
-          "until": 4.55,
+          "at": 4.1,
+          "until": 4.75,
           "multiplier": 1.35
         }
       ]
@@ -1790,9 +2592,16 @@
         "call_conductors"
       ],
       "damage_taken": [
-        { "kind": "projectile", "multiplier": 0.5, "while_adds": "mobs_ld:storm_rod" }
+        {
+          "kind": "projectile",
+          "multiplier": 0.5,
+          "while_adds": "mobs_ld:storm_rod"
+        }
       ],
-      "bar": { "color": "blue", "overlay": "notched_6" }
+      "bar": {
+        "color": "blue",
+        "overlay": "notched_6"
+      }
     },
     {
       "below_health": 0.6,
@@ -1823,37 +2632,40 @@
           {
             "type": "fx",
             "at": 0.0,
-            "sound": { "id": "minecraft:entity.lightning_bolt.thunder", "pitch": 0.68, "volume": 3.0 },
-            "message": { "key": "mobs_ld.cue.nameless_king.phase2", "where": "actionbar" }
-          },
-          {
-            "type": "pull",
-            "from": 0.5,
-            "until": 1.35,
-            "origin": "self",
-            "shape": { "type": "circle", "radius": 8.5 },
-            "mode": "updraft",
-            "strength": 0.14,
-            "lift": 0.28,
-            "height": 6.5,
-            "depth": 2.5,
-            "follow_mob": true,
-            "reset_fall": true
+            "sound": {
+              "id": "minecraft:entity.lightning_bolt.thunder",
+              "pitch": 0.68,
+              "volume": 3.0
+            },
+            "message": {
+              "key": "mobs_ld.cue.nameless_king.phase2",
+              "where": "actionbar"
+            }
           },
           {
             "type": "hit",
             "at": 1.5,
             "height": 7.0,
             "depth": 2.5,
-            "shape": { "type": "circle", "radius": 8.5 },
-            "telegraph": { "show": false, "from": 0.5 },
+            "shape": {
+              "type": "circle",
+              "radius": 8.5
+            },
+            "telegraph": {
+              "show": false,
+              "from": 0.5
+            },
             "hit": {
               "amount": 15.0,
               "damage_type": "mobs_ld:storm_lightning",
               "knockback": 1.25,
               "knock_up": 0.6,
               "effects": [
-                { "id": "mobs_ld:storm_static", "duration": 4.0, "amplifier": 1 }
+                {
+                  "id": "mobs_ld:storm_static",
+                  "duration": 4.0,
+                  "amplifier": 1
+                }
               ]
             }
           },
@@ -1884,17 +2696,39 @@
           {
             "type": "fx",
             "at": 1.5,
-            "sound": { "id": "minecraft:entity.lightning_bolt.impact", "pitch": 0.72, "volume": 3.0 }
+            "sound": {
+              "id": "minecraft:entity.lightning_bolt.impact",
+              "pitch": 0.72,
+              "volume": 3.0
+            }
           },
           {
             "type": "summon",
             "at": 1.65,
             "entity": "mobs_ld:storm_cloudlet",
-            "count": { "min": 3, "max": 4, "per_extra_player": 1, "cap": 5 },
+            "count": {
+              "min": 3,
+              "max": 4,
+              "per_extra_player": 1,
+              "cap": 5
+            },
             "up": 3.5,
-            "max_alive": { "base": 5, "per_extra_player": 1, "cap": 7 },
+            "max_alive": {
+              "base": 5,
+              "per_extra_player": 1,
+              "cap": 7
+            },
             "per_type": true,
-            "placement": { "around": "self", "radius": [4.0, 7.5], "min_gap": 2.2, "clearance": 2, "ground": false },
+            "placement": {
+              "around": "self",
+              "radius": [
+                4.0,
+                7.5
+              ],
+              "min_gap": 2.2,
+              "clearance": 2,
+              "ground": false
+            },
             "loot": false,
             "xp": false,
             "bound": true
@@ -1903,16 +2737,39 @@
             "type": "summon",
             "at": 1.85,
             "entity": "mobs_ld:storm_rod",
-            "count": { "min": 2, "max": 3, "per_extra_player": 1, "cap": 4 },
-            "max_alive": { "base": 3, "per_extra_player": 1, "cap": 4 },
+            "count": {
+              "min": 2,
+              "max": 3,
+              "per_extra_player": 1,
+              "cap": 4
+            },
+            "max_alive": {
+              "base": 3,
+              "per_extra_player": 1,
+              "cap": 4
+            },
             "per_type": true,
-            "placement": { "around": "self", "radius": [7.0, 14.0], "min_gap": 5.5, "clearance": 3, "ground": true },
+            "placement": {
+              "around": "self",
+              "radius": [
+                7.0,
+                14.0
+              ],
+              "min_gap": 5.5,
+              "clearance": 3,
+              "ground": true
+            },
             "loot": false,
             "xp": false,
             "bound": true,
             "minion_link": {
-              "death_damage": { "of_minion_max_health": 0.45, "cap_of_summoner_max_health": 0.05 },
-              "all_dead": { "damage_taken": 1.3 }
+              "death_damage": {
+                "of_minion_max_health": 0.45,
+                "cap_of_summoner_max_health": 0.05
+              },
+              "all_dead": {
+                "damage_taken": 1.3
+              }
             }
           }
         ]
@@ -1925,16 +2782,32 @@
         "call_conductors": 32.0
       },
       "cooldowns": {
-        "sky_dive": [11.0, 14.0],
-        "storm_wave_p2": [8.5, 11.5],
-        "tempest_judgment": [14.0, 17.5]
+        "sky_dive": [
+          11.0,
+          14.0
+        ],
+        "storm_wave_p2": [
+          8.5,
+          11.5
+        ],
+        "tempest_judgment": [
+          14.0,
+          17.5
+        ]
       },
       "attack_speed": 1.1,
       "damage_taken": [
-        { "kind": "projectile", "multiplier": 0.5, "while_adds": "mobs_ld:storm_rod" }
+        {
+          "kind": "projectile",
+          "multiplier": 0.5,
+          "while_adds": "mobs_ld:storm_rod"
+        }
       ],
       "texture": "phase2",
-      "bar": { "color": "yellow", "overlay": "notched_10" }
+      "bar": {
+        "color": "yellow",
+        "overlay": "notched_10"
+      }
     },
     {
       "below_health": 0.25,
@@ -1963,21 +2836,43 @@
         "wrath_of_the_firstborn": 9.5
       },
       "cooldowns": {
-        "sky_dive": [9.5, 12.0],
-        "lightning_stake": [11.5, 14.5],
-        "storm_nova": [12.5, 15.5],
-        "tempest_judgment": [12.0, 15.0]
+        "sky_dive": [
+          9.5,
+          12.0
+        ],
+        "lightning_stake": [
+          11.5,
+          14.5
+        ],
+        "storm_nova": [
+          12.5,
+          15.5
+        ],
+        "tempest_judgment": [
+          12.0,
+          15.0
+        ]
       },
       "attack_speed": 1.18,
       "damage_taken": [
-        { "kind": "projectile", "multiplier": 0.5, "while_adds": "mobs_ld:storm_rod" }
+        {
+          "kind": "projectile",
+          "multiplier": 0.5,
+          "while_adds": "mobs_ld:storm_rod"
+        }
       ],
       "texture": "phase2",
-      "bar": { "color": "white", "overlay": "notched_12" }
+      "bar": {
+        "color": "white",
+        "overlay": "notched_12"
+      }
     }
   ],
   "boss": {
-    "bar": { "color": "blue", "overlay": "notched_6" },
+    "bar": {
+      "color": "blue",
+      "overlay": "notched_6"
+    },
     "leash": 44,
     "reset_after": 15,
     "engage_on": "players",

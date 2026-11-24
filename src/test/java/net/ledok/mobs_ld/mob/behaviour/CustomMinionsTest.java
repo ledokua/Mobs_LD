@@ -10,12 +10,16 @@ import net.ledok.mobs_ld.mob.behaviour.event.CloudEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DespawnEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.GrabEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.ListenEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Origin;
+import net.ledok.mobs_ld.mob.behaviour.event.PullEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.TraceEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.VfxEvent;
+import net.ledok.mobs_ld.network.SpellVfxKind;
 import net.ledok.mobs_ld.registry.ModEffects;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.particles.ParticleType;
@@ -414,9 +418,12 @@ class CustomMinionsTest {
         assertTrue(overload.events().stream().anyMatch(DespawnEvent.class::isInstance));
         HitEvent overloadHit = overload.events().stream()
                 .filter(HitEvent.class::isInstance).map(HitEvent.class::cast).findFirst().orElseThrow();
-        Shape.Circle overloadCircle = (Shape.Circle) overloadHit.shape();
-        assertTrue(overloadCircle.radius() <= 7.0,
-                "Storm Conduit overload radius must be dodgeable (<= 7.0 blocks), got " + overloadCircle.radius());
+        assertTrue(overloadHit.shape() instanceof Shape.Ring,
+                "Storm Conduit overload must be a hollow ring so melee players at the rod's feet are safe");
+        Shape.Ring overloadRing = (Shape.Ring) overloadHit.shape();
+        assertTrue(overloadRing.inner() >= 2.2 && overloadRing.outer() <= 7.0,
+                "Storm Conduit overload ring must have a safe center (>= 2.2) and dodgeable outer radius (<= 7.0), got "
+                        + overloadRing.inner() + ".." + overloadRing.outer());
         assertTrue(overloadHit.at() - overloadHit.begin() >= 1.0,
                 "Storm Conduit overload must telegraph >= 1.0 s before striking");
         assertTrue(king.abilities().get("wrath_of_the_firstborn").events().stream()
@@ -450,6 +457,123 @@ class CustomMinionsTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    void allCustomEntitiesEnforceHollowWardRingsNoNonCombatCirclesNoLevitationAndFairDodgeWindows() throws Exception {
+        List<String> allCustom = List.of(
+                "midra", "amber_brute", "emberroot", "nameless_king",
+                "frenzy_wisp", "amber_mite", "ember_cinderling", "storm_cloudlet",
+                "amber_monolith", "ember_pyre", "storm_rod");
+        Set<ResourceLocation> forbiddenEffects = Set.of(
+                ResourceLocation.withDefaultNamespace("nausea"),
+                ResourceLocation.withDefaultNamespace("levitation"),
+                ResourceLocation.withDefaultNamespace("slow_falling"),
+                ResourceLocation.withDefaultNamespace("blindness"),
+                ResourceLocation.withDefaultNamespace("darkness"));
+
+        for (String name : allCustom) {
+            MobBehaviour behaviour = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                            readJson("/data/mobs_ld/mob_behaviour/" + name + ".json"))
+                    .getOrThrow(msg -> new AssertionError(name + " behaviour: " + msg));
+
+            // 1. Spawn (intro) and death (on_death) must never spawn ground circles, VFX rings, or death blasts.
+            for (Optional<MobBehaviour.Ability> lifecycle : List.of(behaviour.intro(), behaviour.onDeath())) {
+                if (lifecycle.isPresent()) {
+                    for (AbilityEvent event : lifecycle.get().events()) {
+                        assertFalse(event instanceof VfxEvent,
+                                name + " intro/on_death must not emit non-damaging spell VFX circles");
+                        assertFalse(event instanceof HitEvent,
+                                name + " intro/on_death must not spawn death-circle damage hits");
+                        assertFalse(event instanceof CloudEvent,
+                                name + " intro/on_death must not leave death ground clouds");
+                    }
+                }
+            }
+
+            List<MobBehaviour.Ability> combatTimelines = new ArrayList<>(behaviour.abilities().values());
+            behaviour.phases().forEach(p -> p.transition().ifPresent(combatTimelines::add));
+
+            for (MobBehaviour.Ability ability : combatTimelines) {
+                boolean hasDamage = ability.events().stream().anyMatch(e ->
+                        e instanceof HitEvent || e instanceof TraceEvent || e instanceof ListenEvent
+                                || e instanceof GrabEvent || (e instanceof DashEvent d && d.hit().isPresent()));
+                for (AbilityEvent event : ability.events()) {
+                    if (event instanceof VfxEvent vfx) {
+                        assertTrue(hasDamage, name + "/" + ability.clip()
+                                + " must not emit VFX (" + vfx.kind() + ") on non-damaging summon/utility abilities");
+                    } else if (event instanceof PullEvent pull) {
+                        assertFalse(pull.mode() == PullEvent.Mode.UPDRAFT,
+                                name + "/" + ability.clip() + " must not use levitation updraft pulls");
+                        assertEquals(0.0, pull.lift(), 1.0e-6,
+                                name + "/" + ability.clip() + " pull must not lift players into the air");
+                    } else if (event instanceof HitEvent hit) {
+                        double windup = hit.at() - hit.begin();
+                        assertTrue(windup >= 0.70 - 1.0e-6,
+                                name + "/" + ability.clip() + " hit at " + hit.at()
+                                        + " must give >= 0.70 s dodge window, got " + windup);
+                        for (HitSpec.EffectSpec eff : hit.hit().effects()) {
+                            assertFalse(forbiddenEffects.contains(eff.id()),
+                                    name + "/" + ability.clip() + " uses forbidden debuff " + eff.id());
+                        }
+                        if (STATIONARY_STRUCTURES.contains(name)) {
+                            assertTrue(hit.shape() instanceof Shape.Ring,
+                                    "Ward " + name + "/" + ability.clip()
+                                            + " must use a hollow Shape.Ring so its inner circle deals zero damage");
+                            Shape.Ring ring = (Shape.Ring) hit.shape();
+                            assertTrue(ring.inner() >= 2.2,
+                                    "Ward " + name + "/" + ability.clip()
+                                            + " ring must keep a safe inner radius >= 2.2, got " + ring.inner());
+                        }
+                    } else if (event instanceof DashEvent dash && dash.hit().isPresent()) {
+                        double windup = dash.at() - dash.begin();
+                        assertTrue(windup >= 0.75 - 1.0e-6,
+                                name + "/" + ability.clip() + " damaging dash at " + dash.at()
+                                        + " must give >= 0.75 s dodge window, got " + windup);
+                        for (HitSpec.EffectSpec eff : dash.hit().get().effects()) {
+                            assertFalse(forbiddenEffects.contains(eff.id()),
+                                    name + "/" + ability.clip() + " uses forbidden dash debuff " + eff.id());
+                        }
+                    } else if (event instanceof GrabEvent grab) {
+                        double windup = grab.at() - grab.begin();
+                        assertTrue(windup >= 0.75 - 1.0e-6,
+                                name + "/" + ability.clip() + " grab at " + grab.at()
+                                        + " must give >= 0.75 s dodge window, got " + windup);
+                        for (Optional<HitSpec> spec : List.of(grab.catchHit(), grab.releaseHit(),
+                                grab.tickHit().map(GrabEvent.TickHit::hit))) {
+                            if (spec.isPresent()) {
+                                for (HitSpec.EffectSpec eff : spec.get().effects()) {
+                                    assertFalse(forbiddenEffects.contains(eff.id()),
+                                            name + "/" + ability.clip() + " uses forbidden grab debuff " + eff.id());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Verify both Midra and Frenzied Eye-Wisps fire their lasers from their face/eye height, not the ground below.
+        MobBehaviour wisp = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                readJson("/data/mobs_ld/mob_behaviour/frenzy_wisp.json")).getOrThrow();
+        VfxEvent wispBeam = wisp.abilities().get("frenzy_glare").events().stream()
+                .filter(e -> e instanceof VfxEvent v && v.kind() == SpellVfxKind.SWEEPING_BEAM)
+                .map(VfxEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(VfxEvent.VfxOrigin.SELF, wispBeam.origin(),
+                "frenzy_wisp laser must anchor to self/fx_eye rather than ground-snapped locked zone");
+        assertTrue(wispBeam.placement().up() >= 0.55,
+                "frenzy_wisp laser must originate at its face/eye height (>= 0.55)");
+
+        MobBehaviour midra = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                readJson("/data/mobs_ld/mob_behaviour/midra.json")).getOrThrow();
+        for (String beamKey : List.of("frenzy_beam", "frenzy_beam_p2")) {
+            VfxEvent midraBeam = midra.abilities().get(beamKey).events().stream()
+                    .filter(e -> e instanceof VfxEvent v && v.kind() == SpellVfxKind.SWEEPING_BEAM)
+                    .map(VfxEvent.class::cast).findFirst().orElseThrow();
+            assertEquals(VfxEvent.VfxOrigin.SELF, midraBeam.origin());
+            assertTrue(midraBeam.placement().up() >= 4.3,
+                    "Midra " + beamKey + " must originate at his face/eye bone height (>= 4.3)");
         }
     }
 }

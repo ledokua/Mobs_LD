@@ -154,7 +154,13 @@ public final class SpellVfxRenderer {
         double oz = e.z;
         if (e.kind == SpellVfxKind.EYE_CHARGE || e.kind == SpellVfxKind.SWEEPING_BEAM) {
             Vec3 liveEye = resolveLiveMarker(e, world, "fx_eye", "fx_head");
-            if (liveEye != null && liveEye.distanceToSqr(e.x, e.y, e.z) <= 25.0) {
+            if (liveEye == null && world != null && e.sourceEntityId >= 0) {
+                Entity src = world.getEntity(e.sourceEntityId);
+                if (src != null && src.isAlive()) {
+                    liveEye = src.getEyePosition(partialTick);
+                }
+            }
+            if (liveEye != null && liveEye.distanceToSqr(e.x, e.y, e.z) <= 64.0) {
                 ox = liveEye.x;
                 oy = liveEye.y;
                 oz = liveEye.z;
@@ -442,10 +448,15 @@ public final class SpellVfxRenderer {
 
     // -------------------------------------------------------------------------
     // 3. SWEEPING_BEAM — Continuous 3D volumetric Frenzied Flame laser + lightning coils
-    //    Plunges steeply from Midra's high eye bone down to player torso height, then sweeps level across the arena.
+    //    Focused single eye-laser (angle <= 3 deg, e.g. Frenzied Eye-Wisp) fires straight out of fx_eye along a gentle
+    //    aim slope; wide sweeping beam (Midra) plunges from his high eye bone to player torso height and sweeps level.
     // -------------------------------------------------------------------------
     private static void renderSweepingBeam(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
                                            boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        if (e.angle <= 3.0F) {
+            renderFocusedEyeBeam(e, poseStack, out, age, inWindup, wp, ap, cm, additive);
+            return;
+        }
         float halfDeg = e.angle * 0.5F;
         float startDeg = e.reverse ? halfDeg : -halfDeg;
         float endDeg = e.reverse ? -halfDeg : halfDeg;
@@ -589,6 +600,95 @@ public final class SpellVfxRenderer {
         }
         poseStack.popPose();
 
+        poseStack.popPose();
+    }
+
+    /** Straight focused eye-laser (e.g. Frenzied Eye-Wisp) firing directly out of fx_eye onto the locked lane. */
+    private static void renderFocusedEyeBeam(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                             boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        float beamLen = e.length;
+        float dropY = e.height;
+        float halfW = Math.max(0.45F, e.width * 0.5F);
+        float slopeLen = Mth.sqrt(beamLen * beamLen + dropY * dropY);
+        float pitchDeg = (float) (Math.atan2(dropY, beamLen) * (180.0 / Math.PI));
+        float groundY = -(dropY + 1.15F);
+
+        if (inWindup) {
+            float intensity = (0.30F + 0.70F * easeInQuad(wp)) * cm;
+            Matrix4f baseM = poseStack.last().pose();
+            // Clear ground-level corridor rails so players can sidestep the incoming eye-laser cleanly.
+            if (!additive) {
+                int edgeCol = argb(e.primaryColor, 0.04F * intensity);
+                int midCol = argb(e.primaryColor, 0.22F * intensity);
+                quad(baseM, out, -halfW, groundY, 0.4F, 0.0F, groundY, 0.4F, 0.0F, groundY, beamLen, -halfW, groundY, beamLen,
+                        edgeCol, midCol, midCol, edgeCol);
+                quad(baseM, out, 0.0F, groundY, 0.4F, halfW, groundY, 0.4F, halfW, groundY, beamLen, 0.0F, groundY, beamLen,
+                        midCol, edgeCol, edgeCol, midCol);
+            } else {
+                drawGroundStrip(baseM, out, -halfW, 0.4F, -halfW, beamLen, 0.09F, groundY + 0.03F,
+                        argb(e.secondaryColor, 0.75F * intensity), argb(e.primaryColor, 0.30F * intensity));
+                drawGroundStrip(baseM, out, halfW, 0.4F, halfW, beamLen, 0.09F, groundY + 0.03F,
+                        argb(e.secondaryColor, 0.75F * intensity), argb(e.primaryColor, 0.30F * intensity));
+                // Glowing charge starburst + focusing ring right on the wisp's face/eye (0, 0, 0).
+                float ringR = Mth.lerp(easeOutQuad(wp), 1.15F, 0.28F);
+                drawStarburst(baseM, out, 0.0F, 0.0F, 0.0F, 0.35F + 0.55F * wp, age * 7.0F,
+                        argb(0xFFFFFF, 0.92F * intensity), argb(e.primaryColor, 0.0F));
+                float thinR = 0.04F + 0.09F * easeInQuad(wp);
+                poseStack.pushPose();
+                poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
+                Matrix4f aimM = poseStack.last().pose();
+                drawVerticalRing(aimM, out, 0.0F, 0.0F, 0.2F, ringR, ringR + 0.09F, 16,
+                        argb(e.secondaryColor, 0.9F * intensity), argb(e.primaryColor, 0.0F));
+                drawBeamPrism(aimM, out, slopeLen, thinR, thinR * 1.25F, 6,
+                        argb(e.secondaryColor, 0.85F * intensity), argb(e.primaryColor, 0.35F * intensity));
+                poseStack.popPose();
+            }
+            return;
+        }
+
+        float rampIn = clamp01(ap * 12.0F);
+        float fadeOut = ap > 0.72F ? clamp01((1.0F - ap) / 0.28F) : 1.0F;
+        float pulse = 0.88F + 0.12F * Mth.sin(age * 42.0F);
+        float alpha = rampIn * fadeOut * cm;
+        float baseR = Math.max(0.18F, e.width * 0.26F) * (0.45F + 0.55F * rampIn) * pulse;
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
+        Matrix4f beamM = poseStack.last().pose();
+        if (!additive) {
+            drawBeamPrism(beamM, out, slopeLen, baseR * 1.25F, baseR * 1.60F, 10,
+                    argb(e.primaryColor, 0.44F * alpha), argb(e.primaryColor, 0.22F * alpha));
+        } else {
+            drawBeamPrism(beamM, out, slopeLen, baseR * 0.72F, baseR * 0.95F, 10,
+                    argb(e.primaryColor, 0.90F * alpha), argb(e.secondaryColor, 0.72F * alpha));
+            drawBeamPrism(beamM, out, slopeLen, baseR * 0.34F, baseR * 0.42F, 8,
+                    argb(0xFFFFFF, alpha), argb(e.secondaryColor, 0.95F * alpha));
+            drawStarburst(beamM, out, 0.0F, 0.0F, 0.12F, baseR * 2.4F, age * 10.0F,
+                    argb(0xFFFFFF, alpha), argb(e.primaryColor, 0.0F));
+            int stepSeed = (int) (age * 20.0F);
+            for (int arc = 0; arc < 2; arc++) {
+                int segs = 10;
+                float prevX = 0.0F;
+                float prevY = 0.0F;
+                float prevZ = 0.0F;
+                for (int s = 1; s <= segs; s++) {
+                    float f = s / (float) segs;
+                    float z = f * slopeLen;
+                    float ang = f * TAU * 2.5F + arc * (float) Math.PI + age * 14.0F;
+                    float jitter = hashSigned(stepSeed * 29 + arc * 13 + s * 7) * 0.28F;
+                    float r = baseR * (1.15F + 0.35F * f) + jitter;
+                    float nx = Mth.cos(ang) * r;
+                    float ny = Mth.sin(ang) * r;
+                    drawRibbonSegment(beamM, out, prevX, prevY, prevZ, nx, ny, z, 0.065F,
+                            argb(e.secondaryColor, 0.90F * alpha), argb(e.primaryColor, 0.65F * alpha));
+                    prevX = nx;
+                    prevY = ny;
+                    prevZ = z;
+                }
+            }
+            drawStarburst(beamM, out, 0.0F, 0.0F, slopeLen, baseR * 2.2F, -age * 8.0F,
+                    argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.0F));
+        }
         poseStack.popPose();
     }
 

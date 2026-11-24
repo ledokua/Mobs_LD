@@ -142,13 +142,14 @@ class NamelessKingBossTest {
         assertEquals(SlotPicker.Rule.LOWEST_THREAT, king.targetSlots().get("thunder_mark").rule());
         assertEquals(4.0, king.targetSlots().get("thunder_mark").offset());
 
-        // Interactive storm force fields: outward gale, orbiting cyclone, and sky updrafts.
+        // Interactive grounded storm force fields: outward gale and orbiting cyclone (no levitation/updrafts).
         assertTrue(king.abilities().get("storm_wave").events().stream()
-                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.OUTWARD));
+                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.OUTWARD && p.lift() == 0.0));
         assertTrue(king.abilities().get("cyclone_spear").events().stream()
-                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.ORBIT));
-        assertTrue(king.abilities().get("storm_nova").events().stream()
-                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.UPDRAFT));
+                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.ORBIT && p.lift() == 0.0));
+        assertTrue(allTimelines(king).stream().flatMap(a -> a.events().stream())
+                .noneMatch(e -> e instanceof PullEvent p && (p.mode() == PullEvent.Mode.UPDRAFT || p.lift() > 0.0)),
+                "Nameless King must not apply levitation/updraft vertical lift pulls");
         assertEquals(Optional.of(2), king.abilities().get("falling_bolt").maxPlayers());
         assertEquals(Optional.of(3), king.abilities().get("tempest_judgment").minPlayers());
         long judgmentWaves = king.abilities().get("tempest_judgment").events().stream()
