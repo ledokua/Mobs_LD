@@ -1,5 +1,6 @@
 package net.ledok.mobs_ld.mob.combat;
 
+import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
@@ -229,5 +230,16 @@ class DashLaneTest {
         Vec3 east = new Vec3(1.0, 0.0, 5.0);
         Vec3 eastPush = right.scale(DashLane.sideSign(east.x * right.x + east.z * right.z));
         assertTrue(eastPush.x > 0.0, "pushed east");
+    }
+
+    @Test
+    void untilDashStepPerTickCoversFullLaneDespiteFractionalTicks() {
+        // 0.32 s = 6.4 ticks -> 6 actual movement ticks before `until` halts; the body must cover 100% of the lane.
+        double step = DashEvent.stepPerTick(13.0, 0.32, 1.0);
+        assertEquals(13.0, step * 6.0, 1.0e-9);
+        // 0.42 s = 8.4 ticks -> 8 actual movement ticks.
+        assertEquals(16.5, DashEvent.stepPerTick(16.5, 0.42, 1.0) * 8.0, 1.0e-9);
+        // Exact integer tick counts must survive floating-point subtraction noise (e.g. 1.1 - 0.8 = 0.29999999999999993).
+        assertEquals(12.0, DashEvent.stepPerTick(12.0, 1.1 - 0.8, 1.0) * 6.0, 1.0e-9);
     }
 }

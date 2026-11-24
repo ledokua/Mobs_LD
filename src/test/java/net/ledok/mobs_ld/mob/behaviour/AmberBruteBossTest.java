@@ -200,6 +200,19 @@ class AmberBruteBossTest {
         assertTrue(traceCount >= 4, "Expected real animation-driven claw/knuckle trace swings, got " + traceCount);
         assertTrue(vulnerableCount >= 4, "Expected clear melee vulnerable punish windows, got " + vulnerableCount);
 
+        // Interactive Amber Brute upgrades: double_rake hook -> pop -> spike combo, clamping amber_snare, high launch roar.
+        List<TraceEvent> doubleRakeTraces = brute.abilities().get("double_rake").events().stream()
+                .filter(TraceEvent.class::isInstance).map(TraceEvent.class::cast).toList();
+        assertEquals(2, doubleRakeTraces.size());
+        assertTrue(doubleRakeTraces.get(0).hit().pull() >= 0.8, "First rake hooks player inward");
+        assertTrue(doubleRakeTraces.get(1).hit().knockUp() >= 0.65, "Second rake pops player upward");
+        assertTrue(brute.abilities().get("double_rake").events().stream()
+                .anyMatch(e -> e instanceof HitEvent h && h.hit().slamDown() >= 1.0), "Finisher spikes airborne target down");
+        assertTrue(brute.abilities().get("amber_snare").events().stream()
+                .anyMatch(e -> e instanceof HitEvent h && h.hit().pull() > 0.5 && h.hit().slamDown() > 0.5));
+        assertTrue(brute.abilities().get("crystal_resonance").events().stream()
+                .anyMatch(e -> e instanceof HitEvent h && h.hit().knockUp() >= 0.8));
+
         Set<SpellVfxKind> expectedAmberKinds = Set.of(
                 SpellVfxKind.AMBER_SPIRE, SpellVfxKind.AMBER_GEODE_TRAP, SpellVfxKind.GROUND_FRACTURE,
                 SpellVfxKind.SHARD_SPRAY, SpellVfxKind.RESONANCE_RING, SpellVfxKind.CLAW_RAKE);

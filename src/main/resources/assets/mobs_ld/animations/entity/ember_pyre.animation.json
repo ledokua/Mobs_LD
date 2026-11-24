@@ -1,0 +1,545 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.mobs_ld.ember_pyre.idle": {
+      "loop": true,
+      "animation_length": 1.8,
+      "bones": {
+        "molten_heart": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  12,
+                  180,
+                  -8
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  0,
+                  360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  1.14,
+                  1.14,
+                  1.14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flame_center": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  -6
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  0,
+                  180,
+                  6
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  0,
+                  360,
+                  -6
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  0.9,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  1.08,
+                  1.25,
+                  1.08
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  1,
+                  0.9,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flame_l": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  8,
+                  0,
+                  -14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  -8,
+                  0,
+                  -24
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  8,
+                  0,
+                  -14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flame_r": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  -8,
+                  0,
+                  14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.9": {
+              "post": {
+                "vector": [
+                  8,
+                  0,
+                  24
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.8": {
+              "post": {
+                "vector": [
+                  -8,
+                  0,
+                  14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.4": {
+          "effect": "minecraft:flame",
+          "locator": "fx_crown"
+        },
+        "1.2": {
+          "effect": "minecraft:lava",
+          "locator": "fx_core"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_pyre.walk": {
+      "loop": true,
+      "animation_length": 1.2,
+      "bones": {
+        "molten_heart": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  0,
+                  180,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flame_center": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1.1,
+                  1.22,
+                  1.1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      }
+    },
+    "animation.mobs_ld.ember_pyre.attack": {
+      "animation_length": 1.3,
+      "bones": {
+        "molten_heart": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.55": {
+              "post": {
+                "vector": [
+                  1.42,
+                  1.42,
+                  1.42
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": [
+              0.92,
+              0.92,
+              0.92
+            ],
+            "1.3": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": [
+              0,
+              360,
+              0
+            ],
+            "1.3": {
+              "post": {
+                "vector": [
+                  0,
+                  540,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flame_center": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.65": {
+              "post": {
+                "vector": [
+                  1.3,
+                  1.7,
+                  1.3
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.3": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.35": {
+          "effect": "minecraft:flame",
+          "locator": "fx_core"
+        },
+        "0.7": {
+          "effect": "minecraft:lava",
+          "locator": "fx_crown"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_pyre.hurt": {
+      "animation_length": 0.35,
+      "bones": {
+        "hearth": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.12": [
+              -9,
+              0,
+              9
+            ],
+            "0.35": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.mobs_ld.ember_pyre.death": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 0.8,
+      "bones": {
+        "hearth": {
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.8": [
+              0,
+              -14,
+              0
+            ]
+          },
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.8": [
+              0.25,
+              0.15,
+              0.25
+            ]
+          }
+        },
+        "flames": {
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.45": [
+              0.05,
+              0.05,
+              0.05
+            ]
+          }
+        }
+      },
+      "particle_effects": {
+        "0.2": {
+          "effect": "minecraft:large_smoke",
+          "locator": "fx_crown"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_pyre.spawn": {
+      "animation_length": 0.8,
+      "bones": {
+        "hearth": {
+          "position": {
+            "0.0": [
+              0,
+              -22,
+              0
+            ],
+            "0.5": {
+              "post": {
+                "vector": [
+                  0,
+                  1.2,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.8": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "flames": {
+          "scale": {
+            "0.0": [
+              0.1,
+              0.1,
+              0.1
+            ],
+            "0.8": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.25": {
+          "effect": "minecraft:flame",
+          "locator": "fx_crown"
+        }
+      }
+    }
+  }
+}

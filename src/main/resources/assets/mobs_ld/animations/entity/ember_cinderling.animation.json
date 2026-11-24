@@ -1,0 +1,619 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.mobs_ld.ember_cinderling.idle": {
+      "loop": true,
+      "animation_length": 1.2,
+      "bones": {
+        "body": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  0,
+                  1.0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1.06,
+                  0.96,
+                  1.06
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "arm_l": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  -14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  -28
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  -14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "arm_r": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  28
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  14
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.3": {
+          "effect": "minecraft:small_flame",
+          "locator": "fx_head"
+        },
+        "0.9": {
+          "effect": "minecraft:smoke",
+          "locator": "fx_head"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_cinderling.walk": {
+      "loop": true,
+      "animation_length": 0.4,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  14,
+                  0,
+                  8
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  14,
+                  0,
+                  -8
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  14,
+                  0,
+                  8
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.1": {
+              "post": {
+                "vector": [
+                  0,
+                  1.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.3": {
+              "post": {
+                "vector": [
+                  0,
+                  1.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "leg_l": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  -48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  -48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "leg_r": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  -48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  48,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "arm_l": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  45,
+                  0,
+                  -25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  -45,
+                  0,
+                  -25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  45,
+                  0,
+                  -25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "arm_r": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  -45,
+                  0,
+                  25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.2": {
+              "post": {
+                "vector": [
+                  45,
+                  0,
+                  25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.4": {
+              "post": {
+                "vector": [
+                  -45,
+                  0,
+                  25
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.2": {
+          "effect": "minecraft:flame",
+          "locator": "fx_head"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_cinderling.attack": {
+      "animation_length": 1.15,
+      "bones": {
+        "body": {
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.55": {
+              "post": {
+                "vector": [
+                  1.35,
+                  1.25,
+                  1.35
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": [
+              1.5,
+              0.82,
+              1.5
+            ],
+            "1.15": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.55": {
+              "post": {
+                "vector": [
+                  0,
+                  -1.0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.7": [
+              0,
+              3.0,
+              -2.0
+            ],
+            "1.15": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "arm_l": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              -15
+            ],
+            "0.55": [
+              -120,
+              0,
+              -40
+            ],
+            "0.7": [
+              25,
+              0,
+              -55
+            ],
+            "1.15": [
+              0,
+              0,
+              -15
+            ]
+          }
+        },
+        "arm_r": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              15
+            ],
+            "0.55": [
+              -120,
+              0,
+              40
+            ],
+            "0.7": [
+              25,
+              0,
+              55
+            ],
+            "1.15": [
+              0,
+              0,
+              15
+            ]
+          }
+        }
+      },
+      "particle_effects": {
+        "0.4": {
+          "effect": "minecraft:flame",
+          "locator": "fx_core"
+        },
+        "0.7": {
+          "effect": "minecraft:lava",
+          "locator": "fx_core"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_cinderling.hurt": {
+      "animation_length": 0.35,
+      "bones": {
+        "body": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.12": [
+              -24,
+              0,
+              15
+            ],
+            "0.35": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.mobs_ld.ember_cinderling.death": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 0.8,
+      "bones": {
+        "body": {
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.45": [
+              1.55,
+              1.4,
+              1.55
+            ],
+            "0.8": [
+              0.1,
+              0.1,
+              0.1
+            ]
+          },
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.8": [
+              0,
+              -3,
+              0
+            ]
+          }
+        }
+      },
+      "particle_effects": {
+        "0.45": {
+          "effect": "minecraft:flame",
+          "locator": "fx_core"
+        }
+      }
+    },
+    "animation.mobs_ld.ember_cinderling.spawn": {
+      "animation_length": 0.6,
+      "bones": {
+        "body": {
+          "scale": {
+            "0.0": [
+              0.15,
+              0.15,
+              0.15
+            ],
+            "0.4": [
+              1.18,
+              0.9,
+              1.18
+            ],
+            "0.6": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      }
+    }
+  }
+}

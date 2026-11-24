@@ -273,6 +273,8 @@ public record VfxEvent(
                 for (AbilityRun.HitZone zone : run.lockedZones(hit)) {
                     anchors.add(fromHitZone(zone));
                 }
+            } else if (event instanceof GrabEvent grab && FxEvent.sameMoment(grab.at(), impact)) {
+                run.lockedGrab(grab).ifPresent(zone -> anchors.add(fromHitZone(zone)));
             } else if (event instanceof DashEvent dash && FxEvent.sameMoment(dash.at(), impact)) {
                 run.lockedDash(dash).ifPresent(lock -> anchors.add(fromDashLock(run, lock)));
             }
@@ -313,6 +315,7 @@ public record VfxEvent(
             length = rays.length();
             width = rays.width();
             radius = rays.length();
+            angle = 360.0;
         }
 
         Vec3 base = zone.origin().add(AbilityRun.forward(yaw).scale(extraOffset));
@@ -368,6 +371,13 @@ public record VfxEvent(
             case BURROW_MOUND -> 4.5;
             case DRUM_TREMOR -> 4.2;
             case RIB_FURNACE -> 6.8;
+            case MADNESS_GRASP -> 4.4;
+            case SPEAR_ARC -> 5.2;
+            case LIGHTNING_BOLT -> 3.0;
+            case STORM_GALE -> 10.0;
+            case TEMPEST_CYCLONE -> 6.2;
+            case THUNDER_SPEAR_DIVE -> 4.2;
+            case STORM_NOVA -> 7.5;
             default -> 4.8;
         };
     }
@@ -380,6 +390,8 @@ public record VfxEvent(
             case SHARD_SPRAY -> 8.0;
             case CINDER_ERUPTION -> 20.0;
             case ROLL_TRAIL -> 15.0;
+            case STORM_GALE -> 12.0;
+            case THUNDER_SPEAR_DIVE -> 15.0;
             default -> 6.0;
         };
     }
@@ -390,6 +402,7 @@ public record VfxEvent(
             case SWEEPING_BEAM -> 1.4;
             case CINDER_ERUPTION -> 3.0;
             case ROLL_TRAIL -> 2.8;
+            case THUNDER_SPEAR_DIVE -> 2.6;
             default -> 2.0;
         };
     }
@@ -414,6 +427,13 @@ public record VfxEvent(
             case BURROW_MOUND -> 1.6;
             case DRUM_TREMOR -> 1.1;
             case RIB_FURNACE -> 3.4;
+            case MADNESS_GRASP -> 2.4;
+            case SPEAR_ARC -> 1.9;
+            case LIGHTNING_BOLT -> 15.0;
+            case STORM_GALE -> 2.8;
+            case TEMPEST_CYCLONE -> 4.2;
+            case THUNDER_SPEAR_DIVE -> 7.0;
+            case STORM_NOVA -> 3.6;
             default -> 2.5;
         };
     }
@@ -424,6 +444,9 @@ public record VfxEvent(
             case FLAME_WAVE -> 95.0;
             case SHARD_SPRAY -> 85.0;
             case CLAW_RAKE -> 110.0;
+            case MADNESS_GRASP -> 80.0;
+            case SPEAR_ARC -> 120.0;
+            case STORM_GALE -> 95.0;
             default -> 125.0;
         };
     }
@@ -441,6 +464,12 @@ public record VfxEvent(
             case BURROW_MOUND -> 8;
             case DRUM_TREMOR -> 8;
             case RIB_FURNACE -> 10;
+            case MADNESS_GRASP -> 5;
+            case LIGHTNING_BOLT -> 3;
+            case STORM_GALE -> 5;
+            case TEMPEST_CYCLONE -> 6;
+            case THUNDER_SPEAR_DIVE -> 4;
+            case STORM_NOVA -> 8;
             default -> 4;
         };
     }

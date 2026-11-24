@@ -29,6 +29,8 @@ public interface AbilityEvent {
             Map.entry("look", LookEvent.CODEC),
             Map.entry("fx", FxEvent.CODEC),
             Map.entry("vfx", VfxEvent.CODEC),
+            Map.entry("grab", GrabEvent.CODEC),
+            Map.entry("pull", PullEvent.CODEC),
             Map.entry("projectile", ProjectileEvent.CODEC),
             Map.entry("chain", ChainEvent.CODEC),
             Map.entry("clip", ClipEvent.CODEC),

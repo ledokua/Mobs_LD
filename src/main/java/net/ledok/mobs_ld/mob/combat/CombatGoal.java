@@ -87,31 +87,36 @@ public class CombatGoal extends Goal {
         switch (movement.style()) {
             case STANDOFF -> {
                 if (distance > movement.distance() + 0.3) {
-                    approach(follow, movement.speed());
+                    approach(follow, movement);
                 } else {
-                    hold(follow);
+                    hold(follow, movement);
                 }
             }
             case KITE -> {
                 if (distance < movement.distance() - 1.5) {
                     retreat(follow, movement);
                 } else if (distance > movement.distance() + 1.5) {
-                    approach(follow, movement.speed());
+                    approach(follow, movement);
                 } else {
-                    hold(follow);
+                    hold(follow, movement);
                 }
             }
-            case STATIONARY -> hold(follow);
+            case STATIONARY -> hold(follow, movement);
             case VANILLA -> {
                 // returned above
             }
         }
     }
 
-    private void approach(LivingEntity follow, double speed) {
+    private void approach(LivingEntity follow, MobBehaviour.Movement movement) {
         if (--repath <= 0 || mob.getNavigation().isDone()) {
             repath = REPATH_TICKS;
-            mob.getNavigation().moveTo(follow, speed);
+            if (movement.hoverHeight().isPresent()) {
+                mob.getNavigation().moveTo(follow.getX(), follow.getY() + movement.hoverHeight().get(), follow.getZ(),
+                        movement.speed());
+            } else {
+                mob.getNavigation().moveTo(follow, movement.speed());
+            }
         }
     }
 
@@ -123,12 +128,13 @@ public class CombatGoal extends Goal {
                 away = new Vec3(1.0, 0.0, 0.0);
             }
             Vec3 spot = follow.position().add(away.normalize().scale(movement.distance()));
-            mob.getNavigation().moveTo(spot.x, spot.y, spot.z, movement.speed());
+            double targetY = follow.getY() + movement.hoverHeight().orElse(0.0);
+            mob.getNavigation().moveTo(spot.x, targetY, spot.z, movement.speed());
         }
     }
 
     /** Stand still and square up to the target, so frontal abilities start facing it. */
-    private void hold(LivingEntity follow) {
+    private void hold(LivingEntity follow, MobBehaviour.Movement movement) {
         mob.getNavigation().stop();
         repath = 0;
         double dx = follow.getX() - mob.getX();
@@ -137,6 +143,13 @@ public class CombatGoal extends Goal {
             float yaw = Mth.approachDegrees(mob.getYRot(), (float) Math.toDegrees(Math.atan2(-dx, dz)), TURN_RATE);
             mob.setYRot(yaw);
             mob.yBodyRot = yaw;
+        }
+        if (movement.hoverHeight().isPresent()) {
+            double dy = follow.getY() + movement.hoverHeight().get() - mob.getY();
+            if (Math.abs(dy) > 0.25) {
+                Vec3 velocity = mob.getDeltaMovement();
+                mob.setDeltaMovement(velocity.x, Mth.clamp(dy * 0.16, -0.22, 0.22), velocity.z);
+            }
         }
     }
 }

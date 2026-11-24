@@ -232,6 +232,12 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
 
             @Override
             public void finish(AbilityRun run) {
+                if (!stopped && started) {
+                    double now = along(mob.position());
+                    AABB body = mob.getBoundingBox();
+                    sweep.check(now);
+                    touch(run, body, 0.0);
+                }
                 halt();
             }
 
@@ -305,12 +311,21 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
         };
     }
 
-    /** Blocks the body moves this tick: the constant speed, or the lane spread evenly over the run's ticks. */
+    /** Blocks the body moves this tick: the constant speed, or the lane spread evenly over the run's movement ticks. */
     private double perTick(AbilityRun run, DashLane lane) {
         if (speed.isPresent()) {
             return speed.get() * run.speed();
         }
-        return lane.length() / Math.max(1.0, (end() - at) * 20.0 / run.speed());
+        return stepPerTick(lane.length(), end() - at, run.speed());
+    }
+
+    /**
+     * Step per movement tick for an {@code until}-timed dash: floors fractional ticks (with float tolerance) so a
+     * duration like 0.32 s (6.4 ticks) covers the whole lane in its 6 actual movement ticks instead of stopping short.
+     */
+    public static double stepPerTick(double length, double durationSeconds, double attackSpeed) {
+        double moveTicks = Math.max(1.0, Math.floor(durationSeconds * 20.0 / attackSpeed + 1.0e-6));
+        return length / moveTicks;
     }
 
     /**

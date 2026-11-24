@@ -1,0 +1,23 @@
+{
+  "width": 0.75,
+  "height": 0.95,
+  "eye_height": 0.55,
+  "body": "flying",
+  "tracking_range": 12,
+  "fire_immune": true,
+  "death_ticks": 18,
+  "attributes": {
+    "minecraft:generic.max_health": 22.0,
+    "minecraft:generic.movement_speed": 0.28,
+    "minecraft:generic.flying_speed": 0.34,
+    "minecraft:generic.attack_damage": 8.0,
+    "minecraft:generic.follow_range": 40.0
+  },
+  "spawn_egg": {
+    "primary": 3674130,
+    "secondary": 16752148
+  },
+  "render": {
+    "shadow_radius": 0.4
+  }
+}

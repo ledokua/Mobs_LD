@@ -1,0 +1,25 @@
+{
+  "width": 0.9,
+  "height": 2.4,
+  "eye_height": 1.7,
+  "body": "ground",
+  "category": "monster",
+  "fire_immune": false,
+  "death_ticks": 16,
+  "attributes": {
+    "minecraft:generic.max_health": 34.0,
+    "minecraft:generic.armor": 1.0,
+    "minecraft:generic.movement_speed": 0.0,
+    "minecraft:generic.attack_damage": 8.0,
+    "minecraft:generic.follow_range": 40.0,
+    "minecraft:generic.knockback_resistance": 1.0,
+    "minecraft:generic.step_height": 1.0
+  },
+  "render": {
+    "shadow_radius": 0.55
+  },
+  "spawn_egg": {
+    "primary": 4871782,
+    "secondary": 9099519
+  }
+}

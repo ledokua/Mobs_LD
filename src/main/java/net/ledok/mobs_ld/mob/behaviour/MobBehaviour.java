@@ -295,11 +295,14 @@ public record MobBehaviour(
      *                    sight, 2 s by path
      * @param groundScan  how many blocks below a point telegraphs and ground-relative moves look for the floor (a
      *                    high flyer needs more); deeper than this counts as no ground (the void)
+     * @param hoverHeight for flying mobs, blocks above the followed target's feet to cruise and hold at between
+     *                    abilities; empty = ground-level pathing
      */
     public record Movement(Style style, double distance, double speed, TargetRule follow, Optional<Double> reachHeight,
-                           Optional<Double> reachDepth, ReachRule reachRule, Optional<Double> loseAfter, int groundScan) {
+                           Optional<Double> reachDepth, ReachRule reachRule, Optional<Double> loseAfter, int groundScan,
+                           Optional<Double> hoverHeight) {
         public static final Movement DEFAULT = new Movement(Style.STANDOFF, 2.0, 1.0, TargetRule.CURRENT,
-                Optional.empty(), Optional.empty(), ReachRule.PATH, Optional.empty(), 8);
+                Optional.empty(), Optional.empty(), ReachRule.PATH, Optional.empty(), 8, Optional.empty());
         public static final Codec<Movement> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Style.CODEC.optionalFieldOf("style", Style.STANDOFF).forGetter(Movement::style),
                 Codec.DOUBLE.optionalFieldOf("distance", 2.0).forGetter(Movement::distance),
@@ -309,7 +312,8 @@ public record MobBehaviour(
                 Codec.DOUBLE.optionalFieldOf("reach_depth").forGetter(Movement::reachDepth),
                 ReachRule.CODEC.optionalFieldOf("reach_rule", ReachRule.PATH).forGetter(Movement::reachRule),
                 Codec.doubleRange(0.0, 600.0).optionalFieldOf("lose_after").forGetter(Movement::loseAfter),
-                Codec.intRange(1, 384).optionalFieldOf("ground_scan", 8).forGetter(Movement::groundScan)
+                Codec.intRange(1, 384).optionalFieldOf("ground_scan", 8).forGetter(Movement::groundScan),
+                Codec.doubleRange(0.0, 32.0).optionalFieldOf("hover_height").forGetter(Movement::hoverHeight)
         ).apply(i, Movement::new));
 
         /** Seconds a target must stay unreachable before the mob gives up on it. */

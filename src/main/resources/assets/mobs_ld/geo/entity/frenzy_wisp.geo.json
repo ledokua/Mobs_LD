@@ -1,0 +1,380 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.mobs_ld.frenzy_wisp",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 2.5,
+        "visible_bounds_height": 2.5,
+        "visible_bounds_offset": [
+          0,
+          0.9,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "body",
+          "parent": "root",
+          "pivot": [
+            0,
+            10,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -4,
+                6,
+                -4
+              ],
+              "size": [
+                8,
+                8,
+                8
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -1,
+                14,
+                -1
+              ],
+              "size": [
+                2,
+                4,
+                2
+              ],
+              "uv": [
+                32,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -3,
+                13,
+                -1
+              ],
+              "size": [
+                2,
+                3,
+                2
+              ],
+              "uv": [
+                40,
+                0
+              ]
+            },
+            {
+              "origin": [
+                1,
+                13,
+                -1
+              ],
+              "size": [
+                2,
+                3,
+                2
+              ],
+              "uv": [
+                48,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ring_outer",
+          "parent": "body",
+          "pivot": [
+            0,
+            10,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -7,
+                15,
+                -1
+              ],
+              "size": [
+                14,
+                1,
+                2
+              ],
+              "uv": [
+                32,
+                6
+              ]
+            },
+            {
+              "origin": [
+                -7,
+                4,
+                -1
+              ],
+              "size": [
+                14,
+                1,
+                2
+              ],
+              "uv": [
+                32,
+                9
+              ]
+            },
+            {
+              "origin": [
+                -7,
+                5,
+                -1
+              ],
+              "size": [
+                1,
+                10,
+                2
+              ],
+              "uv": [
+                32,
+                12
+              ]
+            },
+            {
+              "origin": [
+                6,
+                5,
+                -1
+              ],
+              "size": [
+                1,
+                10,
+                2
+              ],
+              "uv": [
+                38,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ring_inner",
+          "parent": "body",
+          "pivot": [
+            0,
+            10,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6,
+                9,
+                -6
+              ],
+              "size": [
+                1,
+                2,
+                12
+              ],
+              "uv": [
+                0,
+                16
+              ]
+            },
+            {
+              "origin": [
+                5,
+                9,
+                -6
+              ],
+              "size": [
+                1,
+                2,
+                12
+              ],
+              "uv": [
+                26,
+                24
+              ]
+            },
+            {
+              "origin": [
+                -5,
+                9,
+                -6
+              ],
+              "size": [
+                10,
+                2,
+                1
+              ],
+              "uv": [
+                0,
+                30
+              ]
+            },
+            {
+              "origin": [
+                -5,
+                9,
+                5
+              ],
+              "size": [
+                10,
+                2,
+                1
+              ],
+              "uv": [
+                0,
+                33
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tail_1",
+          "parent": "body",
+          "pivot": [
+            -2,
+            6,
+            -2
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3,
+                0,
+                -2
+              ],
+              "size": [
+                2,
+                6,
+                1
+              ],
+              "uv": [
+                44,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tail_2",
+          "parent": "body",
+          "pivot": [
+            2,
+            6,
+            -2
+          ],
+          "cubes": [
+            {
+              "origin": [
+                1,
+                0,
+                -2
+              ],
+              "size": [
+                2,
+                6,
+                1
+              ],
+              "uv": [
+                50,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tail_3",
+          "parent": "body",
+          "pivot": [
+            -1,
+            6,
+            1
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -2,
+                1,
+                1
+              ],
+              "size": [
+                2,
+                5,
+                1
+              ],
+              "uv": [
+                56,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "tail_4",
+          "parent": "body",
+          "pivot": [
+            2,
+            6,
+            1
+          ],
+          "cubes": [
+            {
+              "origin": [
+                1,
+                1,
+                1
+              ],
+              "size": [
+                2,
+                5,
+                1
+              ],
+              "uv": [
+                56,
+                12
+              ]
+            }
+          ]
+        },
+        {
+          "name": "fx_eye",
+          "parent": "body",
+          "pivot": [
+            0,
+            10,
+            -4.5
+          ]
+        },
+        {
+          "name": "fx_core",
+          "parent": "body",
+          "pivot": [
+            0,
+            10,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

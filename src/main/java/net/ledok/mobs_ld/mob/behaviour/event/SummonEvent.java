@@ -63,9 +63,9 @@ import java.util.function.IntUnaryOperator;
  * @param maxAlive no more spawn while this many of the summoner's adds are still alive
  */
 public record SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
-                          double spread, MaxAlive maxAlive, Optional<Runes> telegraph, Optional<Placement> placement,
-                          Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target,
-                          Optional<MinionLink> minionLink)
+                          double spread, MaxAlive maxAlive, boolean perType, Optional<Runes> telegraph,
+                          Optional<Placement> placement, Optional<Scale> scale, boolean loot, boolean xp,
+                          boolean bound, AddTarget target, Optional<MinionLink> minionLink)
         implements AbilityEvent {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Runes without a {@code from} appear this long before the adds rise. */
@@ -75,24 +75,50 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     /** Threat a {@code rune_player} add starts with on its player: one point of damage from anyone else beats it. */
     private static final double RUNE_PLAYER_THREAT = 1.0;
 
+    /** Core positioning and cap fields (split so DFU's 16-field group limit is never exceeded). */
+    private record Core(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+                        double spread, MaxAlive maxAlive, boolean perType) {
+        private static final MapCodec<Core> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Codec.DOUBLE.fieldOf("at").forGetter(Core::at),
+                ResourceLocation.CODEC.fieldOf("entity").forGetter(Core::entity),
+                Count.CODEC.optionalFieldOf("count", Count.of(1)).forGetter(Core::count),
+                Codec.DOUBLE.optionalFieldOf("forward", 0.0).forGetter(Core::forward),
+                Codec.DOUBLE.optionalFieldOf("up", 0.0).forGetter(Core::up),
+                Codec.DOUBLE.optionalFieldOf("right", 0.0).forGetter(Core::right),
+                Codec.DOUBLE.optionalFieldOf("spread", 1.0).forGetter(Core::spread),
+                MaxAlive.CODEC.optionalFieldOf("max_alive", MaxAlive.of(8)).forGetter(Core::maxAlive),
+                Codec.BOOL.optionalFieldOf("per_type", false).forGetter(Core::perType)
+        ).apply(i, Core::new));
+
+        private static Core of(SummonEvent e) {
+            return new Core(e.at, e.entity, e.count, e.forward, e.up, e.right, e.spread, e.maxAlive, e.perType);
+        }
+    }
+
+    /** Optional wave, drop, bond, and link rules. */
+    private record Rules(Optional<Runes> telegraph, Optional<Placement> placement, Optional<Scale> scale, boolean loot,
+                         boolean xp, boolean bound, AddTarget target, Optional<MinionLink> minionLink) {
+        private static final MapCodec<Rules> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                Runes.CODEC.optionalFieldOf("telegraph").forGetter(Rules::telegraph),
+                Placement.CODEC.optionalFieldOf("placement").forGetter(Rules::placement),
+                Scale.CODEC.optionalFieldOf("scale").forGetter(Rules::scale),
+                Codec.BOOL.optionalFieldOf("loot", true).forGetter(Rules::loot),
+                Codec.BOOL.optionalFieldOf("xp", true).forGetter(Rules::xp),
+                Codec.BOOL.optionalFieldOf("bound", false).forGetter(Rules::bound),
+                AddTarget.CODEC.optionalFieldOf("target", AddTarget.AIM).forGetter(Rules::target),
+                MinionLink.CODEC.optionalFieldOf("minion_link").forGetter(Rules::minionLink)
+        ).apply(i, Rules::new));
+
+        private static Rules of(SummonEvent e) {
+            return new Rules(e.telegraph, e.placement, e.scale, e.loot, e.xp, e.bound, e.target, e.minionLink);
+        }
+    }
+
     public static final MapCodec<SummonEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            Codec.DOUBLE.fieldOf("at").forGetter(SummonEvent::at),
-            ResourceLocation.CODEC.fieldOf("entity").forGetter(SummonEvent::entity),
-            Count.CODEC.optionalFieldOf("count", Count.of(1)).forGetter(SummonEvent::count),
-            Codec.DOUBLE.optionalFieldOf("forward", 0.0).forGetter(SummonEvent::forward),
-            Codec.DOUBLE.optionalFieldOf("up", 0.0).forGetter(SummonEvent::up),
-            Codec.DOUBLE.optionalFieldOf("right", 0.0).forGetter(SummonEvent::right),
-            Codec.DOUBLE.optionalFieldOf("spread", 1.0).forGetter(SummonEvent::spread),
-            MaxAlive.CODEC.optionalFieldOf("max_alive", MaxAlive.of(8)).forGetter(SummonEvent::maxAlive),
-            Runes.CODEC.optionalFieldOf("telegraph").forGetter(SummonEvent::telegraph),
-            Placement.CODEC.optionalFieldOf("placement").forGetter(SummonEvent::placement),
-            Scale.CODEC.optionalFieldOf("scale").forGetter(SummonEvent::scale),
-            Codec.BOOL.optionalFieldOf("loot", true).forGetter(SummonEvent::loot),
-            Codec.BOOL.optionalFieldOf("xp", true).forGetter(SummonEvent::xp),
-            Codec.BOOL.optionalFieldOf("bound", false).forGetter(SummonEvent::bound),
-            AddTarget.CODEC.optionalFieldOf("target", AddTarget.AIM).forGetter(SummonEvent::target),
-            MinionLink.CODEC.optionalFieldOf("minion_link").forGetter(SummonEvent::minionLink)
-    ).apply(i, SummonEvent::new));
+            Core.CODEC.forGetter(Core::of),
+            Rules.CODEC.forGetter(Rules::of)
+    ).apply(i, (c, r) -> new SummonEvent(c.at, c.entity, c.count, c.forward, c.up, c.right, c.spread, c.maxAlive,
+            c.perType, r.telegraph, r.placement, r.scale, r.loot, r.xp, r.bound, r.target, r.minionLink)));
 
     @Override
     public String type() {
@@ -115,10 +141,15 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     // --- The wave ---
 
+    /** Live summons counted against this event's {@code max_alive} (all adds, or only this entity type when {@code per_type}). */
+    private int currentAlive(MobCombat combat) {
+        return perType ? combat.aliveSummons(entity) : combat.aliveSummons();
+    }
+
     /** How many more adds the summoner may have alive now under {@code max_alive} (for {@code skip_when_full}). */
     public int room(Mob mob, MobCombat combat) {
         int fighters = maxAlive.perExtraPlayer() > 0 ? Fighters.of(mob).size() : 0;
-        return Math.max(0, maxAlive.at(fighters) - combat.aliveSummons());
+        return Math.max(0, maxAlive.at(fighters) - currentAlive(combat));
     }
 
     private boolean needsFighters() {
@@ -171,7 +202,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         int total = count.roll(fighters, bound -> mob.getRandom().nextInt(bound));
         int cap = maxAlive.at(fighters);
         Vec3 anchor = anchor(run);
-        for (int n = 0; n < total && run.combat().aliveSummons() < cap; n++) {
+        for (int n = 0; n < total && currentAlive(run.combat()) < cap; n++) {
             Entity spawned = type.create(run.level());
             if (spawned == null) {
                 return;
@@ -195,11 +226,11 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         List<Player> fighters = needsFighters() ? Fighters.of(mob) : List.of();
         int rolled = count.roll(fighters.size(), random);
         int cap = maxAlive.at(fighters.size());
-        int room = Math.max(0, cap - run.combat().aliveSummons());
+        int room = Math.max(0, cap - currentAlive(run.combat()));
         int size = Math.min(rolled, room);
         List<Spot> spots = new ArrayList<>();
         if (size <= 0) {
-            run.combat().trace("summon: no room (" + run.combat().aliveSummons() + " alive)");
+            run.combat().trace("summon: no room (" + currentAlive(run.combat()) + " alive)");
             return new Wave(spots, cap);
         }
         List<LivingEntity> owners = owners(run, size, fighters, random);
@@ -292,7 +323,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     /** Raises a decided wave, each add on its spot facing its first target (while still under its max_alive). */
     private void spawnWave(AbilityRun run, EntityType<?> type, Wave wave) {
         for (Spot spot : wave.spots()) {
-            if (run.combat().aliveSummons() >= wave.cap()) {
+            if (currentAlive(run.combat()) >= wave.cap()) {
                 return;
             }
             Entity spawned = type.create(run.level());
@@ -608,14 +639,35 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     /**
      * Ties the adds of one summon to their summoner's health ({@link MinionLinks}): {@code death_damage} hurts the
      * summoner when such an add is killed, {@code all_dead} makes it take more damage once every linked add is dead,
-     * until it summons linked adds again. Adds that vanish without dying (a reset, a bound add leaving) do neither.
+     * until it summons linked adds again, and {@code while_alive_heal_per_second} /
+     * {@code while_alive_heal_percent_per_second} channel periodic flat or percentage-of-max-HP healing into the
+     * summoner while each linked add survives. Adds that vanish without dying (a reset, a bound add leaving) do none
+     * of the death effects.
      */
-    public record MinionLink(Optional<DeathDamage> deathDamage, Optional<AllDead> allDead) {
+    public record MinionLink(Optional<DeathDamage> deathDamage, Optional<AllDead> allDead,
+                             double whileAliveHealPerSecond, double whileAliveHealPercentPerSecond) {
         public static final Codec<MinionLink> CODEC = RecordCodecBuilder.<MinionLink>create(i -> i.group(
                 DeathDamage.CODEC.optionalFieldOf("death_damage").forGetter(MinionLink::deathDamage),
-                AllDead.CODEC.optionalFieldOf("all_dead").forGetter(MinionLink::allDead)
-        ).apply(i, MinionLink::new)).validate(link -> link.deathDamage.isEmpty() && link.allDead.isEmpty()
-                ? DataResult.error(() -> "A minion_link needs death_damage or all_dead") : DataResult.success(link));
+                AllDead.CODEC.optionalFieldOf("all_dead").forGetter(MinionLink::allDead),
+                Codec.doubleRange(0.0, 200.0).optionalFieldOf("while_alive_heal_per_second", 0.0)
+                        .forGetter(MinionLink::whileAliveHealPerSecond),
+                Codec.doubleRange(0.0, 1.0).optionalFieldOf("while_alive_heal_percent_per_second", 0.0)
+                        .forGetter(MinionLink::whileAliveHealPercentPerSecond)
+        ).apply(i, MinionLink::new)).validate(link ->
+                link.deathDamage.isEmpty() && link.allDead.isEmpty()
+                        && link.whileAliveHealPerSecond <= 0.0 && link.whileAliveHealPercentPerSecond <= 0.0
+                        ? DataResult.error(() -> "A minion_link needs death_damage, all_dead, or a while_alive_heal field")
+                        : DataResult.success(link));
+
+        /** Whether this link actively heals the summoner while linked adds survive. */
+        public boolean healsSummoner() {
+            return whileAliveHealPerSecond > 0.0 || whileAliveHealPercentPerSecond > 0.0;
+        }
+
+        /** Total HP healed per second for one surviving add on a summoner with {@code summonerMaxHealth}. */
+        public double healPerSecondFor(double summonerMaxHealth) {
+            return whileAliveHealPerSecond + summonerMaxHealth * whileAliveHealPercentPerSecond;
+        }
     }
 
     /**

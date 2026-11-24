@@ -10,10 +10,13 @@ import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.CloudEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.GrabEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
+import net.ledok.mobs_ld.mob.behaviour.event.PullEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.VfxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
+import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.ledok.mobs_ld.network.SpellVfxKind;
 import net.ledok.mobs_ld.registry.ModDamageTypes;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -169,6 +172,31 @@ class MidraBossTest {
                     for (HitSpec.EffectSpec eff : dash.hit().get().effects()) {
                         assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(eff.id()), "Unknown effect: " + eff.id());
                     }
+                } else if (event instanceof GrabEvent grab) {
+                    assertFalse(grab.telegraph().show(), "Midra grab uses madness_grasp 3D VFX instead of flat cone");
+                    grab.onCatchMessage().ifPresent(key -> {
+                        assertTrue(enUs.has(key), "en_us missing grab cue " + key);
+                        assertTrue(ukUa.has(key), "uk_ua missing grab cue " + key);
+                    });
+                    grab.onRescueMessage().ifPresent(key -> {
+                        assertTrue(enUs.has(key), "en_us missing grab rescue cue " + key);
+                        assertTrue(ukUa.has(key), "uk_ua missing grab rescue cue " + key);
+                    });
+                    if (grab.catchHit().isPresent()) {
+                        for (HitSpec.EffectSpec eff : grab.catchHit().get().effects()) {
+                            assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(eff.id()), "Unknown effect: " + eff.id());
+                        }
+                    }
+                    if (grab.tickHit().isPresent()) {
+                        for (HitSpec.EffectSpec eff : grab.tickHit().get().hit().effects()) {
+                            assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(eff.id()), "Unknown effect: " + eff.id());
+                        }
+                    }
+                    if (grab.releaseHit().isPresent()) {
+                        for (HitSpec.EffectSpec eff : grab.releaseHit().get().effects()) {
+                            assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(eff.id()), "Unknown effect: " + eff.id());
+                        }
+                    }
                 } else if (event instanceof CloudEvent cloud) {
                     for (HitSpec.EffectSpec eff : cloud.effects()) {
                         assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(eff.id()), "Unknown effect: " + eff.id());
@@ -182,8 +210,18 @@ class MidraBossTest {
         assertTrue(frenzyHits >= 12, "Expected Frenzied Flame hits across the kit, got " + frenzyHits);
         assertTrue(vulnerableCount >= 4, "Expected vulnerable punish windows, got " + vulnerableCount);
 
+        // Interactive Midra upgrades: true grab with rescue break, uppercut air-juggle, frenzy inward pull.
+        GrabEvent madnessGrab = midra.abilities().get("madness_grab").events().stream()
+                .filter(GrabEvent.class::isInstance).map(GrabEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(java.util.Optional.of(28.0), madnessGrab.rescueDamage());
+        assertTrue(madnessGrab.throwSpec().isPresent() && madnessGrab.tickHit().isPresent());
+        assertTrue(midra.abilities().get("uppercut_slash").events().stream()
+                .anyMatch(e -> e instanceof HitEvent h && h.hit().knockUp() >= 0.85));
+        assertTrue(midra.abilities().get("frenzy_burst").events().stream()
+                .anyMatch(e -> e instanceof PullEvent p && p.mode() == PullEvent.Mode.INWARD));
+
         // Verify custom 3D VFX coverage: zero flat ground telegraphs or arrows, every locked VFX aligns exactly with
-        // an early-locked hit or dash at (at + windup), and all 11 3D spell archetypes are active across Midra's kit.
+        // an early-locked hit, grab, or dash at (at + windup), and all 12 3D spell archetypes are active across Midra's kit.
         Set<SpellVfxKind> usedVfxKinds = new HashSet<>();
         int vfxCount = 0;
         for (MobBehaviour.Ability ability : timelines) {
@@ -203,13 +241,16 @@ class MidraBossTest {
                             if (other instanceof HitEvent hit) {
                                 return FxEvent.sameMoment(hit.at(), impact) && hit.begin() <= vfx.at() + 1.0e-6;
                             }
+                            if (other instanceof GrabEvent grab) {
+                                return FxEvent.sameMoment(grab.at(), impact) && grab.begin() <= vfx.at() + 1.0e-6;
+                            }
                             if (other instanceof DashEvent dash) {
                                 return FxEvent.sameMoment(dash.at(), impact) && dash.begin() <= vfx.at() + 1.0e-6;
                             }
                             return false;
                         });
                         assertTrue(matched, "Locked VFX " + vfx.kind() + " at " + vfx.at() + " (impact " + impact
-                                + ") has no matching early-locked hit/dash in clip " + ability.clip());
+                                + ") has no matching early-locked hit/grab/dash in clip " + ability.clip());
                     }
                 }
             }
@@ -219,9 +260,9 @@ class MidraBossTest {
                 SpellVfxKind.SLASH_ARC, SpellVfxKind.LANCE_LUNGE, SpellVfxKind.SWEEPING_BEAM,
                 SpellVfxKind.EYE_CHARGE, SpellVfxKind.METEOR_STRIKE, SpellVfxKind.MAGMA_FISSURES,
                 SpellVfxKind.NOVA_DOME, SpellVfxKind.SHOCKWAVE_RING, SpellVfxKind.FLAME_WAVE,
-                SpellVfxKind.FLAME_PILLAR, SpellVfxKind.VORTEX_SLASH);
+                SpellVfxKind.FLAME_PILLAR, SpellVfxKind.VORTEX_SLASH, SpellVfxKind.MADNESS_GRASP);
         assertEquals(expectedMidraKinds, usedVfxKinds,
-                "All 11 Frenzied Flame 3D spell VFX kinds should be used in Midra's kit");
+                "All 12 Frenzied Flame 3D spell VFX kinds should be used in Midra's kit");
     }
 
     @Test
@@ -339,6 +380,52 @@ class MidraBossTest {
             assertEquals(30, bones.size(), "All 30 bones in hit track clip " + entry.getKey());
             assertEquals(len + 1, bones.getAsJsonArray("hit_sword_tip").size(),
                     "Tick count mismatch in clip " + entry.getKey());
+        }
+    }
+
+    @Test
+    void thrustLungeAndSweepingLasersHaveZeroBlindSpots() throws Exception {
+        MobDeclaration declaration = MobDeclaration.codec(MIDRA_ID)
+                .parse(JsonOps.INSTANCE, readJson("/mobs_ld/entities/midra.json")).getOrThrow();
+        assertTrue(declaration.attributes().getOrDefault(
+                        ResourceLocation.withDefaultNamespace("generic.step_height"), 0.0) >= 1.0,
+                "Midra needs >= 1.0 step_height so dashes do not abort on 1-block terrain steps");
+
+        MobBehaviour midra = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                        readJson("/data/mobs_ld/mob_behaviour/midra.json")).getOrThrow();
+
+        // Dash coverage: uses constant speed, covers full trigger range + overshoot, and deals Frenzied Flame damage.
+        MobBehaviour.Ability lunge = midra.abilities().get("thrust_lunge");
+        DashEvent dash = lunge.events().stream().filter(DashEvent.class::isInstance)
+                .map(DashEvent.class::cast).findFirst().orElseThrow();
+        assertTrue(dash.speed().isPresent(), "thrust_lunge must use constant speed so it never stops short of its lane");
+        assertTrue(dash.hit().isPresent(), "thrust_lunge dash must carry a damage hit");
+        assertTrue(dash.width().blocks().orElse(0.0) >= 3.0, "thrust_lunge lane must be wide enough for Midra's lance");
+        assertTrue(dash.maxDistance() >= lunge.range().max() + dash.overshoot(),
+                "thrust_lunge max_distance must reach targets at range.max plus overshoot");
+
+        // Sweeping laser coverage: zero angular blind spots (including dead-center 0 deg) across the full sweep arc.
+        assertGaplessBeamSweep(midra.abilities().get("frenzy_beam"), 28.0, 26.0);
+        assertGaplessBeamSweep(midra.abilities().get("frenzy_beam_p2"), 33.0, 28.0);
+    }
+
+    private static void assertGaplessBeamSweep(MobBehaviour.Ability beam, double halfSweepDeg, double reach) {
+        List<HitEvent> hits = beam.events().stream()
+                .filter(HitEvent.class::isInstance).map(HitEvent.class::cast).toList();
+        assertTrue(hits.size() >= 5, "Sweeping laser needs overlapping sweep slices");
+        for (HitEvent hit : hits) {
+            assertTrue(hit.once(), "Overlapping laser slices must share `once: true` so each player is hit once");
+        }
+        for (double deg = -halfSweepDeg; deg <= halfSweepDeg + 1.0e-6; deg += 1.0) {
+            double rad = Math.toRadians(deg);
+            for (double dist : new double[]{2.0, 6.0, 10.0, 16.0, 22.0, reach - 0.1}) {
+                double dx = -Math.sin(rad) * dist;
+                double dz = Math.cos(rad) * dist;
+                boolean covered = hits.stream().anyMatch(hit ->
+                        AbilityRun.inside(hit.shape(), dx, dz, hit.rotate().orElse(0.0).floatValue()));
+                assertTrue(covered, String.format("Blind spot in %s at angle=%.1f deg, dist=%.1f",
+                        beam.clip(), deg, dist));
+            }
         }
     }
 }

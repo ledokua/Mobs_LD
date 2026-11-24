@@ -52,6 +52,13 @@ public final class ModDamageTypes {
      * potions do not trivialize the boss, while {@code "effects": "burning"} keeps fiery hurt feedback.
      */
     public static final ResourceKey<DamageType> EMBER_BLIGHT = key("ember_blight");
+    /**
+     * Nameless King's storm gales, sky-called golden lightning bolts, and tempest shockwaves (his physical
+     * Dragonslayer Swordspear swings stay {@code minecraft:mob_attack}). Armour and Protection reduce it; shields do
+     * not block it ({@code #minecraft:bypasses_shield}); Spell Engine evasion can dodge it
+     * ({@code #spell_engine:evadable}); scales normally with {@code damage_dealt}.
+     */
+    public static final ResourceKey<DamageType> STORM_LIGHTNING = key("storm_lightning");
 
     private ModDamageTypes() {
     }

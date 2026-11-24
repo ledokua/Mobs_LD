@@ -197,6 +197,13 @@ public final class SpellVfxRenderer {
             case BURROW_MOUND -> renderBurrowMound(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
             case DRUM_TREMOR -> renderDrumTremor(e, poseStack, out, inWindup, wp, ap, cancelMult, additive);
             case RIB_FURNACE -> renderRibFurnace(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case MADNESS_GRASP -> renderMadnessGrasp(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case SPEAR_ARC -> renderSpearArc(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case LIGHTNING_BOLT -> renderLightningBolt(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case STORM_GALE -> renderStormGale(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case TEMPEST_CYCLONE -> renderTempestCyclone(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case THUNDER_SPEAR_DIVE -> renderThunderSpearDive(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case STORM_NOVA -> renderStormNova(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
         }
 
         poseStack.popPose();
@@ -435,6 +442,7 @@ public final class SpellVfxRenderer {
 
     // -------------------------------------------------------------------------
     // 3. SWEEPING_BEAM — Continuous 3D volumetric Frenzied Flame laser + lightning coils
+    //    Plunges steeply from Midra's high eye bone down to player torso height, then sweeps level across the arena.
     // -------------------------------------------------------------------------
     private static void renderSweepingBeam(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
                                            boolean inWindup, float wp, float ap, float cm, boolean additive) {
@@ -442,43 +450,57 @@ public final class SpellVfxRenderer {
         float startDeg = e.reverse ? halfDeg : -halfDeg;
         float endDeg = e.reverse ? -halfDeg : halfDeg;
         float beamLen = e.length;
-        float dropY = e.height; // vertical drop from eye height down toward ground across beamLen
-        float pitchDeg = (float) (Math.atan2(dropY, beamLen) * (180.0 / Math.PI));
+        float dropY = e.height; // vertical drop from high eye anchor down to player torso height (~1.1 blocks above ground)
+        float kneeDist = Math.min(beamLen * 0.28F, 6.0F);
+        float descentLen = Mth.sqrt(kneeDist * kneeDist + dropY * dropY);
+        float descentPitchDeg = (float) (Math.atan2(dropY, kneeDist) * (180.0 / Math.PI));
+        float sweepLen = Math.max(0.5F, beamLen - kneeDist);
+        float groundY = -(dropY + 1.02F);
 
         if (inWindup) {
             float intensity = (0.3F + 0.7F * easeInQuad(wp)) * cm;
             // Ground sweep-fan glow softly outlining the upcoming beam sweep below the eye.
             Matrix4f baseM = poseStack.last().pose();
-            float groundY = -(dropY + 0.85F);
             if (!additive) {
                 drawArcRibbon(baseM, out, -halfDeg, halfDeg, 1.5F, beamLen, groundY, groundY, 20,
-                        argb(e.primaryColor, 0.04F * intensity), argb(e.primaryColor, 0.15F * intensity));
+                        argb(e.primaryColor, 0.04F * intensity), argb(e.primaryColor, 0.16F * intensity));
             } else {
                 // Directional preview glint gliding from startDeg toward endDeg so players see which way the beam sweeps.
                 float previewDeg = Mth.lerp(easeOutQuad(wp), startDeg, endDeg);
                 float previewRad = previewDeg * DEG_TO_RAD;
                 drawGroundStrip(baseM, out, 0.0F, 0.0F, -Mth.sin(previewRad) * beamLen, Mth.cos(previewRad) * beamLen,
-                        0.14F, groundY + 0.04F, argb(e.secondaryColor, 0.65F * intensity), argb(e.primaryColor, 0.15F * intensity));
+                        0.15F, groundY + 0.04F, argb(e.secondaryColor, 0.68F * intensity), argb(e.primaryColor, 0.18F * intensity));
                 // Glowing focusing rings at Midra's blazing eye.
                 float ringR = Mth.lerp(easeOutQuad(wp), 2.0F, 0.55F);
                 drawStarburst(baseM, out, 0.0F, 0.0F, 0.0F, 0.6F + 1.2F * wp, age * 6.0F,
                         argb(0xFFFFFF, 0.9F * intensity), argb(e.primaryColor, 0.0F));
+                float thinR = 0.05F + 0.12F * easeInQuad(wp);
                 poseStack.pushPose();
                 poseStack.mulPose(Axis.YP.rotationDegrees(-startDeg));
-                poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
-                Matrix4f bm = poseStack.last().pose();
-                drawVerticalRing(bm, out, 0.0F, 0.0F, 0.35F, ringR, ringR + 0.12F, 18,
+                // Steep downward targeting sight-line from eye down to player torso level.
+                poseStack.pushPose();
+                poseStack.mulPose(Axis.XP.rotationDegrees(descentPitchDeg));
+                Matrix4f descM = poseStack.last().pose();
+                drawVerticalRing(descM, out, 0.0F, 0.0F, 0.35F, ringR, ringR + 0.12F, 18,
                         argb(e.secondaryColor, 0.9F * intensity), argb(e.primaryColor, 0.0F));
-                // Thin intensifying targeting beam along the starting sweep angle.
-                float thinR = 0.05F + 0.12F * easeInQuad(wp);
-                drawBeamPrism(bm, out, beamLen, thinR, thinR * 1.4F, 6,
-                        argb(e.secondaryColor, 0.85F * intensity), argb(e.primaryColor, 0.35F * intensity));
+                drawBeamPrism(descM, out, descentLen, thinR, thinR * 1.15F, 6,
+                        argb(e.secondaryColor, 0.85F * intensity), argb(e.primaryColor, 0.55F * intensity));
+                poseStack.popPose();
+                // Horizontal player-height targeting beam continuing across the arena along startDeg.
+                poseStack.pushPose();
+                poseStack.translate(0.0F, -dropY, kneeDist);
+                Matrix4f levelM = poseStack.last().pose();
+                drawStarburst(levelM, out, 0.0F, 0.0F, 0.0F, 0.45F + 0.55F * wp, -age * 6.0F,
+                        argb(e.secondaryColor, 0.85F * intensity), argb(e.primaryColor, 0.0F));
+                drawBeamPrism(levelM, out, sweepLen, thinR * 1.15F, thinR * 1.4F, 6,
+                        argb(e.secondaryColor, 0.80F * intensity), argb(e.primaryColor, 0.32F * intensity));
+                poseStack.popPose();
                 poseStack.popPose();
             }
             return;
         }
 
-        // Smooth continuous sweep across [-angle/2, +angle/2] with blazing core + plasma sheath + crackling arcs.
+        // Smooth continuous sweep across [-angle/2, +angle/2] at player torso height.
         float sweepP = clamp01(ap / 0.92F);
         float curDeg = Mth.lerp(sweepP, startDeg, endDeg);
         float rampIn = clamp01(ap * 10.0F);
@@ -489,43 +511,71 @@ public final class SpellVfxRenderer {
 
         // Lingering scorched ground ember arc behind the sweeping beam.
         if (!additive && Math.abs(curDeg - startDeg) > 1.0F) {
-            float groundY = -(dropY + 0.85F);
             drawArcRibbon(poseStack.last().pose(), out, startDeg, curDeg, 2.0F, beamLen, groundY, groundY, 16,
-                    argb(e.primaryColor, 0.03F * alpha), argb(e.primaryColor, 0.22F * alpha));
+                    argb(e.primaryColor, 0.04F * alpha), argb(e.primaryColor, 0.24F * alpha));
         }
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(-curDeg));
-        poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
-        Matrix4f bm = poseStack.last().pose();
 
+        // Segment 1: steep eye-to-torso descent beam from Midra's blazing eye down to (0, -dropY, kneeDist).
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.XP.rotationDegrees(descentPitchDeg));
+        Matrix4f descM = poseStack.last().pose();
         if (!additive) {
-            // Turbulent fiery orange outer plasma sheath widening slightly along distance.
-            drawBeamPrism(bm, out, beamLen, baseR * 1.35F, baseR * 1.95F, 10,
-                    argb(e.primaryColor, 0.42F * alpha), argb(e.primaryColor, 0.22F * alpha));
+            drawBeamPrism(descM, out, descentLen, baseR * 1.25F, baseR * 1.50F, 10,
+                    argb(e.primaryColor, 0.42F * alpha), argb(e.primaryColor, 0.36F * alpha));
         } else {
-            // Golden mid-plasma cylinder + blinding white-gold inner laser core.
-            drawBeamPrism(bm, out, beamLen, baseR * 0.78F, baseR * 1.15F, 10,
-                    argb(e.primaryColor, 0.88F * alpha), argb(e.secondaryColor, 0.65F * alpha));
-            drawBeamPrism(bm, out, beamLen, baseR * 0.36F, baseR * 0.48F, 8,
+            drawBeamPrism(descM, out, descentLen, baseR * 0.72F, baseR * 0.88F, 10,
+                    argb(e.primaryColor, 0.88F * alpha), argb(e.secondaryColor, 0.82F * alpha));
+            drawBeamPrism(descM, out, descentLen, baseR * 0.34F, baseR * 0.40F, 8,
+                    argb(0xFFFFFF, alpha), argb(e.secondaryColor, 0.95F * alpha));
+            // Blazing eye muzzle flare + expanding shock ring.
+            drawStarburst(descM, out, 0.0F, 0.0F, 0.2F, baseR * 2.6F, age * 9.0F,
+                    argb(0xFFFFFF, alpha), argb(e.primaryColor, 0.0F));
+            float ringWave = (age * 3.5F) % 1.0F;
+            float muzzleR = baseR * (1.0F + 2.0F * ringWave);
+            drawVerticalRing(descM, out, 0.0F, 0.0F, 0.5F + ringWave * 3.0F, muzzleR, muzzleR + 0.15F, 16,
+                    argb(e.secondaryColor, (1.0F - ringWave) * 0.85F * alpha), argb(e.primaryColor, 0.0F));
+        }
+        poseStack.popPose();
+
+        // Segment 2: horizontal player-height beam sweeping straight through chest/head height from kneeDist to beamLen.
+        poseStack.pushPose();
+        poseStack.translate(0.0F, -dropY, kneeDist);
+        Matrix4f levelM = poseStack.last().pose();
+        if (!additive) {
+            drawBeamPrism(levelM, out, sweepLen, baseR * 1.48F, baseR * 1.95F, 10,
+                    argb(e.primaryColor, 0.44F * alpha), argb(e.primaryColor, 0.22F * alpha));
+        } else {
+            // Golden mid-plasma cylinder + blinding white-gold inner laser core slicing at player height.
+            drawBeamPrism(levelM, out, sweepLen, baseR * 0.86F, baseR * 1.15F, 10,
+                    argb(e.primaryColor, 0.90F * alpha), argb(e.secondaryColor, 0.68F * alpha));
+            drawBeamPrism(levelM, out, sweepLen, baseR * 0.40F, baseR * 0.48F, 8,
                     argb(0xFFFFFF, alpha), argb(e.secondaryColor, 0.95F * alpha));
 
-            // Three jagged crackling Frenzied Flame lightning tendrils coiling around the beam.
+            // Intense focal flare + ground scorch ring where the eye laser plunges down onto player level.
+            drawStarburst(levelM, out, 0.0F, 0.0F, 0.0F, baseR * 2.5F, -age * 11.0F,
+                    argb(0xFFFFFF, 0.95F * alpha), argb(e.primaryColor, 0.0F));
+            drawHorizontalRing(levelM, out, -1.00F, baseR * 0.55F, baseR * 1.85F, 16,
+                    argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.0F));
+
+            // Three jagged crackling Frenzied Flame lightning tendrils coiling around the player-level beam.
             int stepSeed = (int) (age * 18.0F);
             for (int arc = 0; arc < 3; arc++) {
-                int segs = 14;
+                int segs = 12;
                 float prevX = 0.0F;
                 float prevY = 0.0F;
-                float prevZ = 0.3F;
+                float prevZ = 0.0F;
                 for (int s = 1; s <= segs; s++) {
                     float f = s / (float) segs;
-                    float z = 0.3F + f * (beamLen - 0.3F);
+                    float z = f * sweepLen;
                     float ang = f * TAU * 3.0F + arc * (TAU / 3.0F) + age * 12.0F;
-                    float jitter = hashSigned(stepSeed * 31 + arc * 17 + s * 7) * 0.55F;
-                    float r = baseR * (1.1F + 0.45F * f) + jitter;
+                    float jitter = hashSigned(stepSeed * 31 + arc * 17 + s * 7) * 0.52F;
+                    float r = baseR * (1.1F + 0.42F * f) + jitter;
                     float nx = Mth.cos(ang) * r;
                     float ny = Mth.sin(ang) * r;
-                    drawRibbonSegment(bm, out, prevX, prevY, prevZ, nx, ny, z, 0.09F,
+                    drawRibbonSegment(levelM, out, prevX, prevY, prevZ, nx, ny, z, 0.09F,
                             argb(e.secondaryColor, 0.92F * alpha), argb(e.primaryColor, 0.72F * alpha));
                     prevX = nx;
                     prevY = ny;
@@ -533,17 +583,12 @@ public final class SpellVfxRenderer {
                 }
             }
 
-            // Blazing eye muzzle flare + shock rings.
-            drawStarburst(bm, out, 0.0F, 0.0F, 0.2F, baseR * 2.6F, age * 9.0F,
-                    argb(0xFFFFFF, alpha), argb(e.primaryColor, 0.0F));
-            float ringWave = (age * 3.5F) % 1.0F;
-            float muzzleR = baseR * (1.0F + 2.0F * ringWave);
-            drawVerticalRing(bm, out, 0.0F, 0.0F, 0.5F + ringWave * 3.0F, muzzleR, muzzleR + 0.15F, 16,
-                    argb(e.secondaryColor, (1.0F - ringWave) * 0.85F * alpha), argb(e.primaryColor, 0.0F));
             // Burning terminal starburst at the far end of the beam.
-            drawStarburst(bm, out, 0.0F, 0.0F, beamLen, baseR * 3.0F, -age * 7.0F,
+            drawStarburst(levelM, out, 0.0F, 0.0F, sweepLen, baseR * 3.0F, -age * 7.0F,
                     argb(e.secondaryColor, 0.9F * alpha), argb(e.primaryColor, 0.0F));
         }
+        poseStack.popPose();
+
         poseStack.popPose();
     }
 
@@ -1374,15 +1419,16 @@ public final class SpellVfxRenderer {
         float outerR = e.radius;
         float midR = (innerR + outerR) * 0.5F;
         int spikes = Math.max(6, Math.min(18, e.count));
+        int ringSegs = outerR > 12.0F ? 36 : 18;
 
         if (inWindup) {
             float alpha = (0.30F + 0.60F * easeInQuad(wp)) * cm;
             if (!additive) {
-                // Crisp octagonal inner and outer band outlines clearly showing the safe interior & exterior.
-                drawHorizontalRing(m, out, 0.07F, innerR, innerR + 0.18F, 16,
-                        argb(e.primaryColor, 0.72F * alpha), argb(e.primaryColor, 0.25F * alpha));
-                drawHorizontalRing(m, out, 0.07F, outerR - 0.20F, outerR, 16,
-                        argb(e.primaryColor, 0.25F * alpha), argb(e.primaryColor, 0.74F * alpha));
+                // Crisp inner and outer band outlines clearly showing the safe interior & exterior.
+                drawHorizontalRing(m, out, 0.07F, innerR, innerR + 0.22F, ringSegs,
+                        argb(e.primaryColor, 0.78F * alpha), argb(e.primaryColor, 0.25F * alpha));
+                drawHorizontalRing(m, out, 0.07F, outerR - 0.24F, outerR, ringSegs,
+                        argb(e.primaryColor, 0.25F * alpha), argb(e.primaryColor, 0.78F * alpha));
                 // Small emerging crystal buds spaced evenly around the ring midpoint.
                 float budH = 0.20F + 0.36F * easeInQuad(wp);
                 for (int i = 0; i < spikes; i++) {
@@ -1395,9 +1441,13 @@ public final class SpellVfxRenderer {
                     poseStack.popPose();
                 }
             } else {
+                if (innerR > 1.0F) {
+                    drawHorizontalRing(m, out, 0.085F, innerR, innerR + 0.24F, ringSegs,
+                            argb(e.secondaryColor, 0.75F * alpha), argb(e.primaryColor, 0.12F * alpha));
+                }
                 float waveR = Mth.lerp(wp, innerR, outerR);
-                drawHorizontalRing(m, out, 0.085F, Math.max(innerR, waveR - 0.22F), Math.min(outerR, waveR + 0.10F), 16,
-                        argb(e.secondaryColor, 0.40F * alpha), argb(e.primaryColor, 0.04F * alpha));
+                drawHorizontalRing(m, out, 0.09F, Math.max(innerR, waveR - 0.28F), Math.min(outerR, waveR + 0.12F), ringSegs,
+                        argb(e.secondaryColor, 0.55F * alpha), argb(e.primaryColor, 0.05F * alpha));
             }
             return;
         }
@@ -1644,6 +1694,9 @@ public final class SpellVfxRenderer {
             if (ray > 0) {
                 poseStack.mulPose(Axis.YP.rotationDegrees(-rayDeg));
             }
+            // Gently aim the chest furnace jet downward toward player chest height (~1.1-1.5 blocks) instead of head-high.
+            poseStack.translate(0.0F, -0.22F, 0.0F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(1.6F));
             Matrix4f rm = poseStack.last().pose();
             if (!additive) {
                 // Outer billowing volcanic smoke/ash sheath.
@@ -1815,24 +1868,25 @@ public final class SpellVfxRenderer {
         Matrix4f m = poseStack.last().pose();
         float innerR = e.width > 0.1F && e.width < e.radius * 0.9F ? e.width : 0.45F;
         float outerR = e.radius;
-        int tiles = Math.max(6, Math.min(e.count, 14));
+        int tiles = Math.max(6, Math.min(e.count, 16));
+        int ringSegs = outerR > 12.0F ? 36 : 18;
         int ashRgb = darkenRgb(e.primaryColor, 0.32F);
 
         if (inWindup) {
             float alpha = (0.28F + 0.68F * easeInQuad(wp)) * cm;
             if (!additive) {
-                drawHorizontalRing(m, out, 0.055F, innerR, outerR, 16,
+                drawHorizontalRing(m, out, 0.055F, innerR, outerR, ringSegs,
                         argb(ashRgb, 0.22F * alpha), argb(ashRgb, 0.38F * alpha));
             } else {
-                drawHorizontalRing(m, out, 0.075F, outerR - 0.18F, outerR, 18,
-                        argb(e.primaryColor, 0.65F * alpha), argb(e.secondaryColor, 0.85F * alpha));
+                drawHorizontalRing(m, out, 0.075F, outerR - 0.22F, outerR, ringSegs,
+                        argb(e.primaryColor, 0.70F * alpha), argb(e.secondaryColor, 0.88F * alpha));
                 if (innerR > 0.6F) {
-                    drawHorizontalRing(m, out, 0.075F, innerR, innerR + 0.16F, 16,
-                            argb(e.secondaryColor, 0.72F * alpha), argb(e.primaryColor, 0.20F * alpha));
+                    drawHorizontalRing(m, out, 0.08F, innerR, innerR + 0.26F, ringSegs,
+                            argb(0xFFF6D0, 0.92F * alpha), argb(e.primaryColor, 0.28F * alpha));
                 }
                 float waveR = Mth.lerp(wp, innerR, outerR);
-                drawHorizontalRing(m, out, 0.085F, Math.max(innerR, waveR - 0.22F), waveR, 16,
-                        argb(e.secondaryColor, 0.75F * alpha), argb(e.primaryColor, 0.0F));
+                drawHorizontalRing(m, out, 0.085F, Math.max(innerR, waveR - 0.32F), waveR, ringSegs,
+                        argb(e.secondaryColor, 0.82F * alpha), argb(e.primaryColor, 0.0F));
             }
             return;
         }
@@ -1859,10 +1913,10 @@ public final class SpellVfxRenderer {
                         (i % 3 == 0) ? darkenRgb(e.primaryColor, 0.52F) : ashRgb, 0.90F * fade);
                 poseStack.popPose();
             }
-            drawHorizontalRing(m, out, 0.068F, Math.max(innerR, curR - 0.9F), curR + 0.25F, 18,
+            drawHorizontalRing(m, out, 0.068F, Math.max(innerR, curR - 0.9F), curR + 0.25F, ringSegs,
                     argb(ashRgb, 0.46F * fade), argb(ashRgb, 0.04F * fade));
         } else {
-            drawHorizontalRing(m, out, 0.085F, Math.max(innerR, curR - 0.45F), curR + 0.10F, 18,
+            drawHorizontalRing(m, out, 0.085F, Math.max(innerR, curR - 0.45F), curR + 0.10F, ringSegs,
                     argb(e.primaryColor, 0.65F * fade), argb(e.secondaryColor, 0.80F * fade));
         }
     }
@@ -2078,6 +2132,606 @@ public final class SpellVfxRenderer {
                     fx1 * out1, yOff, fz1 * out1,
                     fx0 * out0, yOff, fz0 * out0,
                     c0, c1, c1, c0);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 24. MADNESS_GRASP — Midra's closing frenzied grab cone & constricting tendrils
+    // -------------------------------------------------------------------------
+    private static void renderMadnessGrasp(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                           boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        Matrix4f m = poseStack.last().pose();
+        float halfDeg = e.angle * 0.5F;
+        int fingers = Math.max(3, Math.min(e.count, 7));
+
+        if (inWindup) {
+            float alpha = (0.24F + 0.56F * easeInQuad(wp)) * cm;
+            float reach = e.radius * (0.35F + 0.65F * easeOutQuad(wp));
+            if (!additive) {
+                drawArcRibbon(m, out, -halfDeg, halfDeg, 0.45F, reach, 0.08F, 0.08F, 14,
+                        argb(e.primaryColor, 0.08F * alpha), argb(e.primaryColor, 0.34F * alpha));
+            } else {
+                drawArcRibbon(m, out, -halfDeg, halfDeg, Math.max(0.45F, reach - 0.25F), reach, 0.11F, 0.11F, 14,
+                        argb(e.secondaryColor, 0.15F * alpha), argb(e.secondaryColor, 0.85F * alpha));
+                // Reaching curved tendrils closing inward from the cone flanks.
+                float pinch = Mth.lerp(easeInQuad(wp), 1.0F, 0.38F);
+                for (int i = 0; i < fingers; i++) {
+                    float frac = (i / (float) (fingers - 1)) * 2.0F - 1.0F;
+                    float baseAng = frac * halfDeg * pinch * DEG_TO_RAD;
+                    float bx = -Mth.sin(baseAng);
+                    float bz = Mth.cos(baseAng);
+                    float tipY = e.height * (0.45F + 0.25F * (1.0F - Math.abs(frac)));
+                    float midR = reach * 0.55F;
+                    drawRibbonSegment(m, out,
+                            bx * 0.8F, 0.35F, bz * 0.8F,
+                            bx * midR, tipY * 0.85F, bz * midR,
+                            0.09F, argb(e.primaryColor, 0.55F * alpha), argb(e.secondaryColor, 0.85F * alpha));
+                    drawRibbonSegment(m, out,
+                            bx * midR, tipY * 0.85F, bz * midR,
+                            bx * reach * 0.86F, tipY, bz * reach * 0.86F,
+                            0.06F, argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.35F * alpha));
+                }
+            }
+            return;
+        }
+
+        // Active hold cage: constricting tilted golden madness rings around Midra's hold anchor.
+        float fade = (ap < 0.78F) ? 1.0F : (1.0F - (ap - 0.78F) / 0.22F);
+        float alpha = easeOutQuad(Math.min(1.0F, ap * 5.0F)) * fade * cm;
+        if (alpha <= 0.01F) {
+            return;
+        }
+        float holdZ = Math.min(2.35F, e.radius * 0.54F);
+        float holdY = e.height * (0.68F + 0.20F * ap);
+        float cageR = 0.82F + 0.12F * Mth.sin(age * 16.0F);
+
+        poseStack.pushPose();
+        poseStack.translate(0.0F, holdY, holdZ);
+        if (!additive) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(age * 120.0F));
+            drawCylinderY(poseStack.last().pose(), out, -0.75F, 0.75F, cageR, cageR * 0.86F, 12,
+                    argb(e.primaryColor, 0.16F * alpha), argb(e.primaryColor, 0.32F * alpha));
+            poseStack.popPose();
+        } else {
+            for (int r = 0; r < 3; r++) {
+                poseStack.pushPose();
+                poseStack.mulPose(Axis.YP.rotationDegrees(age * (150.0F + r * 45.0F) * (r % 2 == 0 ? 1.0F : -1.0F)));
+                poseStack.mulPose(Axis.XP.rotationDegrees(26.0F + r * 34.0F));
+                drawHorizontalRing(poseStack.last().pose(), out, 0.0F, cageR * 0.86F, cageR * 1.04F, 16,
+                        argb(e.secondaryColor, 0.82F * alpha), argb(e.primaryColor, 0.18F * alpha));
+                poseStack.popPose();
+            }
+            // Connecting sear tendrils from boss hand/eye toward held target.
+            Matrix4f bm = poseStack.last().pose();
+            for (int i = 0; i < 4; i++) {
+                float ang = i * (TAU / 4.0F) + age * 3.5F;
+                float rx = Mth.cos(ang) * 0.55F;
+                float ry = Mth.sin(ang) * 0.55F;
+                drawJaggedBolt(bm, out, 0.0F, 0.25F, -holdZ * 0.75F, rx, ry, 0.0F, 4, 0.16F,
+                        e.id + i * 19 + (int) (age * 14.0F), 0.045F,
+                        argb(e.secondaryColor, 0.88F * alpha), argb(e.primaryColor, 0.55F * alpha));
+            }
+        }
+        poseStack.popPose();
+    }
+
+    // -------------------------------------------------------------------------
+    // 25. SPEAR_ARC — Sleek storm-steel & sunlight-lightning Dragonslayer Swordspear crescent
+    // -------------------------------------------------------------------------
+    private static void renderSpearArc(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                       boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        float halfDeg = e.angle * 0.5F;
+        float startDeg = e.reverse ? halfDeg : -halfDeg;
+        float endDeg = e.reverse ? -halfDeg : halfDeg;
+        boolean steep = Math.abs(e.tilt) > 35.0F;
+        Matrix4f groundM = poseStack.last().pose();
+
+        if (inWindup) {
+            float alpha = (0.18F + 0.50F * easeInQuad(wp)) * cm;
+            if (steep) {
+                float halfW = Math.max(0.65F, e.width * 0.5F);
+                float len = Math.max(e.length, e.radius);
+                if (!additive) {
+                    int edgeCol = argb(e.primaryColor, 0.05F * alpha);
+                    int midCol = argb(e.primaryColor, 0.22F * alpha);
+                    quad(groundM, out, -halfW, 0.07F, 0.0F, 0.0F, 0.07F, 0.0F, 0.0F, 0.07F, len, -halfW, 0.07F, len,
+                            edgeCol, midCol, midCol, edgeCol);
+                    quad(groundM, out, 0.0F, 0.07F, 0.0F, halfW, 0.07F, 0.0F, halfW, 0.07F, len, 0.0F, 0.07F, len,
+                            midCol, edgeCol, edgeCol, midCol);
+                } else {
+                    float tip = len * easeInQuad(wp);
+                    drawGroundStrip(groundM, out, 0.0F, 0.0F, 0.0F, tip, 0.08F, 0.11F,
+                            argb(e.secondaryColor, 0.45F * alpha), argb(e.secondaryColor, 0.92F * alpha));
+                    drawJaggedBolt(groundM, out, 0.0F, 0.14F, 0.2F, 0.0F, 0.14F, tip, 5, 0.22F,
+                            e.id + (int) (age * 16.0F), 0.045F,
+                            argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.40F * alpha));
+                }
+            } else {
+                float reach = e.radius * (0.45F + 0.55F * easeOutQuad(wp));
+                if (!additive) {
+                    drawArcRibbon(groundM, out, -halfDeg, halfDeg, 0.85F, reach, 0.08F, 0.08F, 14,
+                            argb(e.primaryColor, 0.04F * alpha), argb(e.primaryColor, 0.24F * alpha));
+                } else {
+                    drawArcRibbon(groundM, out, -halfDeg, halfDeg, Math.max(0.85F, reach - 0.18F), reach, 0.11F, 0.11F, 14,
+                            argb(e.secondaryColor, 0.14F * alpha), argb(e.secondaryColor, 0.78F * alpha));
+                }
+            }
+            return;
+        }
+
+        // Crisp narrow spear blade crescent + crackling lightning filament along outer rim.
+        float sweep = easeOutCubic(Math.min(1.0F, ap * 2.5F));
+        float tail = easeInQuad(clamp01((ap - 0.26F) / 0.74F));
+        float fade = (1.0F - easeInQuad(ap)) * cm;
+        if (fade <= 0.01F || sweep <= tail + 0.02F) {
+            return;
+        }
+
+        float curStart = Mth.lerp(tail, startDeg, endDeg);
+        float curEnd = Mth.lerp(sweep, startDeg, endDeg);
+
+        poseStack.pushPose();
+        poseStack.translate(0.0F, e.height, 0.0F);
+        if (e.tilt != 0.0F) {
+            poseStack.mulPose(Axis.ZP.rotationDegrees(e.tilt));
+        }
+        Matrix4f m = poseStack.last().pose();
+        if (!additive) {
+            drawClawStreak(m, out, curStart, curEnd, e.radius * 0.62F, e.radius * 1.02F, 0.0F, 16,
+                    e.primaryColor, 0.52F * fade);
+        } else {
+            drawClawStreak(m, out, curStart, curEnd, e.radius * 0.86F, e.radius * 1.04F, 0.02F, 16,
+                    e.secondaryColor, 0.94F * fade);
+            // Crackling lightning fork hugging the spear tip arc.
+            int segs = 5;
+            for (int i = 0; i < segs; i++) {
+                float f0 = i / (float) segs;
+                float f1 = (i + 1) / (float) segs;
+                float a0 = Mth.lerp(f0, curStart, curEnd) * DEG_TO_RAD;
+                float a1 = Mth.lerp(f1, curStart, curEnd) * DEG_TO_RAD;
+                float r0 = e.radius * (0.90F + 0.09F * hashSigned(e.id + i * 11 + (int) (age * 20.0F)));
+                float r1 = e.radius * (0.90F + 0.09F * hashSigned(e.id + (i + 1) * 11 + (int) (age * 20.0F)));
+                drawRibbonSegment(m, out,
+                        -Mth.sin(a0) * r0, 0.08F * hashSigned(e.id + i * 7), Mth.cos(a0) * r0,
+                        -Mth.sin(a1) * r1, 0.08F * hashSigned(e.id + (i + 1) * 7), Mth.cos(a1) * r1,
+                        0.055F, argb(e.secondaryColor, 0.92F * fade), argb(e.primaryColor, 0.65F * fade));
+            }
+        }
+        poseStack.popPose();
+    }
+
+    // -------------------------------------------------------------------------
+    // 26. LIGHTNING_BOLT — Storm-cloud ring + jagged golden-white sky thunderbolt
+    // -------------------------------------------------------------------------
+    private static void renderLightningBolt(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                            boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        Matrix4f m = poseStack.last().pose();
+        int cloudSlate = darkenRgb(e.primaryColor, 0.36F);
+        float skyY = Math.min(e.height, 14.5F);
+
+        if (inWindup) {
+            float alpha = (0.22F + 0.60F * easeInQuad(wp)) * cm;
+            float ringR = e.radius * (0.45F + 0.55F * easeOutQuad(wp));
+            float innerR = e.radius * (1.0F - 0.72F * easeInQuad(wp));
+            if (!additive) {
+                // Dark overhead storm cloud disc + ground impact warning band.
+                drawHorizontalRing(m, out, skyY, 0.15F, e.radius * 1.15F, 12,
+                        argb(cloudSlate, 0.52F * alpha), argb(cloudSlate, 0.06F * alpha));
+                drawHorizontalRing(m, out, 0.08F, 0.15F, ringR, 14,
+                        argb(e.primaryColor, 0.08F * alpha), argb(e.primaryColor, 0.28F * alpha));
+            } else {
+                drawHorizontalRing(m, out, 0.11F, Math.max(0.1F, ringR - 0.20F), ringR, 16,
+                        argb(e.secondaryColor, 0.18F * alpha), argb(e.secondaryColor, 0.88F * alpha));
+                drawHorizontalRing(m, out, 0.12F, Math.max(0.05F, innerR - 0.14F), innerR + 0.14F, 14,
+                        argb(e.secondaryColor, 0.82F * alpha), argb(e.primaryColor, 0.20F * alpha));
+                // Pre-strike pilot leader flicker descending from the cloud.
+                if (wp > 0.45F) {
+                    float leaderLen = skyY * ((wp - 0.45F) / 0.55F);
+                    drawJaggedBolt(m, out, 0.0F, skyY, 0.0F, 0.0F, skyY - leaderLen, 0.0F, 6, 0.45F,
+                            e.id + (int) (age * 24.0F), 0.055F,
+                            argb(e.secondaryColor, 0.72F * alpha), argb(e.primaryColor, 0.25F * alpha));
+                }
+            }
+            return;
+        }
+
+        float flash = (ap < 0.20F) ? 1.0F : (1.0F - easeOutQuad((ap - 0.20F) / 0.80F));
+        float alpha = flash * cm;
+        if (alpha <= 0.01F) {
+            return;
+        }
+
+        int seed = e.id + (int) (age * 28.0F);
+        int forks = Math.max(2, Math.min(e.count, 5));
+        if (!additive) {
+            drawHorizontalRing(m, out, skyY, 0.2F, e.radius * 1.25F, 12,
+                    argb(cloudSlate, 0.42F * alpha), argb(cloudSlate, 0.02F * alpha));
+            drawHorizontalRing(m, out, 0.09F, 0.2F, e.radius * (0.75F + 0.35F * ap), 14,
+                    argb(e.primaryColor, 0.28F * alpha), argb(e.primaryColor, 0.02F * alpha));
+        } else {
+            // Main blinding sunlight-lightning trunk.
+            drawJaggedBolt(m, out, 0.0F, skyY, 0.0F, 0.0F, 0.08F, 0.0F, 9, 0.65F, seed,
+                    0.26F * (0.55F + 0.45F * flash),
+                    argb(0xFFFDF0, 0.98F * alpha), argb(e.secondaryColor, 0.92F * alpha));
+            drawJaggedBolt(m, out, 0.0F, skyY, 0.0F, 0.0F, 0.08F, 0.0F, 9, 0.72F, seed + 5,
+                    0.46F * flash,
+                    argb(e.primaryColor, 0.45F * alpha), argb(e.secondaryColor, 0.32F * alpha));
+            // Branching forks snapping out to the ground perimeter.
+            for (int f = 0; f < forks; f++) {
+                float ang = f * (TAU / forks) + hashSigned(e.id + f * 17) * 0.5F;
+                float startY = skyY * (0.35F + 0.35F * (f / (float) forks));
+                float gx = Mth.cos(ang) * e.radius * 0.92F;
+                float gz = Mth.sin(ang) * e.radius * 0.92F;
+                drawJaggedBolt(m, out, 0.0F, startY, 0.0F, gx, 0.12F, gz, 5, 0.42F, seed + f * 31,
+                        0.09F * flash,
+                        argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.40F * alpha));
+            }
+            drawStarburst(m, out, 0.0F, 0.45F, 0.0F, e.radius * 0.55F * (0.65F + 0.35F * flash), age * 5.0F,
+                    argb(0xFFFDF0, 0.90F * alpha), argb(e.secondaryColor, 0.0F));
+            drawHorizontalRing(m, out, 0.13F, e.radius * 0.72F, e.radius * (0.95F + 0.15F * ap), 18,
+                    argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.08F * alpha));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 27. STORM_GALE — Layered pale-cyan wind-shear crescents (cone) or 360-deg radiating storm lanes (rays)
+    // -------------------------------------------------------------------------
+    private static void renderStormGale(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                        boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        if (e.angle >= 359.0F) {
+            renderStormGaleRays(e, poseStack, out, age, inWindup, wp, ap, cm, additive);
+            return;
+        }
+        Matrix4f m = poseStack.last().pose();
+        float halfDeg = e.angle * 0.5F;
+        int mistColor = darkenRgb(e.primaryColor, 0.65F);
+
+        if (inWindup) {
+            float alpha = (0.18F + 0.48F * easeInQuad(wp)) * cm;
+            float reach = e.length * (0.30F + 0.70F * easeOutQuad(wp));
+            if (!additive) {
+                drawArcRibbon(m, out, -halfDeg, halfDeg, 0.6F, reach, 0.08F, 0.08F, 14,
+                        argb(mistColor, 0.05F * alpha), argb(e.primaryColor, 0.24F * alpha));
+            } else {
+                drawArcRibbon(m, out, -halfDeg, halfDeg, Math.max(0.6F, reach - 0.25F), reach, 0.11F, 0.11F, 14,
+                        argb(e.primaryColor, 0.12F * alpha), argb(e.secondaryColor, 0.75F * alpha));
+            }
+            return;
+        }
+
+        float fade = (1.0F - easeInQuad(ap)) * cm;
+        if (fade <= 0.01F) {
+            return;
+        }
+        int waves = Math.max(3, Math.min(e.count, 6));
+        for (int w = 0; w < waves; w++) {
+            float lag = w * 0.13F;
+            float p = clamp01((ap - lag) / Math.max(0.25F, 1.0F - lag));
+            if (p <= 0.01F || p >= 0.99F) {
+                continue;
+            }
+            float dist = Mth.lerp(easeOutQuad(p), 1.2F, e.length);
+            float wAlpha = Mth.sin(p * (float) Math.PI) * fade;
+            float bandY = 0.45F + (w % 3) * (e.height * 0.34F);
+            float span = halfDeg * (0.72F + 0.28F * (w % 2));
+            if (!additive) {
+                // Translucent layered storm-wind blade sheet.
+                drawArcRibbon(m, out, -span, span, Math.max(0.4F, dist - 1.55F), dist,
+                        bandY - 0.25F, bandY + 0.25F, 16,
+                        argb(mistColor, 0.04F * wAlpha), argb(e.primaryColor, 0.46F * wAlpha));
+            } else {
+                // Crisp sunlit-cyan leading wind crest.
+                drawClawStreak(m, out, -span, span, Math.max(0.4F, dist - 0.45F), dist + 0.12F,
+                        bandY + 0.12F, 16, e.secondaryColor, 0.78F * wAlpha);
+            }
+        }
+        // Horizontal streaming wind streaks along the cone.
+        if (additive) {
+            for (int s = 0; s < 5; s++) {
+                float frac = (s / 4.0F) * 2.0F - 1.0F;
+                float ang = frac * halfDeg * 0.85F * DEG_TO_RAD;
+                float fx = -Mth.sin(ang);
+                float fz = Mth.cos(ang);
+                float d0 = e.length * clamp01(ap * 1.15F - 0.35F);
+                float d1 = e.length * clamp01(ap * 1.35F);
+                float sy = 0.7F + (s % 3) * 0.65F + 0.15F * Mth.sin(age * 12.0F + s);
+                drawRibbonSegment(m, out, fx * d0, sy, fz * d0, fx * d1, sy + 0.25F, fz * d1,
+                        0.06F, argb(e.primaryColor, 0.10F * fade), argb(e.secondaryColor, 0.75F * fade));
+            }
+        }
+    }
+
+    /** Multi-ray 360-degree radiating storm-gale lanes for Shape.Rays global attacks (e.g., Wrath of the Firstborn). */
+    private static void renderStormGaleRays(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                            boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        int rays = Math.max(2, e.count);
+        float len = e.length;
+        float baseHalfW = Math.max(0.45F, e.width * 0.5F);
+        int mistColor = darkenRgb(e.primaryColor, 0.55F);
+
+        for (int i = 0; i < rays; i++) {
+            float rayDeg = i * (360.0F / rays);
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(-rayDeg));
+            Matrix4f rm = poseStack.last().pose();
+
+            if (inWindup) {
+                float reach = len * (0.20F + 0.80F * easeOutQuad(wp));
+                float alpha = (0.24F + 0.72F * easeInQuad(wp)) * cm;
+                float farHalfW = baseHalfW + 0.07F * reach;
+                if (!additive) {
+                    int c0 = argb(mistColor, 0.30F * alpha);
+                    int c1 = argb(e.primaryColor, 0.22F * alpha);
+                    quad(rm, out, -baseHalfW, 0.06F, 0.5F, baseHalfW, 0.06F, 0.5F,
+                            farHalfW, 0.06F, reach, -farHalfW, 0.06F, reach, c0, c0, c1, c1);
+                } else {
+                    int rim = argb(e.primaryColor, 0.78F * alpha);
+                    int core = argb(e.secondaryColor, 0.92F * alpha);
+                    float centerW = 0.12F + 0.12F * wp;
+                    quad(rm, out, -centerW, 0.08F, 0.5F, centerW, 0.08F, 0.5F,
+                            centerW * 0.8F, 0.08F, reach, -centerW * 0.8F, 0.08F, reach, core, core, rim, rim);
+                    quad(rm, out, -baseHalfW, 0.07F, 0.5F, -baseHalfW + 0.14F, 0.07F, 0.5F,
+                            -farHalfW + 0.14F, 0.07F, reach, -farHalfW, 0.07F, reach, rim, rim, rim, rim);
+                    quad(rm, out, baseHalfW - 0.14F, 0.07F, 0.5F, baseHalfW, 0.07F, 0.5F,
+                            farHalfW, 0.07F, reach, farHalfW - 0.14F, 0.07F, reach, rim, rim, rim, rim);
+                }
+            } else {
+                float fade = (1.0F - easeInQuad(ap)) * cm;
+                if (fade > 0.01F) {
+                    float wallH = e.height * easeOutCubic(clamp01(ap * 3.0F));
+                    float farHalfW = baseHalfW + 0.07F * len;
+                    if (!additive) {
+                        int bot = argb(e.primaryColor, 0.45F * fade);
+                        int top = argb(mistColor, 0.02F * fade);
+                        quad(rm, out, -baseHalfW * 0.6F, 0.06F, 0.5F, -farHalfW * 0.6F, 0.06F, len,
+                                -farHalfW * 0.25F, wallH, len, -baseHalfW * 0.25F, wallH, 0.5F, bot, bot, top, top);
+                        quad(rm, out, baseHalfW * 0.6F, 0.06F, 0.5F, farHalfW * 0.6F, 0.06F, len,
+                                farHalfW * 0.25F, wallH, len, baseHalfW * 0.25F, wallH, 0.5F, bot, bot, top, top);
+                    } else {
+                        int seed = e.id + i * 31 + (int) (age * 24.0F);
+                        drawJaggedBolt(rm, out, 0.0F, 1.15F, 0.6F, 0.0F, 0.65F, len, 7, 0.42F, seed,
+                                0.16F * fade, argb(0xFFFDF0, 0.96F * fade), argb(e.secondaryColor, 0.68F * fade));
+                        int floorCol = argb(e.secondaryColor, 0.65F * fade);
+                        quad(rm, out, -baseHalfW * 0.7F, 0.08F, 0.5F, baseHalfW * 0.7F, 0.08F, 0.5F,
+                                farHalfW * 0.7F, 0.08F, len, -farHalfW * 0.7F, 0.08F, len,
+                                floorCol, floorCol, argb(e.primaryColor, 0.22F * fade), argb(e.primaryColor, 0.22F * fade));
+                    }
+                }
+            }
+            poseStack.popPose();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 28. TEMPEST_CYCLONE — Spiraling storm-cloud funnel + orbiting golden static rings
+    // -------------------------------------------------------------------------
+    private static void renderTempestCyclone(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                             boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        Matrix4f m = poseStack.last().pose();
+        int cloudSlate = darkenRgb(e.primaryColor, 0.45F);
+
+        if (inWindup) {
+            float alpha = (0.20F + 0.55F * easeInQuad(wp)) * cm;
+            float r = e.radius * (0.45F + 0.55F * easeOutQuad(wp));
+            if (!additive) {
+                drawHorizontalRing(m, out, 0.09F, 1.0F, r, 20,
+                        argb(cloudSlate, 0.06F * alpha), argb(e.primaryColor, 0.26F * alpha));
+            } else {
+                drawHorizontalRing(m, out, 0.12F, Math.max(0.8F, r - 0.22F), r, 20,
+                        argb(e.primaryColor, 0.15F * alpha), argb(e.secondaryColor, 0.80F * alpha));
+            }
+            return;
+        }
+
+        float fade = (ap < 0.78F) ? easeOutQuad(Math.min(1.0F, ap * 5.0F))
+                : (1.0F - (ap - 0.78F) / 0.22F);
+        float alpha = fade * cm;
+        if (alpha <= 0.01F) {
+            return;
+        }
+        float dir = e.reverse ? -1.0F : 1.0F;
+        int tiers = Math.max(4, Math.min(e.count, 7));
+
+        for (int i = 0; i < tiers; i++) {
+            float frac = i / (float) (tiers - 1);
+            float y = 0.35F + frac * e.height;
+            float tierR = e.radius * (0.58F + 0.48F * frac);
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(dir * (age * (340.0F + i * 35.0F) + i * 52.0F)));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(5.0F * (i % 2 == 0 ? 1.0F : -1.0F)));
+            Matrix4f rm = poseStack.last().pose();
+            if (!additive) {
+                drawArcRibbon(rm, out, -115.0F, 115.0F, tierR * 0.76F, tierR, y - 0.22F, y + 0.28F, 16,
+                        argb(cloudSlate, 0.10F * alpha), argb(e.primaryColor, 0.42F * alpha));
+            } else if (i % 2 == 0) {
+                drawClawStreak(rm, out, -85.0F, 85.0F, tierR * 0.90F, tierR * 1.06F, y + 0.08F, 14,
+                        e.secondaryColor, 0.82F * alpha);
+            }
+            poseStack.popPose();
+        }
+        // Subtle cyclone floor ring showing pull radius.
+        if (additive) {
+            drawHorizontalRing(m, out, 0.11F, e.radius * 0.88F, e.radius, 22,
+                    argb(e.primaryColor, 0.12F * alpha), argb(e.secondaryColor, 0.65F * alpha));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 29. THUNDER_SPEAR_DIVE — Skyward storm halo + plunging lightning lance + impact forks
+    // -------------------------------------------------------------------------
+    private static void renderThunderSpearDive(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                               boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        Matrix4f m = poseStack.last().pose();
+        int cloudSlate = darkenRgb(e.primaryColor, 0.40F);
+        float halfW = Math.max(0.8F, e.width * 0.5F);
+        float skyY = Math.max(3.5F, e.height);
+
+        if (inWindup) {
+            float alpha = (0.22F + 0.58F * easeInQuad(wp)) * cm;
+            float reach = e.length * (0.25F + 0.75F * easeOutQuad(wp));
+            if (!additive) {
+                // Storm cloud halo above launch point + dive corridor shadow on the ground.
+                drawHorizontalRing(m, out, skyY, 0.4F, 3.2F, 14,
+                        argb(cloudSlate, 0.48F * alpha), argb(cloudSlate, 0.04F * alpha));
+                int edgeCol = argb(e.primaryColor, 0.05F * alpha);
+                int midCol = argb(e.primaryColor, 0.24F * alpha);
+                quad(m, out, -halfW, 0.08F, 0.0F, 0.0F, 0.08F, 0.0F, 0.0F, 0.08F, reach, -halfW, 0.08F, reach,
+                        edgeCol, midCol, midCol, edgeCol);
+                quad(m, out, 0.0F, 0.08F, 0.0F, halfW, 0.08F, 0.0F, halfW, 0.08F, reach, 0.0F, 0.08F, reach,
+                        midCol, edgeCol, edgeCol, midCol);
+            } else {
+                // Diagonal aiming lightning sight-line from the storm cloud to the landing spot.
+                drawJaggedBolt(m, out, 0.0F, skyY, 0.0F, 0.0F, 0.14F, reach, 7, 0.30F,
+                        e.id + (int) (age * 20.0F), 0.07F,
+                        argb(e.secondaryColor, 0.85F * alpha), argb(e.primaryColor, 0.35F * alpha));
+                poseStack.pushPose();
+                poseStack.translate(0.0F, 0.12F, reach);
+                drawHorizontalRing(poseStack.last().pose(), out, 0.0F, halfW * 0.75F, halfW * 1.15F, 16,
+                        argb(e.secondaryColor, 0.20F * alpha), argb(e.secondaryColor, 0.88F * alpha));
+                poseStack.popPose();
+            }
+            return;
+        }
+
+        float fade = (1.0F - easeInQuad(ap)) * cm;
+        if (fade <= 0.01F) {
+            return;
+        }
+        float headZ = e.length * Math.min(1.0F, easeOutCubic(ap * 1.85F));
+        float tailZ = Math.max(0.0F, headZ - 5.5F);
+        float headY = Mth.lerp(headZ / Math.max(0.1F, e.length), skyY, 0.9F);
+        float tailY = Mth.lerp(tailZ / Math.max(0.1F, e.length), skyY, 0.9F);
+        if (!additive) {
+            drawGroundStrip(m, out, 0.0F, 0.0F, 0.0F, headZ, halfW * 0.85F, 0.09F,
+                    argb(e.primaryColor, 0.06F * fade), argb(e.primaryColor, 0.34F * fade));
+        } else {
+            drawJaggedBolt(m, out, 0.0F, tailY, tailZ, 0.0F, headY, headZ, 6, 0.35F,
+                    e.id + (int) (age * 26.0F), 0.20F * fade,
+                    argb(0xFFFDF0, 0.95F * fade), argb(e.secondaryColor, 0.85F * fade));
+            // Ground impact lightning forks once the dive reaches the target end.
+            if (ap > 0.32F) {
+                float burst = 1.0F - clamp01((ap - 0.32F) / 0.68F);
+                int forks = Math.max(4, Math.min(e.count, 6));
+                for (int f = 0; f < forks; f++) {
+                    float ang = f * (TAU / forks) + 0.3F;
+                    float r = e.radius * (0.45F + 0.55F * (1.0F - burst));
+                    drawJaggedBolt(m, out, 0.0F, 0.18F, e.length,
+                            Mth.cos(ang) * r, 0.18F, e.length + Mth.sin(ang) * r,
+                            4, 0.25F, e.id + f * 23, 0.08F * burst,
+                            argb(e.secondaryColor, 0.90F * burst * cm), argb(e.primaryColor, 0.25F * burst * cm));
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 30. STORM_NOVA — Updraft storm-mist gathering shell -> radial golden lightning & cyan gale ring
+    // -------------------------------------------------------------------------
+    private static void renderStormNova(SpellVfxInstance e, PoseStack poseStack, VertexConsumer out, float age,
+                                        boolean inWindup, float wp, float ap, float cm, boolean additive) {
+        Matrix4f m = poseStack.last().pose();
+        int cloudSlate = darkenRgb(e.primaryColor, 0.42F);
+        float innerR = e.width > 0.1F && e.width < e.radius * 0.9F ? e.width : 0.4F;
+        int ringSegs = e.radius > 12.0F ? 36 : 24;
+
+        if (inWindup) {
+            float alpha = (0.22F + 0.56F * easeInQuad(wp)) * cm;
+            float r = Mth.lerp(easeOutQuad(wp), Math.max(innerR + 0.2F, e.radius * 0.38F), e.radius);
+            float riseY = 0.35F + 2.2F * wp;
+            if (!additive) {
+                drawHorizontalRing(m, out, 0.09F, innerR, r, ringSegs,
+                        argb(cloudSlate, 0.08F * alpha), argb(e.primaryColor, 0.26F * alpha));
+                if (innerR <= 0.6F) {
+                    // Rising updraft mist shell for full-circle storm novas.
+                    drawCylinderY(m, out, 0.15F, riseY, e.radius * 0.72F, e.radius * (0.55F - 0.25F * wp), 16,
+                            argb(e.primaryColor, 0.24F * alpha), argb(e.primaryColor, 0.02F * alpha));
+                }
+            } else {
+                drawHorizontalRing(m, out, 0.12F, Math.max(innerR, r - 0.24F), r, ringSegs,
+                        argb(e.primaryColor, 0.16F * alpha), argb(e.secondaryColor, 0.85F * alpha));
+                if (innerR > 0.6F) {
+                    drawHorizontalRing(m, out, 0.12F, innerR, innerR + 0.24F, ringSegs,
+                            argb(0xFFFDF0, 0.90F * alpha), argb(e.primaryColor, 0.20F * alpha));
+                }
+                // Upward spiraling wind ribbons telegraphing the updraft lift.
+                for (int i = 0; i < 4; i++) {
+                    float a0 = i * (TAU / 4.0F) + age * 4.0F;
+                    float a1 = a0 + 0.9F;
+                    float rr = innerR > 0.6F ? Mth.lerp(0.5F, innerR, e.radius) : e.radius * (0.68F - 0.25F * wp);
+                    drawRibbonSegment(m, out,
+                            Mth.cos(a0) * rr, 0.2F, Mth.sin(a0) * rr,
+                            Mth.cos(a1) * rr * 0.86F, riseY, Mth.sin(a1) * rr * 0.86F,
+                            0.08F, argb(e.primaryColor, 0.35F * alpha), argb(e.secondaryColor, 0.80F * alpha));
+                }
+            }
+            return;
+        }
+
+        float expand = easeOutCubic(Math.min(1.0F, ap * 1.65F));
+        float fade = (1.0F - easeInQuad(ap)) * cm;
+        if (fade <= 0.01F) {
+            return;
+        }
+        float curR = Mth.lerp(expand, Math.max(1.0F, innerR), e.radius);
+        int rays = Math.max(6, Math.min(e.count, 10));
+
+        if (!additive) {
+            // Clean translucent sky-cyan storm shockwave wall.
+            drawCylinderY(m, out, 0.12F, e.height * (0.45F + 0.55F * (1.0F - ap)),
+                    curR * 0.92F, curR, ringSegs,
+                    argb(e.primaryColor, 0.44F * fade), argb(cloudSlate, 0.02F * fade));
+            drawHorizontalRing(m, out, 0.10F, Math.max(innerR, curR * 0.65F), curR, ringSegs,
+                    argb(e.primaryColor, 0.05F * fade), argb(e.primaryColor, 0.34F * fade));
+        } else {
+            drawHorizontalRing(m, out, 0.15F, Math.max(innerR, curR - 0.45F), curR + 0.15F, ringSegs,
+                    argb(e.secondaryColor, 0.88F * fade), argb(e.primaryColor, 0.08F * fade));
+            // Jagged golden floor lightning forks radiating across the storm band.
+            int seed = e.id + (int) (age * 22.0F);
+            for (int i = 0; i < rays; i++) {
+                float ang = i * (TAU / rays) + 0.18F;
+                float sx = innerR > 0.6F ? Mth.cos(ang) * innerR : 0.0F;
+                float sz = innerR > 0.6F ? Mth.sin(ang) * innerR : 0.0F;
+                float gx = Mth.cos(ang) * curR;
+                float gz = Mth.sin(ang) * curR;
+                drawJaggedBolt(m, out, sx, 0.9F, sz, gx, 0.16F, gz, 5, 0.38F, seed + i * 19,
+                        0.11F * fade,
+                        argb(0xFFFDF0, 0.94F * fade), argb(e.secondaryColor, 0.55F * fade));
+            }
+            if (ap < 0.35F && innerR <= 0.6F) {
+                float core = (1.0F - ap / 0.35F) * cm;
+                drawStarburst(m, out, 0.0F, 1.6F, 0.0F, 2.2F * core + 0.8F, age * 6.0F,
+                        argb(0xFFFDF0, 0.92F * core), argb(e.secondaryColor, 0.0F));
+            }
+        }
+    }
+
+    /** Deterministic multi-segment jagged 3D lightning bolt connecting two points with zero allocations. */
+    private static void drawJaggedBolt(Matrix4f m, VertexConsumer out,
+                                       float x0, float y0, float z0,
+                                       float x1, float y1, float z1,
+                                       int segments, float jitter, int seed, float halfWidth,
+                                       int startCol, int endCol) {
+        float px = x0;
+        float py = y0;
+        float pz = z0;
+        for (int i = 1; i <= segments; i++) {
+            float f = i / (float) segments;
+            float nx = Mth.lerp(f, x0, x1);
+            float ny = Mth.lerp(f, y0, y1);
+            float nz = Mth.lerp(f, z0, z1);
+            if (i < segments) {
+                float env = Mth.sin(f * (float) Math.PI);
+                nx += hashSigned(seed + i * 17) * jitter * env;
+                ny += hashSigned(seed + i * 31) * jitter * 0.45F * env;
+                nz += hashSigned(seed + i * 53) * jitter * env;
+            }
+            int c0 = lerpArgb(startCol, endCol, (i - 1) / (float) segments);
+            int c1 = lerpArgb(startCol, endCol, f);
+            drawRibbonSegment(m, out, px, py, pz, nx, ny, nz, halfWidth, c0, c1);
+            px = nx;
+            py = ny;
+            pz = nz;
         }
     }
 

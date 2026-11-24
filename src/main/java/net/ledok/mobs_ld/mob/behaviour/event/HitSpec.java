@@ -48,13 +48,21 @@ import java.util.function.Supplier;
  *                   for ability hits, vanilla's {@code minecraft:wither_skull} for skulls)
  * @param knockback  horizontal push away from the hit origin
  * @param knockUp    upward launch speed (0.4 is about a jump)
+ * @param pull       horizontal pull toward the hit origin (e.g. claw hooks, vortex drag); 0 = none
+ * @param slamDown   downward spike velocity applied to airborne victims (e.g. lightning bolts, root undertow); 0 = none
  * @param stacks     a landed hit puts one stack on the victim that makes this mob's later hits on them stronger (see
  *                   {@link Stacks}); ability hits only (not skulls)
  */
 public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional<ResourceLocation> damageType,
-                      List<EffectSpec> effects, double knockback, double knockUp, Optional<Stacks> stacks) {
+                      List<EffectSpec> effects, double knockback, double knockUp, double pull, double slamDown,
+                      Optional<Stacks> stacks) {
+    public HitSpec(Optional<Double> damage, Optional<Double> amount, Optional<ResourceLocation> damageType,
+                   List<EffectSpec> effects, double knockback, double knockUp, Optional<Stacks> stacks) {
+        this(damage, amount, damageType, effects, knockback, knockUp, 0.0, 0.0, stacks);
+    }
+
     public static final HitSpec DEFAULT = new HitSpec(Optional.empty(), Optional.empty(), Optional.empty(), List.of(),
-            0.4, 0.0, Optional.empty());
+            0.4, 0.0, 0.0, 0.0, Optional.empty());
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<EntityType<?>> NO_ATTACK_DAMAGE = new HashSet<>();
     private static final Set<ResourceLocation> UNKNOWN_TYPES = new HashSet<>();
@@ -67,6 +75,8 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
             EffectSpec.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(HitSpec::effects),
             Codec.DOUBLE.optionalFieldOf("knockback", 0.4).forGetter(HitSpec::knockback),
             Codec.DOUBLE.optionalFieldOf("knock_up", 0.0).forGetter(HitSpec::knockUp),
+            Codec.doubleRange(0.0, 4.0).optionalFieldOf("pull", 0.0).forGetter(HitSpec::pull),
+            Codec.doubleRange(0.0, 4.0).optionalFieldOf("slam_down", 0.0).forGetter(HitSpec::slamDown),
             Stacks.CODEC.optionalFieldOf("stacks").forGetter(HitSpec::stacks)
     ).apply(i, HitSpec::new)).validate(HitSpec::validate);
 
@@ -82,6 +92,11 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
      * it lands) only counts from the next hit on.
      */
     public void apply(AbilityRun run, LivingEntity victim, Vec3 from) {
+        applyChecked(run, victim, from);
+    }
+
+    /** Same as {@link #apply}, returning {@code true} when the hit landed (not blocked, evaded, or invulnerable). */
+    public boolean applyChecked(AbilityRun run, LivingEntity victim, Vec3 from) {
         Mob mob = run.mob();
         float amount = (float) (rawDamage(mob) * run.combat().stackMultiplier(victim));
         // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
@@ -92,7 +107,7 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
         DamageSource source = damageSource(mob.level(), mob, mob, () -> mob.damageSources().mobAttack(mob));
         boolean hurt = amount <= 0.0F || victim.hurt(source, amount);
         if (!hurt) {
-            return; // blocked, invulnerable or in damage cooldown: no rider effects either
+            return false; // blocked, invulnerable or in damage cooldown: no rider effects either
         }
         // hurt() also shoves the victim by vanilla's fixed 0.4, which knocks a player out of a combo's next beat; the
         // push is exactly the authored one below, so undo vanilla's (keeping a sync another hit already queued).
@@ -102,7 +117,7 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
                 amount, CombatTargets.distance(mob, victim), victim.getY() - mob.getY()));
         applyEffects(victim, mob);
         stacks.ifPresent(spec -> run.combat().addStack(victim, spec));
-        if (knockback > 0.0 || knockUp > 0.0) {
+        if (knockback > 0.0 || knockUp > 0.0 || pull > 0.0 || slamDown > 0.0) {
             double dx = victim.getX() - from.x;
             double dz = victim.getZ() - from.z;
             if (dx * dx + dz * dz <= 1.0e-6) {
@@ -115,16 +130,35 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
                     dz = ahead.z;
                 }
             }
-            double resist = 1.0 - victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
+            double resist = Math.max(0.0, 1.0 - victim.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
+            // Pulls and slams still partly move heavily armored players so boss displacement mechanics stay legible.
+            double interactiveScale = 0.35 + 0.65 * resist;
             if (knockback > 0.0) {
                 victim.knockback(knockback, -dx, -dz);
             }
-            if (knockUp > 0.0 && resist > 0.0) {
+            if (pull > 0.0) {
+                double dist = Math.hypot(dx, dz);
+                if (dist > 1.1) {
+                    double step = Math.min(dist - 0.8, pull * interactiveScale);
+                    Vec3 motion = victim.getDeltaMovement();
+                    victim.setDeltaMovement(
+                            motion.x - (dx / dist) * step,
+                            motion.y,
+                            motion.z - (dz / dist) * step
+                    );
+                }
+            }
+            if (knockUp > 0.0 && interactiveScale > 0.0) {
                 Vec3 motion = victim.getDeltaMovement();
-                victim.setDeltaMovement(motion.x, Math.max(motion.y, knockUp * resist), motion.z);
+                victim.setDeltaMovement(motion.x, Math.max(motion.y, knockUp * interactiveScale), motion.z);
+            }
+            if (slamDown > 0.0 && !victim.onGround()) {
+                Vec3 motion = victim.getDeltaMovement();
+                victim.setDeltaMovement(motion.x, Math.min(motion.y, -slamDown * interactiveScale), motion.z);
             }
             victim.hurtMarked = true; // sync the new velocity to players
         }
+        return true;
     }
 
     /** Puts this hit's effects on {@code victim}, credited to {@code source} (call only once the hit has landed). */

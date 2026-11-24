@@ -25,7 +25,23 @@ class MinionLinkTest {
                   "all_dead": { "damage_taken": 1.5 } }""").orElseThrow();
         assertEquals(new SummonEvent.DeathDamage(0.5, Optional.of(0.03)), link.deathDamage().orElseThrow());
         assertEquals(new SummonEvent.AllDead(1.5, SummonEvent.Until.NEXT_SUMMON), link.allDead().orElseThrow());
+        assertEquals(0.0, link.whileAliveHealPerSecond(), EPSILON);
+        assertEquals(0.0, link.whileAliveHealPercentPerSecond(), EPSILON);
         assertTrue(parse("{ \"all_dead\": { \"damage_taken\": 1.5, \"until\": \"next_summon\" } }").isPresent());
+
+        SummonEvent.MinionLink siphon = parse("{ \"while_alive_heal_per_second\": 3.0 }").orElseThrow();
+        assertEquals(3.0, siphon.whileAliveHealPerSecond(), EPSILON);
+        assertTrue(siphon.healsSummoner());
+        assertTrue(siphon.deathDamage().isEmpty() && siphon.allDead().isEmpty());
+        assertTrue(parse("{ \"while_alive_heal_per_second\": -1.0 }").isEmpty());
+
+        SummonEvent.MinionLink pctSiphon = parse("{ \"while_alive_heal_percent_per_second\": 0.015 }").orElseThrow();
+        assertEquals(0.015, pctSiphon.whileAliveHealPercentPerSecond(), EPSILON);
+        assertTrue(pctSiphon.healsSummoner());
+        assertEquals(9.6, pctSiphon.healPerSecondFor(640.0), EPSILON);
+        assertEquals(30.0, pctSiphon.healPerSecondFor(2000.0), EPSILON);
+        assertTrue(parse("{ \"while_alive_heal_percent_per_second\": -0.05 }").isEmpty());
+        assertTrue(parse("{ \"while_alive_heal_percent_per_second\": 1.5 }").isEmpty());
     }
 
     @Test

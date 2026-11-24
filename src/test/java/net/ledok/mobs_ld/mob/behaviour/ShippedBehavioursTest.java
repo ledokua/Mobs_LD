@@ -65,6 +65,14 @@ class ShippedBehavioursTest {
         load("/data/mobs_ld/mob_behaviour/midra.json");
         load("/data/mobs_ld/mob_behaviour/amber_brute.json");
         load("/data/mobs_ld/mob_behaviour/emberroot.json");
+        load("/data/mobs_ld/mob_behaviour/nameless_king.json");
+        load("/data/mobs_ld/mob_behaviour/frenzy_wisp.json");
+        load("/data/mobs_ld/mob_behaviour/amber_mite.json");
+        load("/data/mobs_ld/mob_behaviour/ember_cinderling.json");
+        load("/data/mobs_ld/mob_behaviour/storm_cloudlet.json");
+        load("/data/mobs_ld/mob_behaviour/amber_monolith.json");
+        load("/data/mobs_ld/mob_behaviour/ember_pyre.json");
+        load("/data/mobs_ld/mob_behaviour/storm_rod.json");
     }
 
     /** M5's summon and cooldown fields are all optional: Gorefist's and Rot Wart's files mean exactly what they did. */

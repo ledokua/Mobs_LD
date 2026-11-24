@@ -490,8 +490,8 @@ visual out cleanly.
 | field | default | meaning |
 |---|---|---|
 | `at` | required | seconds into the ability when the effect starts (windup start, or impact when `windup: 0`) |
-| `kind` | required | 3D archetype: `slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`, `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`, `root_tendrils`, `cinder_eruption`, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace` |
-| `origin` | `self` | `self` (mob ground position), `target` (locked aim position), or `locked`: binds to every locked `hit` zone or `dash` corridor whose impact / start lands at `at + windup` (inheriting exact position, facing, and default shape dimensions — including `each_fighter` + `lead` and dynamic dash lengths) |
+| `kind` | required | 3D archetype: `slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`, `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`, `root_tendrils`, `cinder_eruption`, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace`, `madness_grasp`, `spear_arc`, `lightning_bolt`, `storm_gale`, `tempest_cyclone`, `thunder_spear_dive`, `storm_nova` |
+| `origin` | `self` | `self` (mob ground position), `target` (locked aim position), or `locked`: binds to every locked `hit` zone, `grab` catch zone, or `dash` corridor whose impact / start lands at `at + windup` (inheriting exact position, facing, and default shape dimensions — including `each_fighter` + `lead` and dynamic dash lengths) |
 | `windup` | 0 | telegraph / charge phase in ability seconds; impact visual begins at `at + windup` |
 | `duration` | required | total lifetime in ability seconds (must be greater than `windup`) |
 | `color` / `secondary_color` | `#F08C00` / `#FFF3B0` | primary outer flame/energy hex colour and incandescent core/accent colour |
@@ -501,6 +501,25 @@ visual out cleanly.
 | `tilt` | 0 | roll tilt in degrees for `slash_arc` (`0` = horizontal, `90` = vertical overhead cleave) |
 | `reverse` | false | reverses sweep or spin direction (`slash_arc`, `sweeping_beam`, `vortex_slash`) |
 | `particles` | true | whether the client spawns local particles along the 3D spell geometry |
+
+### `grab` - interactive player grab, hold, rescue break & throw
+```json
+{ "type": "grab", "at": 0.78, "until": 2.15, "shape": { "type": "cone", "radius": 4.4, "angle": 80 },
+  "telegraph": { "show": false, "from": 0.2 }, "max_victims": 1,
+  "hold": { "forward": 2.35, "up": 1.55, "lift": 0.65 },
+  "catch_hit": { "amount": 5.0, "damage_type": "mobs_ld:frenzied_flame", "knockback": 0.0 },
+  "tick_hit": { "every": 0.42, "hit": { "amount": 3.5, "damage_type": "mobs_ld:frenzied_flame", "knockback": 0.0 } },
+  "release_hit": { "amount": 10.0, "damage_type": "mobs_ld:frenzied_flame", "knockback": 0.0 },
+  "throw": { "forward": 1.45, "up": 0.58 }, "rescue_damage": 28.0 }
+```
+Locks a catch zone at `begin()`, seizes up to `max_victims` hostile entities at `at` (skipping anyone who dodged/blocked `catch_hit`), holds and smoothly lifts them in front of the mob until `until` using block-collision-safe anchor checks, and finishes with `release_hit` + `throw`. When `rescue_damage` is set, teammates dealing that much damage to the boss during the hold shatter the grip early and cancel the finisher throw.
+
+### `pull` - continuous spatial force field
+```json
+{ "type": "pull", "from": 0.68, "until": 1.68, "origin": "self", "shape": { "type": "circle", "radius": 8.5 },
+  "mode": "orbit", "strength": 0.22, "lift": 0.08, "reset_fall": true }
+```
+Applies a per-tick velocity force (`inward`, `outward`, `updraft`, or `orbit`) to hostile entities inside `shape` from `from` to `until`, with horizontal clamping and knockback-resistance scaling (`0.35 + 0.65 * (1 - resist)`). Pair `hit` specs with optional `pull` (pull toward hit origin) and `slam_down` (spike airborne victims downward) for air-juggle and grounding combos.
 
 ### `projectile` - skull volley
 ```json

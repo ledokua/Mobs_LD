@@ -1,0 +1,601 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.mobs_ld.amber_monolith.idle": {
+      "loop": true,
+      "animation_length": 2.4,
+      "bones": {
+        "spire": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  1.4,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "core": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  180,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_ring": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  -180,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  -360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_1": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  2.2,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_2": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  1.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  -0.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  1.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_3": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  -0.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.2": {
+              "post": {
+                "vector": [
+                  0,
+                  2.0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "2.4": {
+              "post": {
+                "vector": [
+                  0,
+                  -0.8,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.6": {
+          "effect": "minecraft:wax_on",
+          "locator": "fx_core"
+        },
+        "1.8": {
+          "effect": "minecraft:end_rod",
+          "locator": "fx_top"
+        }
+      }
+    },
+    "animation.mobs_ld.amber_monolith.walk": {
+      "loop": true,
+      "animation_length": 1.6,
+      "bones": {
+        "shard_ring": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.8": {
+              "post": {
+                "vector": [
+                  0,
+                  -180,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.6": {
+              "post": {
+                "vector": [
+                  0,
+                  -360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "core": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.8": {
+              "post": {
+                "vector": [
+                  0,
+                  180,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.6": {
+              "post": {
+                "vector": [
+                  0,
+                  360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      }
+    },
+    "animation.mobs_ld.amber_monolith.attack": {
+      "animation_length": 1.4,
+      "bones": {
+        "spire": {
+          "position": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.55": {
+              "post": {
+                "vector": [
+                  0,
+                  3.5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.75": [
+              0,
+              0,
+              0
+            ],
+            "1.4": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.55": {
+              "post": {
+                "vector": [
+                  1.15,
+                  1.12,
+                  1.15
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.75": [
+              1.28,
+              0.92,
+              1.28
+            ],
+            "1.4": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_ring": {
+          "rotation": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.75": [
+              0,
+              -360,
+              0
+            ],
+            "1.4": {
+              "post": {
+                "vector": [
+                  0,
+                  -540,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          },
+          "scale": {
+            "0.0": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.6": {
+              "post": {
+                "vector": [
+                  1.4,
+                  1.1,
+                  1.4
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "1.4": {
+              "post": {
+                "vector": [
+                  1,
+                  1,
+                  1
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.4": {
+          "effect": "minecraft:wax_on",
+          "locator": "fx_top"
+        },
+        "0.75": {
+          "effect": "minecraft:falling_honey",
+          "locator": "fx_core"
+        }
+      }
+    },
+    "animation.mobs_ld.amber_monolith.hurt": {
+      "animation_length": 0.35,
+      "bones": {
+        "spire": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.12": [
+              8,
+              0,
+              -10
+            ],
+            "0.24": [
+              -5,
+              0,
+              6
+            ],
+            "0.35": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "animation.mobs_ld.amber_monolith.death": {
+      "loop": "hold_on_last_frame",
+      "animation_length": 0.8,
+      "bones": {
+        "spire": {
+          "position": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.8": [
+              0,
+              -18,
+              0
+            ]
+          },
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.3": [
+              1.25,
+              0.9,
+              1.25
+            ],
+            "0.8": [
+              0.1,
+              0.1,
+              0.1
+            ]
+          }
+        },
+        "shard_ring": {
+          "scale": {
+            "0.0": [
+              1,
+              1,
+              1
+            ],
+            "0.5": [
+              2.2,
+              2.2,
+              2.2
+            ],
+            "0.8": [
+              0.05,
+              0.05,
+              0.05
+            ]
+          }
+        }
+      },
+      "particle_effects": {
+        "0.2": {
+          "effect": "minecraft:wax_off",
+          "locator": "fx_core"
+        }
+      }
+    },
+    "animation.mobs_ld.amber_monolith.spawn": {
+      "animation_length": 0.85,
+      "bones": {
+        "pedestal": {
+          "position": {
+            "0.0": [
+              0,
+              -24,
+              0
+            ],
+            "0.55": {
+              "post": {
+                "vector": [
+                  0,
+                  1.5,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            },
+            "0.85": {
+              "post": {
+                "vector": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        },
+        "shard_ring": {
+          "rotation": {
+            "0.0": [
+              0,
+              0,
+              0
+            ],
+            "0.85": {
+              "post": {
+                "vector": [
+                  0,
+                  -360,
+                  0
+                ]
+              },
+              "lerp_mode": "catmullrom"
+            }
+          }
+        }
+      },
+      "particle_effects": {
+        "0.25": {
+          "effect": "minecraft:wax_on",
+          "locator": "fx_core"
+        }
+      }
+    }
+  }
+}

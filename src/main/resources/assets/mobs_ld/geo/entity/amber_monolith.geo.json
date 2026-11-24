@@ -1,0 +1,266 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.mobs_ld.amber_monolith",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 3.0,
+        "visible_bounds_height": 3.5,
+        "visible_bounds_offset": [
+          0,
+          1.5,
+          0
+        ]
+      },
+      "bones": [
+        {
+          "name": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "pedestal",
+          "parent": "root",
+          "pivot": [
+            0,
+            0,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6,
+                0,
+                -6
+              ],
+              "size": [
+                12,
+                5,
+                12
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            },
+            {
+              "origin": [
+                -4.5,
+                5,
+                -4.5
+              ],
+              "size": [
+                9,
+                4,
+                9
+              ],
+              "uv": [
+                28,
+                17
+              ]
+            }
+          ]
+        },
+        {
+          "name": "spire",
+          "parent": "pedestal",
+          "pivot": [
+            0,
+            9,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -3.5,
+                9,
+                -3.5
+              ],
+              "size": [
+                7,
+                15,
+                7
+              ],
+              "uv": [
+                0,
+                17
+              ]
+            },
+            {
+              "origin": [
+                -2.5,
+                24,
+                -2.5
+              ],
+              "size": [
+                5,
+                10,
+                5
+              ],
+              "uv": [
+                0,
+                39
+              ]
+            },
+            {
+              "origin": [
+                -1.5,
+                34,
+                -1.5
+              ],
+              "size": [
+                3,
+                5,
+                3
+              ],
+              "uv": [
+                52,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "name": "core",
+          "parent": "spire",
+          "pivot": [
+            0,
+            20,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -4,
+                17,
+                -4
+              ],
+              "size": [
+                8,
+                6,
+                8
+              ],
+              "uv": [
+                28,
+                30
+              ]
+            }
+          ]
+        },
+        {
+          "name": "shard_ring",
+          "parent": "spire",
+          "pivot": [
+            0,
+            21,
+            0
+          ]
+        },
+        {
+          "name": "shard_1",
+          "parent": "shard_ring",
+          "pivot": [
+            9,
+            21,
+            0
+          ],
+          "cubes": [
+            {
+              "origin": [
+                7.5,
+                17,
+                -1.5
+              ],
+              "size": [
+                3,
+                8,
+                3
+              ],
+              "uv": [
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "shard_2",
+          "parent": "shard_ring",
+          "pivot": [
+            -4.5,
+            23,
+            7.8
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6,
+                19,
+                6.3
+              ],
+              "size": [
+                3,
+                8,
+                3
+              ],
+              "uv": [
+                36,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "shard_3",
+          "parent": "shard_ring",
+          "pivot": [
+            -4.5,
+            19,
+            -7.8
+          ],
+          "cubes": [
+            {
+              "origin": [
+                -6,
+                15,
+                -9.3
+              ],
+              "size": [
+                3,
+                8,
+                3
+              ],
+              "uv": [
+                48,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "name": "fx_core",
+          "parent": "core",
+          "pivot": [
+            0,
+            21,
+            0
+          ]
+        },
+        {
+          "name": "fx_top",
+          "parent": "spire",
+          "pivot": [
+            0,
+            38,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

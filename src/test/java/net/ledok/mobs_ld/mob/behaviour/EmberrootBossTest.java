@@ -294,7 +294,7 @@ class EmberrootBossTest {
 
     @Test
     void customBossStatusEffectsAndPixelArtIconsShip() throws Exception {
-        for (String name : List.of("frenzied_burn", "amber_mire", "charred_roots")) {
+        for (String name : List.of("frenzied_burn", "amber_mire", "charred_roots", "storm_static")) {
             ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mobs_ld", name);
             assertTrue(BuiltInRegistries.MOB_EFFECT.containsKey(id), "Missing registered MobEffect: " + id);
             assertInstanceOf(BossStatusEffect.class, BuiltInRegistries.MOB_EFFECT.get(id),
@@ -441,6 +441,26 @@ class EmberrootBossTest {
                     "Tick count mismatch in clip " + entry.getKey());
             assertEquals(len + 1, bones.getAsJsonArray("fx_core").size(),
                     "Tick count mismatch in clip " + entry.getKey());
+        }
+    }
+
+    @Test
+    void dashesCoverTriggerRangeAndStepHeightPreventsSnags() throws Exception {
+        MobDeclaration declaration = MobDeclaration.codec(EMBERROOT_ID)
+                .parse(JsonOps.INSTANCE, readJson("/mobs_ld/entities/emberroot.json")).getOrThrow();
+        assertTrue(declaration.attributes().getOrDefault(
+                        ResourceLocation.withDefaultNamespace("generic.step_height"), 0.0) >= 1.0,
+                "Emberroot needs >= 1.0 step_height so charges do not snag on 1-block steps");
+
+        MobBehaviour emberroot = MobBehaviour.CODEC.parse(JsonOps.INSTANCE,
+                        readJson("/data/mobs_ld/mob_behaviour/emberroot.json")).getOrThrow();
+        for (String name : List.of("shoulder_barge", "roll_crush", "roll_crush_p2")) {
+            MobBehaviour.Ability ability = emberroot.abilities().get(name);
+            DashEvent dash = ability.events().stream().filter(DashEvent.class::isInstance)
+                    .map(DashEvent.class::cast).findFirst().orElseThrow();
+            assertTrue(dash.hit().isPresent(), name + " dash must deal contact damage");
+            assertTrue(dash.maxDistance() >= ability.range().max() + dash.overshoot(),
+                    name + " max_distance must reach targets at range.max plus overshoot");
         }
     }
 

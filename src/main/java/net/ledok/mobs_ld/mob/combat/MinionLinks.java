@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.mob.combat;
 
 import net.ledok.mobs_ld.registry.ModDamageTypes;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -11,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -27,8 +29,12 @@ public final class MinionLinks {
     public static final String LINK_TAG_PREFIX = "mobs_ld_linked_to:";
     /** Particles on an exposed summoner this often (ticks). */
     static final int FX_INTERVAL = 10;
+    /** Particles along active barrier or siphon tethers this often (ticks). */
+    static final int TETHER_INTERVAL = 8;
     static final String EXPOSED_KEY = "mobs_ld.minion_link.exposed";
     private static final String EXPOSED_FALLBACK = "All minions are dead: %s takes %s%% damage!";
+    static final String SHIELD_BLOCKED_KEY = "mobs_ld.shield.blocked_by_adds";
+    private static final String SHIELD_BLOCKED_FALLBACK = "%s is shielded — destroy its summoned pillars first!";
 
     private MinionLinks() {
     }
@@ -103,6 +109,51 @@ public final class MinionLinks {
     /** While exposed: a few sparks every {@value #FX_INTERVAL} ticks. */
     static void tickFx(Mob summoner, ServerLevel level) {
         sparks(summoner, level, 6);
+    }
+
+    /** A hit bounced off an add-driven invulnerability barrier: chime, deflect sparks, and a hint to the attacker. */
+    static void announceShieldBlocked(Mob boss, ServerLevel level, DamageSource source) {
+        level.playSound(null, boss.getX(), boss.getY() + boss.getBbHeight() * 0.5, boss.getZ(),
+                SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 1.8F, 0.72F);
+        double width = boss.getBbWidth() * 0.65;
+        double height = boss.getBbHeight();
+        level.sendParticles(ParticleTypes.END_ROD, boss.getX(), boss.getY() + height * 0.5, boss.getZ(),
+                12, width, height * 0.35, width, 0.08);
+        if (source.getEntity() instanceof Player player) {
+            Component text = Component.translatableWithFallback(SHIELD_BLOCKED_KEY, SHIELD_BLOCKED_FALLBACK,
+                    boss.getDisplayName());
+            player.displayClientMessage(text, true);
+        }
+    }
+
+    /** Sends a clear, lightweight particle arc from a pillar/pyre into the boss it is shielding or healing. */
+    static void drawTether(ServerLevel level, Entity from, Mob to, SimpleParticleType particle) {
+        Vec3 start = from.position().add(0.0, from.getBbHeight() * 0.72, 0.0);
+        Vec3 end = to.position().add(0.0, to.getBbHeight() * 0.54, 0.0);
+        // Beacon shimmer atop the active pillar/pyre so players can spot it immediately across the arena.
+        level.sendParticles(particle, from.getX(), from.getY() + from.getBbHeight() + 0.35, from.getZ(),
+                2, 0.14, 0.16, 0.14, 0.015);
+        int steps = 9;
+        for (int i = 1; i <= steps; i++) {
+            double t = (double) i / (steps + 1);
+            double x = start.x + (end.x - start.x) * t;
+            double y = start.y + (end.y - start.y) * t + Math.sin(t * Math.PI) * 0.85;
+            double z = start.z + (end.z - start.z) * t;
+            level.sendParticles(particle, x, y, z, 1, 0.05, 0.05, 0.05, 0.01);
+        }
+    }
+
+    /** Subtle shimmering ward ring around a boss currently shielded by live pillars. */
+    static void tickShieldAura(Mob boss, ServerLevel level) {
+        double radius = Math.max(1.2, boss.getBbWidth() * 0.75);
+        double y = boss.getY() + boss.getBbHeight() * 0.5;
+        double phase = (level.getGameTime() % 40) * (Math.PI * 2.0 / 40.0);
+        for (int i = 0; i < 4; i++) {
+            double angle = phase + i * (Math.PI * 0.5);
+            level.sendParticles(ParticleTypes.END_ROD,
+                    boss.getX() + Math.cos(angle) * radius, y, boss.getZ() + Math.sin(angle) * radius,
+                    1, 0.04, 0.15, 0.04, 0.01);
+        }
     }
 
     private static void sparks(Mob summoner, ServerLevel level, int count) {

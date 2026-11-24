@@ -1,0 +1,168 @@
+{
+  "reference_attributes": {
+    "minecraft:generic.attack_damage": 8.0
+  },
+  "movement": {
+    "style": "standoff",
+    "distance": 1.7,
+    "speed": 1.15,
+    "follow": "nearest",
+    "reach_height": 2.5,
+    "reach_depth": 2.0,
+    "ground_scan": 8
+  },
+  "global_cooldown": 0.35,
+  "intro": {
+    "clip": "spawn",
+    "duration": 0.65,
+    "events": [
+      {
+        "type": "vfx",
+        "at": 0.0,
+        "kind": "ground_fracture",
+        "radius": 1.5,
+        "height": 0.6,
+        "count": 5,
+        "duration": 0.6,
+        "color": "#C48118",
+        "secondary_color": "#FFE787"
+      },
+      {
+        "type": "fx",
+        "at": 0.05,
+        "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 1.35, "volume": 1.2 }
+      }
+    ]
+  },
+  "abilities": {
+    "resin_bite": {
+      "clip": "attack",
+      "duration": 1.1,
+      "cooldown": [2.8, 3.8],
+      "weight": 3,
+      "target": "nearest",
+      "range": { "max": 2.8 },
+      "track_until": 0.3,
+      "events": [
+        {
+          "type": "hit",
+          "at": 0.55,
+          "height": 2.5,
+          "depth": 1.5,
+          "shape": { "type": "cone", "radius": 2.9, "angle": 95 },
+          "telegraph": { "show": false, "from": 0.3 },
+          "hit": {
+            "amount": 7.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.0,
+            "pull": 0.35,
+            "effects": [
+              { "id": "mobs_ld:amber_mire", "duration": 2.5, "amplifier": 0 }
+            ]
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.3,
+          "kind": "amber_spire",
+          "origin": "locked",
+          "windup": 0.25,
+          "duration": 0.65,
+          "height": 1.35,
+          "color": "#D48E1A",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:entity.silverfish.ambient", "pitch": 0.72, "volume": 1.4 }
+        }
+      ]
+    },
+    "amber_pounce": {
+      "clip": "attack",
+      "duration": 1.2,
+      "cooldown": [6.0, 8.0],
+      "initial_cooldown": 2.5,
+      "weight": 2,
+      "no_repeat": true,
+      "target": "nearest",
+      "range": { "min": 3.2, "max": 9.0 },
+      "track_until": 0.3,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.3,
+          "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 1.25, "volume": 1.2 }
+        },
+        {
+          "type": "dash",
+          "at": 0.55,
+          "speed": 1.2,
+          "max_distance": 11.0,
+          "overshoot": 2.0,
+          "width": 1.9,
+          "push": "away",
+          "on_wall": "stop",
+          "telegraph": { "show": false, "from": 0.3 },
+          "hit": {
+            "amount": 7.0,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.45,
+            "effects": [
+              { "id": "mobs_ld:amber_mire", "duration": 2.5, "amplifier": 0 }
+            ]
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.3,
+          "kind": "shard_spray",
+          "origin": "locked",
+          "windup": 0.25,
+          "duration": 0.7,
+          "height": 1.0,
+          "count": 5,
+          "color": "#E3A21E",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 1.15, "volume": 1.4 }
+        }
+      ]
+    }
+  },
+  "on_death": {
+    "clip": "death",
+    "duration": 0.75,
+    "events": [
+      {
+        "type": "vfx",
+        "at": 0.05,
+        "kind": "ground_fracture",
+        "radius": 2.2,
+        "height": 0.8,
+        "count": 5,
+        "duration": 0.65,
+        "color": "#C48118",
+        "secondary_color": "#FFE787"
+      },
+      {
+        "type": "cloud",
+        "at": 0.25,
+        "radius": 2.1,
+        "duration": 3.5,
+        "effects": [
+          { "id": "mobs_ld:amber_mire", "duration": 2.5, "amplifier": 0 }
+        ]
+      },
+      {
+        "type": "fx",
+        "at": 0.25,
+        "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.85, "volume": 1.5 }
+      }
+    ]
+  }
+}

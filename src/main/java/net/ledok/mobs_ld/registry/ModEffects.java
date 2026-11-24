@@ -5,6 +5,7 @@ import net.ledok.mobs_ld.effect.AmberMireEffect;
 import net.ledok.mobs_ld.effect.CharredRootsEffect;
 import net.ledok.mobs_ld.effect.FrenziedBurnEffect;
 import net.ledok.mobs_ld.effect.ProvokeEffect;
+import net.ledok.mobs_ld.effect.StormStaticEffect;
 import net.ledok.mobs_ld.effect.TauntEffect;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -42,6 +43,12 @@ public final class ModEffects {
     public static final Holder<MobEffect> CHARRED_ROOTS = register(
             "charred_roots",
             new CharredRootsEffect()
+    );
+
+    /** Nameless King's custom boss debuff: crackling storm static with custom lightning HUD icon. */
+    public static final Holder<MobEffect> STORM_STATIC = register(
+            "storm_static",
+            new StormStaticEffect()
     );
 
     private static Holder<MobEffect> register(String name, MobEffect effect) {

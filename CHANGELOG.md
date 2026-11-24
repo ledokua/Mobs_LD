@@ -1,6 +1,28 @@
 # Changelog
 
 ## Unreleased
+- **New custom boss: Nameless King** (`mobs_ld:nameless_king`):
+  - Data-driven `LdMob` storm-and-lightning demigod (`mobs_ld/entities/nameless_king.json`: fixed `580 HP`, `14` attack,
+    `12` armor, `4` toughness) with GeckoLib 4 model (117 cubes, 9 marker bones), all 16 smoothed `catmullrom`/hit-stop
+    animations, emissive golden-rune glowmask, overcharged Phase 2 variant, and pre-baked hit tracks
+    (`data/mobs_ld/hit_tracks/nameless_king.json`).
+  - Three-phase fight (`data/mobs_ld/mob_behaviour/nameless_king.json`) with `target_slots` (`storm_prey`,
+    `thunder_mark`), deceptive delayed Dragonslayer Swordspear combos, orbiting cyclone vortex (`cyclone_spear`),
+    sustained howling gale push (`storm_wave`), aerial storm-cloud dive (`sky_dive`), vertical lightning stake,
+    updraft-into-sky-bolt `falling_bolt` / 3+ player raid `tempest_judgment`, custom `mobs_ld:storm_lightning` damage
+    type, custom `mobs_ld:storm_static` debuff with handcrafted 18×18 HUD icon, and 6 exclusive 3D VFX
+    (`spear_arc`, `lightning_bolt`, `storm_gale`, `tempest_cyclone`, `thunder_spear_dive`, `storm_nova`).
+- **Interactive player-boss combat engine & custom boss spell upgrades:**
+  - Added optional additive `"grab"` (`GrabEvent`, collision-safe lift/hold, periodic ticks, directional throw, and
+    teamplay `rescue_damage` break) and `"pull"` (`PullEvent`, `inward`/`outward`/`updraft`/`orbit` spatial force
+    fields) ability events, plus optional `pull` and `slam_down` physics on `HitSpec` (existing base-mod bosses
+    untouched).
+  - Upgraded **Midra** (`madness_grab` now genuinely grabs, lifts, sears, and throws a player with `madness_grasp` 3D
+    VFX and teammate `28` damage rescue break; `uppercut_slash` launches into a mid-air `flame_pillar`; `frenzy_burst`
+    draws players inward before detonating), **Amber Brute** (`double_rake` hook-in -> air-pop -> ground-spike combo,
+    pop-up `crystal_fissure`, clamping `amber_snare`, high-launch `crystal_resonance`), and **Emberroot** (`root_snare` /
+    `root_cascade` anti-air root undertow `slam_down`, bouncy `cataclysm_drum`, catapulting burrow eruptions), keeping
+    all 4 custom bosses strictly disjoint visually, thematically, and mechanically.
 - **New custom raid boss: Emberroot** (`mobs_ld:emberroot`):
   - Data-driven `LdMob` charred-wood furnace raid boss built for 3–6 player encounters (`mobs_ld/entities/emberroot.json`:
     `640 HP`, `10` armor, `4` toughness) with GeckoLib 4 model (8 marker bones including live `fx_core`), all 14 original

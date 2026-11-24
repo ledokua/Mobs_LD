@@ -11,6 +11,7 @@
     "minecraft:generic.armor": 10.0,
     "minecraft:generic.armor_toughness": 4.0,
     "minecraft:generic.knockback_resistance": 1.0,
+    "minecraft:generic.step_height": 1.1,
     "minecraft:generic.movement_speed": 0.25,
     "minecraft:generic.follow_range": 48.0
   },

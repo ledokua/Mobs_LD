@@ -164,15 +164,17 @@ final class SpellVfxInstance {
                     }
                 } else if (ap < 0.9F) {
                     float half = angle * 0.5F;
-                    float deg = reverse ? Mth.lerp(ap, half, -half) : Mth.lerp(ap, -half, half);
+                    float sweepP = Mth.clamp(ap / 0.92F, 0.0F, 1.0F);
+                    float deg = reverse ? Mth.lerp(sweepP, half, -half) : Mth.lerp(sweepP, -half, half);
                     double bRad = Math.toRadians(yaw + deg);
                     double bfx = -Math.sin(bRad);
                     double bfz = Math.cos(bRad);
-                    // Sparks and ground scorch along the beam track.
+                    double kneeDist = Math.min(length * 0.28, 6.0);
+                    // Sparks and scorch embers along the steep descent and player-height horizontal beam track.
                     for (int i = 0; i < 5; i++) {
-                        double frac = 0.18 + rand.nextDouble() * 0.82;
-                        double dist = length * frac;
-                        double py = y - height * frac + (rand.nextDouble() - 0.5) * 0.5;
+                        double dist = length * (0.12 + rand.nextDouble() * 0.88);
+                        double drop = dist <= kneeDist ? height * (dist / Math.max(0.1, kneeDist)) : height;
+                        double py = y - drop + (rand.nextDouble() - 0.5) * 0.45;
                         level.addParticle(i == 0 ? ParticleTypes.LAVA : ParticleTypes.FLAME,
                                 x + bfx * dist + (rand.nextDouble() - 0.5) * 0.4,
                                 py,
@@ -473,8 +475,9 @@ final class SpellVfxInstance {
                         double rrz = -Math.sin(rRad);
                         double d = 0.8 + rand.nextDouble() * (length - 0.8);
                         double s = (rand.nextDouble() - 0.5) * width * 0.75;
+                        double py = y - 0.22 - d * Math.sin(Math.toRadians(1.6)) + (rand.nextDouble() - 0.5) * 0.75;
                         level.addParticle(i == 0 ? ParticleTypes.LAVA : (i % 2 == 0 ? ParticleTypes.FLAME : ParticleTypes.SMOKE),
-                                x + rfx * d + rrx * s, y + (rand.nextDouble() - 0.5) * 0.9, z + rfz * d + rrz * s,
+                                x + rfx * d + rrx * s, py, z + rfz * d + rrz * s,
                                 rfx * 0.18, 0.06, rfz * 0.18);
                     }
                 }
@@ -541,6 +544,126 @@ final class SpellVfxInstance {
                         level.addParticle(i % 3 == 0 ? ParticleTypes.LAVA : (i % 2 == 0 ? ParticleTypes.FLAME : ParticleTypes.SMOKE),
                                 x, y + 1.7, z,
                                 Math.cos(theta) * spd, 0.06 + rand.nextDouble() * 0.12, Math.sin(theta) * spd);
+                    }
+                }
+            }
+            case MADNESS_GRASP -> {
+                if (inWindup && (ageTicks & 1) == 0) {
+                    double deg = (rand.nextDouble() - 0.5) * angle;
+                    double gRad = Math.toRadians(yaw + deg);
+                    double d = 1.2 + rand.nextDouble() * Math.max(1.0, radius - 1.2);
+                    level.addParticle(ParticleTypes.FLAME,
+                            x - Math.sin(gRad) * d, y + 0.4 + rand.nextDouble() * 1.4, z + Math.cos(gRad) * d,
+                            Math.sin(gRad) * 0.08, 0.05, -Math.cos(gRad) * 0.08);
+                } else if (!inWindup && ap < 0.85F) {
+                    double holdX = x + fx * Math.min(2.4, radius * 0.55);
+                    double holdZ = z + fz * Math.min(2.4, radius * 0.55);
+                    for (int i = 0; i < (justImpacted ? 10 : 3); i++) {
+                        double theta = rand.nextDouble() * Math.PI * 2.0;
+                        double r = 0.5 + rand.nextDouble() * 0.8;
+                        level.addParticle(i == 0 ? ParticleTypes.LAVA : ParticleTypes.SMALL_FLAME,
+                                holdX + Math.cos(theta) * r, y + 1.4 + rand.nextDouble() * 1.2,
+                                holdZ + Math.sin(theta) * r,
+                                -Math.cos(theta) * 0.05, 0.06, -Math.sin(theta) * 0.05);
+                    }
+                }
+            }
+            case SPEAR_ARC -> {
+                if (!inWindup && ap < 0.55F) {
+                    float half = angle * 0.5F;
+                    float sweep = Math.min(1.0F, ap * 2.5F);
+                    float deg = reverse ? Mth.lerp(sweep, half, -half) : Mth.lerp(sweep, -half, half);
+                    double sRad = Math.toRadians(yaw + deg);
+                    for (int i = 0; i < 3; i++) {
+                        double r = radius * (0.65 + rand.nextDouble() * 0.35);
+                        level.addParticle(i == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD,
+                                x - Math.sin(sRad) * r, y + (rand.nextDouble() - 0.5) * 0.45,
+                                z + Math.cos(sRad) * r,
+                                (rand.nextDouble() - 0.5) * 0.06, 0.04, (rand.nextDouble() - 0.5) * 0.06);
+                    }
+                }
+            }
+            case LIGHTNING_BOLT -> {
+                if (inWindup && (ageTicks & 1) == 0) {
+                    double theta = rand.nextDouble() * Math.PI * 2.0;
+                    double r = rand.nextDouble() * radius * 0.85;
+                    level.addParticle(ParticleTypes.ELECTRIC_SPARK,
+                            x + Math.cos(theta) * r, y + 0.25 + rand.nextDouble() * 0.8, z + Math.sin(theta) * r,
+                            0.0, 0.08, 0.0);
+                    level.addParticle(ParticleTypes.CLOUD,
+                            x + Math.cos(theta) * radius * 0.7, y + Math.min(height, 10.0), z + Math.sin(theta) * radius * 0.7,
+                            0.0, -0.02, 0.0);
+                } else if (justImpacted) {
+                    for (int i = 0; i < 16; i++) {
+                        double theta = rand.nextDouble() * Math.PI * 2.0;
+                        double spd = 0.08 + rand.nextDouble() * 0.20;
+                        level.addParticle(i % 4 == 0 ? ParticleTypes.END_ROD : ParticleTypes.ELECTRIC_SPARK,
+                                x + Math.cos(theta) * 0.4, y + 0.3 + rand.nextDouble() * 1.4, z + Math.sin(theta) * 0.4,
+                                Math.cos(theta) * spd, 0.10 + rand.nextDouble() * 0.14, Math.sin(theta) * spd);
+                    }
+                }
+            }
+            case STORM_GALE -> {
+                if (!inWindup && ap < 0.85F) {
+                    double dist = length * Math.min(1.0F, ap * 1.45F);
+                    for (int i = 0; i < 5; i++) {
+                        double deg = (rand.nextDouble() - 0.5) * angle;
+                        double wRad = Math.toRadians(yaw + deg);
+                        level.addParticle(i == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD,
+                                x - Math.sin(wRad) * dist, y + 0.35 + rand.nextDouble() * height * 0.7,
+                                z + Math.cos(wRad) * dist,
+                                -Math.sin(wRad) * 0.22, 0.06, Math.cos(wRad) * 0.22);
+                    }
+                }
+            }
+            case TEMPEST_CYCLONE -> {
+                if (!inWindup && ap < 0.9F) {
+                    for (int i = 0; i < 5; i++) {
+                        double theta = rand.nextDouble() * Math.PI * 2.0;
+                        double r = radius * (0.45 + rand.nextDouble() * 0.55);
+                        double tx = -Math.sin(theta) * 0.24;
+                        double tz = Math.cos(theta) * 0.24;
+                        level.addParticle(i % 2 == 0 ? ParticleTypes.CLOUD : ParticleTypes.ELECTRIC_SPARK,
+                                x + Math.cos(theta) * r, y + 0.3 + rand.nextDouble() * height * 0.75,
+                                z + Math.sin(theta) * r,
+                                reverse ? -tx : tx, 0.09, reverse ? -tz : tz);
+                    }
+                }
+            }
+            case THUNDER_SPEAR_DIVE -> {
+                if (inWindup && (ageTicks & 1) == 0) {
+                    double d = rand.nextDouble() * length;
+                    double s = (rand.nextDouble() - 0.5) * width * 0.8;
+                    level.addParticle(ParticleTypes.ELECTRIC_SPARK,
+                            x + fx * d + rx * s, y + 0.15 + rand.nextDouble() * 0.3, z + fz * d + rz * s,
+                            fx * 0.12, 0.04, fz * 0.12);
+                } else if (!inWindup && ap < 0.75F) {
+                    double tip = length * Math.min(1.0F, ap * 2.0F);
+                    for (int i = 0; i < (justImpacted ? 14 : 4); i++) {
+                        double d = Math.max(0.0, tip - rand.nextDouble() * 3.5);
+                        double s = (rand.nextDouble() - 0.5) * width * 0.9;
+                        level.addParticle(i % 2 == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD,
+                                x + fx * d + rx * s, y + 0.6 + rand.nextDouble() * 1.4, z + fz * d + rz * s,
+                                fx * 0.18, 0.08, fz * 0.18);
+                    }
+                }
+            }
+            case STORM_NOVA -> {
+                if (inWindup && (ageTicks & 1) == 0) {
+                    for (int i = 0; i < 3; i++) {
+                        double theta = rand.nextDouble() * Math.PI * 2.0;
+                        double r = radius * (0.35 + rand.nextDouble() * 0.65);
+                        level.addParticle(i == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD,
+                                x + Math.cos(theta) * r, y + 0.25 + rand.nextDouble() * 1.4, z + Math.sin(theta) * r,
+                                -Math.cos(theta) * 0.07, 0.12, -Math.sin(theta) * 0.07);
+                    }
+                } else if (justImpacted) {
+                    for (int i = 0; i < 24; i++) {
+                        double theta = rand.nextDouble() * Math.PI * 2.0;
+                        double spd = 0.14 + rand.nextDouble() * 0.22;
+                        level.addParticle(i % 2 == 0 ? ParticleTypes.ELECTRIC_SPARK : ParticleTypes.CLOUD,
+                                x, y + 1.2, z,
+                                Math.cos(theta) * spd, 0.08 + rand.nextDouble() * 0.12, Math.sin(theta) * spd);
                     }
                 }
             }

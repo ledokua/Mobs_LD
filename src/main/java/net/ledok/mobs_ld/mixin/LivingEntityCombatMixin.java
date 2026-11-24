@@ -34,11 +34,11 @@ public abstract class LivingEntityCombatMixin implements DeathDrops {
     @Shadow
     protected abstract void dropExperience(Entity killer);
 
-    /** Invulnerable while walking home or during an ability marked {@code invulnerable} (transitions, intros). */
+    /** Invulnerable while walking home, during an invulnerable clip, or while add-shielded ({@code multiplier: 0}). */
     @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
     private void mobs_ld$refuseDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         MobCombat combat = mobs_ld$combatFor(source);
-        if (combat != null && combat.invulnerable()) {
+        if (combat != null && combat.refusesDamage(source)) {
             cir.setReturnValue(false);
         }
     }

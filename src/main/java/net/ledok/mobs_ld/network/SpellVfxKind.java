@@ -53,7 +53,21 @@ public enum SpellVfxKind implements StringRepresentable {
     /** Concentric blocky ash-and-cinder seismic ground tiles rippling outward from heavy fist drums. */
     DRUM_TREMOR("drum_tremor"),
     /** Roaring cinder-block and heatwave burst erupting out of a split ribcage furnace. */
-    RIB_FURNACE("rib_furnace");
+    RIB_FURNACE("rib_furnace"),
+    /** Closing cone of clutching Frenzied Flame tendrils and constricting madness rings for Midra's grab. */
+    MADNESS_GRASP("madness_grasp"),
+    /** Sleek narrow storm-steel and sunlight-lightning crescent trail for the Nameless King's swordspear swings. */
+    SPEAR_ARC("spear_arc"),
+    /** Gathering storm-cloud ring discharging a jagged sky-to-earth golden sunlight thunderbolt with ground forks. */
+    LIGHTNING_BOLT("lightning_bolt"),
+    /** Layered pale-cyan howling wind-shear crescents and storm ribbons surging forward across a cone. */
+    STORM_GALE("storm_gale"),
+    /** Swirling grey-cyan storm-cloud funnel with orbiting golden static bands for the Nameless King's cyclone. */
+    TEMPEST_CYCLONE("tempest_cyclone"),
+    /** Elevated storm-cloud halo + crackling cyan-gold plunging lightning streak and impact forks for sky dives. */
+    THUNDER_SPEAR_DIVE("thunder_spear_dive"),
+    /** Contracting storm-mist updraft sphere erupting into radial golden floor lightning arcs and a cyan wind ring. */
+    STORM_NOVA("storm_nova");
 
     public static final Codec<SpellVfxKind> CODEC = StringRepresentable.fromEnum(SpellVfxKind::values);
     private static final SpellVfxKind[] VALUES = values();

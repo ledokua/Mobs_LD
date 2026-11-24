@@ -7,6 +7,7 @@ import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.GrabEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
@@ -57,6 +58,10 @@ public final class AbilityRun {
     private final Map<HitEvent, List<HitZone>> hitZones = new IdentityHashMap<>();
     /** Locked dash geometry (origin, facing, length, width), for {@code vfx} events anchored to a dash. */
     private final Map<DashEvent, DashLock> dashLocks = new IdentityHashMap<>();
+    /** Locked grab catch zone (origin, facing, shape), for {@code vfx} events anchored to a grab. */
+    private final Map<GrabEvent, HitZone> grabZones = new IdentityHashMap<>();
+    /** Total post-armour damage this mob has taken during this ability run (for {@code grab.rescue_damage}). */
+    private double damageTaken;
     /** Victims a {@code once} hit of this run has already struck (see {@link #strikeOnce}). */
     private final Set<UUID> struckOnce = new HashSet<>();
     /** Work left for the end of this tick, once every event due now has run (see {@link #afterEvents}). */
@@ -368,6 +373,28 @@ public final class AbilityRun {
     /** Where {@code event}'s dash locked; empty if it has not started (yet) in this run. */
     public Optional<DashLock> lockedDash(DashEvent event) {
         return Optional.ofNullable(dashLocks.get(event));
+    }
+
+    /** A {@code grab} event locked its catch zone: kept for {@link #lockedGrab}. */
+    public void noteGrab(GrabEvent event, HitZone zone) {
+        grabZones.put(event, zone);
+    }
+
+    /** Where {@code event}'s grab locked; empty if it has not started (yet) in this run. */
+    public Optional<HitZone> lockedGrab(GrabEvent event) {
+        return Optional.ofNullable(grabZones.get(event));
+    }
+
+    /** Records damage dealt to the mob while this ability is running (for {@code grab.rescue_damage}). */
+    void noteDamageTaken(double amount) {
+        if (amount > 0.0) {
+            damageTaken += amount;
+        }
+    }
+
+    /** Total damage taken by the mob so far during this ability run. */
+    public double damageTaken() {
+        return damageTaken;
     }
 
     /**

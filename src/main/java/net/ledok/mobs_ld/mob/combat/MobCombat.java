@@ -16,7 +16,9 @@ import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
+import net.ledok.mobs_ld.registry.ModDamageTypes;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
@@ -104,6 +106,8 @@ public final class MobCombat {
     /** All its linked adds are dead: it takes {@link #exposedMultiplier} damage until it summons linked adds again. */
     private boolean exposed;
     private double exposedMultiplier = 1.0;
+    /** Game time a shield-blocked hit hint was last sent (rate-limits sound and action-bar spam). */
+    private long lastShieldHintAt = Long.MIN_VALUE;
     private final List<Fading> fading = new ArrayList<>();
     /** When each currently-unreachable candidate was first found unreachable (game time). */
     private final Map<UUID, Long> unreachableSince = new HashMap<>();
@@ -283,6 +287,9 @@ public final class MobCombat {
         inert = false;
         if (exposed && now % MinionLinks.FX_INTERVAL == 0) {
             MinionLinks.tickFx(mob, level);
+        }
+        if (engaged && mob.isAlive()) {
+            tickTethersAndSiphon(behaviour, level, now);
         }
         if (!started) {
             started = true;
@@ -1019,12 +1026,46 @@ public final class MobCombat {
     }
 
     /**
+     * Whether an incoming {@code source} is refused outright (zero damage, zero hurt flash): while returning home,
+     * during an invulnerable transition/intro, or when an active {@code damage_taken} rule scales this source to 0
+     * (e.g., invulnerable while summoned monolith pillars stand). {@code mobs_ld:minion_link} backlash bypasses
+     * add-driven shields so breaking a pillar still cracks the boss.
+     */
+    public boolean refusesDamage(DamageSource source) {
+        if (invulnerable()) {
+            return true;
+        }
+        if (source.is(ModDamageTypes.MINION_LINK)) {
+            return false;
+        }
+        MobBehaviour behaviour = behaviour();
+        if (behaviour == null) {
+            return false;
+        }
+        MobBehaviour.Phase active = activePhase(behaviour);
+        if (active != null && active.damageMultiplier(source, this::hasLiveAdd) <= 0.0) {
+            if (mob.level() instanceof ServerLevel level) {
+                long now = level.getGameTime();
+                if (now - lastShieldHintAt >= 15L) {
+                    lastShieldHintAt = now;
+                    MinionLinks.announceShieldBlocked(mob, level, source);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Damage the mob takes: times the phase's {@code damage_taken} rules, any {@code vulnerable} window of the
      * ability running now and the {@code minion_link.all_dead} multiplier while all its linked adds are dead.
      */
     public float adjustDamage(DamageSource source, float amount) {
         MobBehaviour behaviour = behaviour();
         if (behaviour == null) {
+            return amount;
+        }
+        if (source.is(ModDamageTypes.MINION_LINK)) {
             return amount;
         }
         MobBehaviour.Phase active = activePhase(behaviour);
@@ -1184,6 +1225,9 @@ public final class MobCombat {
     /** {@code attacker} dealt it {@code amount} (after armour): counted for {@code top_damage} for 10 s. */
     public void noteDamage(LivingEntity attacker, float amount) {
         damageLedger.record(attacker.getUUID(), amount, mob.level().getGameTime());
+        if (current != null && amount > 0.0F) {
+            current.noteDamageTaken(amount);
+        }
     }
 
     /** Whoever {@code eligible} accepts that dealt it the most damage in the last 10 s; null if none did. */
@@ -1310,6 +1354,87 @@ public final class MobCombat {
             return entity == null || !entity.isAlive();
         });
         return summons.size();
+    }
+
+    /** Live summons of one specific entity type (used when a summon sets {@code per_type: true}). */
+    public int aliveSummons(ResourceLocation entityType) {
+        if (!(mob.level() instanceof ServerLevel level)) {
+            return 0;
+        }
+        aliveSummons();
+        int count = 0;
+        for (UUID id : summons) {
+            Entity entity = level.getEntity(id);
+            if (entity != null && entity.isAlive()
+                    && BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).equals(entityType)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Draws lightweight particle tethers from living barrier pillars ({@code damage_taken} with {@code while_adds}
+     * multiplier {@code <= 0}) or healing totems ({@code minion_link.while_alive_heal_per_second}), and ticks the
+     * per-second siphon heal while healing totems survive.
+     */
+    private void tickTethersAndSiphon(MobBehaviour behaviour, ServerLevel level, long now) {
+        if (summons.isEmpty() && links.isEmpty()) {
+            return;
+        }
+        if (now % MinionLinks.TETHER_INTERVAL == 0) {
+            MobBehaviour.Phase active = activePhase(behaviour);
+            if (active != null && !summons.isEmpty()) {
+                boolean shielded = false;
+                for (MobBehaviour.DamageTaken rule : active.damageTaken()) {
+                    if (rule.multiplier() > 0.0 || rule.whileAdds().isEmpty()) {
+                        continue;
+                    }
+                    ResourceLocation shieldType = rule.whileAdds().get();
+                    for (UUID id : summons) {
+                        Entity add = level.getEntity(id);
+                        if (add != null && add.isAlive()
+                                && BuiltInRegistries.ENTITY_TYPE.getKey(add.getType()).equals(shieldType)) {
+                            MinionLinks.drawTether(level, add, mob, ParticleTypes.END_ROD);
+                            shielded = true;
+                        }
+                    }
+                }
+                if (shielded) {
+                    MinionLinks.tickShieldAura(mob, level);
+                }
+            }
+            if (!links.isEmpty()) {
+                for (Map.Entry<UUID, SummonEvent.MinionLink> entry : links.entrySet()) {
+                    if (!entry.getValue().healsSummoner()) {
+                        continue;
+                    }
+                    Entity add = level.getEntity(entry.getKey());
+                    if (add != null && add.isAlive()) {
+                        MinionLinks.drawTether(level, add, mob, ParticleTypes.FLAME);
+                    }
+                }
+            }
+        }
+        if (now % 20 == 0 && !links.isEmpty()) {
+            double maxHealth = mob.getMaxHealth();
+            double totalHeal = 0.0;
+            for (Map.Entry<UUID, SummonEvent.MinionLink> entry : links.entrySet()) {
+                double rate = entry.getValue().healPerSecondFor(maxHealth);
+                if (rate <= 0.0) {
+                    continue;
+                }
+                Entity add = level.getEntity(entry.getKey());
+                if (add != null && add.isAlive()) {
+                    totalHeal += rate;
+                }
+            }
+            if (totalHeal > 0.0 && mob.getHealth() < maxHealth) {
+                mob.heal((float) totalHeal);
+                level.sendParticles(ParticleTypes.HEART, mob.getX(), mob.getY() + mob.getBbHeight() * 0.72, mob.getZ(),
+                        3, mob.getBbWidth() * 0.4, 0.3, mob.getBbWidth() * 0.4, 0.02);
+            }
+        }
     }
 
     private void discardSummons() {
