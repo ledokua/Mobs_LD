@@ -43,9 +43,16 @@ public abstract class LivingEntityCombatMixin implements DeathDrops {
         }
     }
 
-    /** Phase {@code damage_taken} multipliers. */
+    /** Outgoing ward bonuses and the recipient's damage taken multipliers. */
     @ModifyVariable(method = "hurt", at = @At("HEAD"), argsOnly = true)
     private float mobs_ld$scaleDamage(float amount, DamageSource source) {
+        if (!((LivingEntity) (Object) this).level().isClientSide() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+            Entity attacker = source.getEntity();
+            MobCombat dealer = attacker == null ? null : CombatHost.of(attacker);
+            if (dealer != null) {
+                amount = dealer.adjustWardDamageDealt(amount);
+            }
+        }
         MobCombat combat = mobs_ld$combatFor(source);
         return combat != null ? combat.adjustDamage(source, amount) : amount;
     }

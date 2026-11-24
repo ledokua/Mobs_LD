@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.ledok.mobs_ld.mob.LdMob;
+import net.ledok.mobs_ld.mob.behaviour.HitTrackSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -21,6 +22,7 @@ import software.bernie.geckolib.loading.object.BakedAnimations;
 import software.bernie.geckolib.util.RenderUtil;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -51,6 +53,11 @@ public final class HitTrackBaker {
         BakedAnimations animations = GeckoLibCache.getBakedAnimations().get(model.animationResource());
         if (animations == null) {
             throw new IOException("No animation file at " + model.animationResource());
+        }
+        JsonObject source;
+        try (InputStream geometry = mc.getResourceManager().getResourceOrThrow(model.modelResource()).open();
+             InputStream animation = mc.getResourceManager().getResourceOrThrow(model.animationResource()).open()) {
+            source = HitTrackSource.fingerprints(geometry, animation);
         }
         List<GeoBone> bones = allBones(baked);
         AnimationProcessor<LdMob> processor = model.getAnimationProcessor();
@@ -98,6 +105,7 @@ public final class HitTrackBaker {
         JsonObject root = new JsonObject();
         root.addProperty("version", 1);
         root.addProperty("rate", 20);
+        root.add("source", source);
         root.addProperty("note", "Baked by /mobs_ldc bake from the GeckoLib animations: per tick, each bone pivot as "
                 + "[forward, up, right] blocks from the mob's feet. Re-bake after changing the model or animations.");
         root.add("clips", clips);

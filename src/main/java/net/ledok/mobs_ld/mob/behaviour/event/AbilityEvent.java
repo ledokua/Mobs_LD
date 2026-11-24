@@ -19,6 +19,7 @@ public interface AbilityEvent {
     Map<String, MapCodec<? extends AbilityEvent>> TYPES = new LinkedHashMap<>(Map.ofEntries(
             Map.entry("hit", HitEvent.CODEC),
             Map.entry("dash", DashEvent.CODEC),
+            Map.entry("leap", LeapEvent.CODEC),
             Map.entry("summon", SummonEvent.CODEC),
             Map.entry("cloud", CloudEvent.CODEC),
             Map.entry("effect", EffectEvent.CODEC),
@@ -28,13 +29,17 @@ public interface AbilityEvent {
             Map.entry("hover", HoverEvent.CODEC),
             Map.entry("look", LookEvent.CODEC),
             Map.entry("fx", FxEvent.CODEC),
+            Map.entry(SandstoneSpikesEvent.ID, SandstoneSpikesEvent.CODEC),
             Map.entry("vfx", VfxEvent.CODEC),
             Map.entry("grab", GrabEvent.CODEC),
             Map.entry("pull", PullEvent.CODEC),
             Map.entry("projectile", ProjectileEvent.CODEC),
+            Map.entry("shoot", ShootEvent.CODEC),
+            Map.entry("telegraph", TelegraphEvent.CODEC),
             Map.entry("chain", ChainEvent.CODEC),
             Map.entry("clip", ClipEvent.CODEC),
             Map.entry("vulnerable", VulnerableEvent.CODEC),
+            Map.entry("summoner_ward", SummonerWardEvent.CODEC),
             Map.entry("listen", ListenEvent.CODEC)
     ));
 
@@ -83,6 +88,11 @@ public interface AbilityEvent {
     interface Instance {
         /** Every tick between begin and end. */
         default void tick(AbilityRun run) {
+        }
+
+        /** Whether an active event should finish at its scheduled endpoint. A sustained event can wait for a condition. */
+        default boolean readyToFinish(AbilityRun run, double scheduledEnd) {
+            return run.seconds() >= scheduledEnd;
         }
 
         /** At {@link AbilityEvent#end()}. */

@@ -56,7 +56,8 @@ public class LdMobModel extends GeoModel<LdMob> {
 
     @Override
     public ResourceLocation getTextureResource(LdMob mob) {
-        String variant = mob.textureVariant();
+        String variant = mob.isDeadOrDying() ? mob.textureVariant()
+                : mob.declaration().render().actionTextures().getOrDefault(mob.currentAction(), mob.textureVariant());
         if (variant.isEmpty()) {
             return texture;
         }

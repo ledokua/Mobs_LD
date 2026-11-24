@@ -25,6 +25,18 @@ All 6 archetypes are unique to Emberroot (zero overlap with Midra's 11 or Amber 
 5. `drum_tremor` — concentric blocky ash-and-earth seismic tiles rippling outward across circles or arena-wide rings (`hammer_slam`, `tantrum_drum`, `cataclysm_drum`, `rib_furnace`, `swipe`).
 6. `rib_furnace` — orbiting cinder blocks exploding outward in a chunky hexagonal furnace wave (`rib_furnace`, `rib_backlash`, Phase 2 transition).
 
+## Kiln Sprouts and Cinder Runts
+
+In phases 2 and 3, Emberroot marks ground 9–13 blocks away and raises two minions per wave, up to six live adds.
+Each spot independently rolls a Kiln Sprout or a Cinder Runt. Both start with 3.5% of Emberroot's live maximum health.
+Sprouts channel from up to 15 blocks away.
+The first tether makes Emberroot take half damage. Three or more connected Sprouts also increase his outgoing
+damage by 50%. The ember tethers show which Sprouts are channeling. Killing a Sprout, blocking its line of
+sight or getting outside tether range breaks its connection.
+
+Cinder Runts chase players. Their short claw slash covers a forward cone, their pounce lands in a marked circle,
+and their roll charges down a marked lane. The pounce misses if the Runt hits terrain and falls short of the marker.
+
 ## Raid-Wide (`min_players: 3`) & Reworked Full 14-Animation Kit
 All 14 clips in `emberroot.bbmodel` are actively used (`damdge` mapped to `hurt`):
 - **Dedicated 3+ Player Raid Abilities (`min_players: 3`):**

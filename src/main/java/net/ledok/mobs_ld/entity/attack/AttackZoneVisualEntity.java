@@ -52,7 +52,17 @@ public class AttackZoneVisualEntity extends Entity {
      */
     private static final EntityDataAccessor<Float> DATA_PARAM_D =
             SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
+    /**
+     * How far above and below the zone's origin (its floor) a victim's feet may be and still be hit, so the client
+     * lays the telegraph only on floors inside that band (0 = unknown: a default band). Defined after PARAM_D.
+     */
+    private static final EntityDataAccessor<Float> DATA_BAND_UP =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_BAND_DOWN =
+            SynchedEntityData.defineId(AttackZoneVisualEntity.class, EntityDataSerializers.FLOAT);
     private UUID trackedEntityId;
+    /** Client only: the floor heights the renderer sampled under this zone (see the client's TerrainDrape). */
+    public transient Object clientDrape;
 
     public AttackZoneVisualEntity(EntityType<? extends AttackZoneVisualEntity> entityType, Level level) {
         super(entityType, level);
@@ -78,6 +88,22 @@ public class AttackZoneVisualEntity extends Entity {
         builder.define(DATA_IS_PREVIEW, false);
         builder.define(DATA_ALWAYS_RENDER, false);
         builder.define(DATA_PARAM_D, 0.0F);
+        builder.define(DATA_BAND_UP, 0.0F);
+        builder.define(DATA_BAND_DOWN, 0.0F);
+    }
+
+    /** The hit's height band around the origin's floor (blocks above / below), for laying the telegraph on terrain. */
+    public void setBand(float up, float down) {
+        entityData.set(DATA_BAND_UP, up);
+        entityData.set(DATA_BAND_DOWN, down);
+    }
+
+    public float getBandUp() {
+        return entityData.get(DATA_BAND_UP);
+    }
+
+    public float getBandDown() {
+        return entityData.get(DATA_BAND_DOWN);
     }
 
     @Override

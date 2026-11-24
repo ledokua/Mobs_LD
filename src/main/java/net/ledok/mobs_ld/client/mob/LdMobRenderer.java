@@ -2,6 +2,7 @@ package net.ledok.mobs_ld.client.mob;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
+import net.ledok.mobs_ld.client.renderer.SummonerWardRenderer;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.MobClientHooks;
 import net.ledok.mobs_ld.mob.MobDeclaration;
@@ -59,6 +60,7 @@ public class LdMobRenderer extends GeoEntityRenderer<LdMob> {
         }
         // Particle keyframes fired while this frame was animated; spawn them now, at this frame's bone positions.
         mob.runClientEffects();
+        SummonerWardRenderer.render(mob, partialTick, poseStack, buffers);
     }
 
     @Override

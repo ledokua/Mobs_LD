@@ -46,7 +46,7 @@
   "abilities": {
     "cloud_strike": {
       "clip": "attack",
-      "duration": 1.5,
+      "duration": 1.75,
       "cooldown": [2.6, 3.5],
       "initial_cooldown": 1.0,
       "weight": 3,

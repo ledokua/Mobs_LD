@@ -18,7 +18,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.ledok.mobs_ld.client.mob.LdMobClientHooks;
 import net.ledok.mobs_ld.client.mob.LdMobRenderer;
+import net.ledok.mobs_ld.client.renderer.AttackPreviewRenderer;
 import net.ledok.mobs_ld.client.renderer.AttackZoneVisualRenderer;
+import net.ledok.mobs_ld.client.renderer.SandstoneSpikesRenderer;
 import net.ledok.mobs_ld.client.vfx.SpellVfxManager;
 import net.ledok.mobs_ld.client.vfx.SpellVfxRenderer;
 import net.ledok.mobs_ld.mob.MobClientHooks;
@@ -52,6 +54,8 @@ public class MobsLdModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(ModEntities.ATTACK_ZONE_VISUAL, AttackZoneVisualRenderer::new);
+        AttackPreviewRenderer.register();
+        SandstoneSpikesRenderer.register();
         MobClientHooks.install(new LdMobClientHooks());
         for (MobDeclaration declaration : MobDeclarations.all()) {
             EntityRendererRegistry.register(MobDeclarations.types().get(declaration.id()),

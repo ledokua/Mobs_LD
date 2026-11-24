@@ -24,6 +24,7 @@ public record MobDeclaration(
         Body body,
         int trackingRange,
         boolean fireImmune,
+        boolean pushable,
         int deathTicks,
         Map<ResourceLocation, Double> attributes,
         Optional<SpawnEgg> spawnEgg,
@@ -61,13 +62,17 @@ public record MobDeclaration(
      *                           ground speed. 0 plays the clip at authored speed.
      * @param scale              uniform model scale applied on top of the authored true-size model
      * @param shadowRadius       ground shadow radius in blocks; empty = half the hitbox width
+     * @param actionTextures     texture variant suffixes used while the named action clips play
      */
-    public record Render(double walkBlocksPerCycle, float scale, Optional<Float> shadowRadius) {
-        public static final Render DEFAULT = new Render(0.0, 1.0F, Optional.empty());
+    public record Render(double walkBlocksPerCycle, float scale, Optional<Float> shadowRadius,
+                         Map<String, String> actionTextures) {
+        public static final Render DEFAULT = new Render(0.0, 1.0F, Optional.empty(), Map.of());
         public static final Codec<Render> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.DOUBLE.optionalFieldOf("walk_blocks_per_cycle", 0.0).forGetter(Render::walkBlocksPerCycle),
                 Codec.FLOAT.optionalFieldOf("scale", 1.0F).forGetter(Render::scale),
-                Codec.FLOAT.optionalFieldOf("shadow_radius").forGetter(Render::shadowRadius)
+                Codec.FLOAT.optionalFieldOf("shadow_radius").forGetter(Render::shadowRadius),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("action_textures", Map.of())
+                        .forGetter(Render::actionTextures)
         ).apply(i, Render::new));
     }
 
@@ -81,13 +86,14 @@ public record MobDeclaration(
                 Body.CODEC.optionalFieldOf("body", Body.GROUND).forGetter(MobDeclaration::body),
                 Codec.INT.optionalFieldOf("tracking_range", 10).forGetter(MobDeclaration::trackingRange),
                 Codec.BOOL.optionalFieldOf("fire_immune", false).forGetter(MobDeclaration::fireImmune),
+                Codec.BOOL.optionalFieldOf("pushable", true).forGetter(MobDeclaration::pushable),
                 Codec.INT.optionalFieldOf("death_ticks", 20).forGetter(MobDeclaration::deathTicks),
                 Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("attributes", Map.of())
                         .forGetter(MobDeclaration::attributes),
                 SpawnEgg.CODEC.optionalFieldOf("spawn_egg").forGetter(MobDeclaration::spawnEgg),
                 Render.CODEC.optionalFieldOf("render", Render.DEFAULT).forGetter(MobDeclaration::render)
-        ).apply(i, (category, width, height, eyeHeight, body, trackingRange, fireImmune, deathTicks, attributes,
+        ).apply(i, (category, width, height, eyeHeight, body, trackingRange, fireImmune, pushable, deathTicks, attributes,
                     spawnEgg, render) -> new MobDeclaration(id, category, width, height, eyeHeight, body,
-                trackingRange, fireImmune, deathTicks, attributes, spawnEgg, render)));
+                trackingRange, fireImmune, pushable, deathTicks, attributes, spawnEgg, render)));
     }
 }

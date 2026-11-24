@@ -21,16 +21,19 @@ import java.util.Optional;
  * @param relativeTo what {@code height} is measured from (see {@link Reference})
  * @param rate       top speed in blocks per tick (faster with the phase's attack speed, so it keeps to the timeline)
  * @param retreatTo  horizontal distance from the aim it backs off to, if closer
+ * @param home       also fly horizontally to the mob's home (where it first ticked: an Arenas_LD arena's spawn point),
+ *                   instead of holding still or backing off
  */
 public record HoverEvent(double from, double until, double height, Reference relativeTo, double rate,
-                         Optional<Double> retreatTo) implements AbilityEvent {
+                         Optional<Double> retreatTo, boolean home) implements AbilityEvent {
     public static final MapCodec<HoverEvent> CODEC = RecordCodecBuilder.<HoverEvent>mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("from").forGetter(HoverEvent::from),
             Codec.DOUBLE.fieldOf("until").forGetter(HoverEvent::until),
             Codec.doubleRange(-64.0, 64.0).fieldOf("height").forGetter(HoverEvent::height),
             Reference.CODEC.optionalFieldOf("relative_to", Reference.GROUND).forGetter(HoverEvent::relativeTo),
             Codec.doubleRange(0.01, 4.0).optionalFieldOf("rate", 0.4).forGetter(HoverEvent::rate),
-            Codec.doubleRange(0.0, 64.0).optionalFieldOf("retreat_to").forGetter(HoverEvent::retreatTo)
+            Codec.doubleRange(0.0, 64.0).optionalFieldOf("retreat_to").forGetter(HoverEvent::retreatTo),
+            Codec.BOOL.optionalFieldOf("home", false).forGetter(HoverEvent::home)
     ).apply(i, HoverEvent::new)).validate(HoverEvent::validate);
 
     private static DataResult<HoverEvent> validate(HoverEvent event) {
@@ -92,7 +95,11 @@ public record HoverEvent(double from, double until, double height, Reference rel
                 };
                 double targetX = position.x;
                 double targetZ = position.z;
-                if (retreatTo.isPresent()) {
+                Vec3 homePoint = home ? run.combat().home() : null;
+                if (homePoint != null) {
+                    targetX = homePoint.x;
+                    targetZ = homePoint.z;
+                } else if (retreatTo.isPresent()) {
                     Vec3 aim = run.aimPosition();
                     double dx = position.x - aim.x;
                     double dz = position.z - aim.z;

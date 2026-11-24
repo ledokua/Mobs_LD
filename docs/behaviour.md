@@ -36,7 +36,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary`, `vanilla` (the host's own AI moves and attacks between abilities; see below) |
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
-| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `top_damage`, `slot:<name>` (as an ability's `target`) |
+| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `top_damage`, `slot:<name>`, or `summoner` (as an ability's `target`) |
 | `reach_height` | 85 % of its height | how far above its feet it can strike |
 | `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
 | `reach_rule` | `path` | what makes a target reachable: `path` (reach band or a full path) or `line_of_sight` (it can see the target) |
@@ -95,8 +95,10 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `fixed_speed` | false | its timeline and clip ignore the phase's `attack_speed` (run at 1): for an ability timed to a host clip that cannot play faster (the Warden's `sonic_boom`: at 1.2 the wave would land 0.28 s before the chest burst) |
 | `cooldown_group` | none | a name; abilities with the same group share one cooldown: using one puts every ability of the group on the cooldown it rolled (its own `cooldown`, or the phase's `cooldowns` entry for it), never shortening a group cooldown that already runs longer. Their own initial cooldowns still count separately. A phase's `ready_in` wins over the group: the ability named there is usable at that time even while its group is on cooldown (once; its next use puts the group on cooldown as usual) |
 | `no_repeat` | false | never picked right after itself (the ability started last, by name) while another ability can be picked; alone it may repeat. A `force_after` fuse ignores it |
+| `after_abilities` | [] | optional list of ability names. At least one must finish normally in the current engagement before this ability can be picked |
 | `min_players` / `max_players` | none | only usable while at least / at most this many [players fight it](#fighting-players) (counted when it would be picked; also holds a `force_after` fuse back) |
 | `when` | none | `{ "behind": { "players": 2, "for": 4, "range": 4.5, "angle": 140, "height": 3 } }`: only usable once at least `players` fighting players have each stood behind it (within `range` blocks, the rear `angle` degrees, the whole width, centred on its back, and `height` blocks above or below its feet, so a player on a ledge does not count) for `for` seconds without a break (defaults: 1 player, 0 s, 5 blocks, 120 degrees, 3 blocks). Who stands where is only watched while the ability is allowed by the phase and off cooldown, so the count starts when it comes off cooldown |
+| `only_tagged` | none | a list of entity tags: only mobs carrying at least one of them may use it (e.g. `["arenas_ld_run_mob"]`: a move only a boss inside an Arenas_LD run has). Forcing it with `/mobs_ld ability` still works |
 | `include_unreachable` | false | its target rule may also pick players the reach rule gave up on (a player on a ledge can still be the farthest); `current` and `slot:` rules are not affected |
 | `events` | `[]` | timeline (below) |
 
@@ -148,6 +150,9 @@ The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
 | `damage_type` | `minecraft:mob_attack` | damage type id (any datapack's; skulls default to vanilla's `minecraft:wither_skull`); the mob stays the attacker either way. Unknown ids are reported when the server starts or reloads, and those hits deal the default type |
 | `effects` | none | `[ { "id": "spell_engine:bleed", "duration": 6, "amplifier": 0 } ]` - any mod's effect id, applied only when the hit lands; unknown ids are skipped with a log warning |
 | `knockback` / `knock_up` | 0.4 / 0 | the whole push (below) |
+| `pull` | 0 | 0 to 4: horizontal pull toward the hit origin once the hit lands (claw hooks, vortex drag); stops 0.8 blocks short of it. Knockback resistance weakens it, but never below 35% |
+| `slam_down` | 0 | 0 to 4: downward speed put on a victim that is in the air when the hit lands (lightning bolts, root undertow); no effect on grounded victims. Knockback resistance as for `pull` |
+| `ignite` | 0 | seconds the victim burns once the hit lands (3 = vanilla's 60 ticks); a longer burn it already has is kept. Skulls too |
 | `stacks` | none | `{ "id": "sculk_brand", "per_stack": 0.12, "max": 4, "duration": 15, "min_players": 3 }`: a landed hit leaves a stack (below). Ability hits only (`hit`, `dash`, `chase`, `trace`, `listen`), not skulls |
 
 Hits ignore vanilla's 10-tick hurt immunity (each event lands at most once per victim), so combo beats and a
@@ -182,6 +187,24 @@ out on the tick its timeline reads 0, so a `clip` at 1.7 and a hit at 1.7 both l
 From `at` to `until` the mob takes `multiplier` times the damage (an opening after a big attack). It stacks with the
 phase's `damage_taken` and with other windows open at the same time, and closes early if the ability is cut off
 (phase change, stagger, reset). The ability lasts at least until `until`. `until` before `at` is an error.
+
+### `summoner_ward` - a bound add protects its summoner
+
+```json
+{ "type": "summoner_ward", "at": 0.6, "until": 5.8, "range": 8.0, "multiplier": 0.75 }
+```
+
+Set the add's ability `target` to `summoner` and summon it with `bound: true`. From `at` to `until`,
+the summoner takes `multiplier` times the incoming damage while the add is alive, within `range`, and has line of
+sight. The strongest active ward applies when several adds channel at once. An LdMob draws an ember tether while
+its ward is active, from its `fx_coal` marker to the summoner's `fx_core` marker when those markers are available.
+Omit `until` to sustain the ward and hold the ability open until the add loses its connection. Set
+`on_disconnect` to an ability name to play a follow-up when the connection breaks. A boss can set
+`"ward_damage": { "min_wards": 3, "multiplier": 1.5 }` to deal 50% extra damage while at least three of its own adds
+are actively warding it.
+
+`movement.follow: summoner` makes the add approach its bound summoner and engage when that summoner acquires a
+target. It still uses its own threat target for rules such as `current`.
 
 ### `listen` - punish whoever moves
 ```json
@@ -250,6 +273,7 @@ blade moves fast through body height, 0-1.8 blocks).
 | `height` | none | blocks above the aim's feet (where it stood when the dash locked) that the body's feet are driven to every tick: a flyer rushing low. Without it the body keeps its own vertical speed (gravity, a jump), and a host that holds its altitude (the Wither) stays level |
 | `push` | `away` | which way `hit`'s knockback shoves: `away` from the body, or `side`: out of the lane on the side the victim stands (dead centre: to the lane's right) |
 | `on_wall` | `stagger` | `stagger` (the behaviour's `stagger` window) or `stop` |
+| `on_stop` | none | follow-up ability when the dash reaches the end of its lane, stops at a wall, or reaches its time limit. The follow-up starts facing down the lane. A stagger takes precedence |
 | `stagger_min_distance` | 4 | a wall only staggers after this much travel; hit sooner, the dash just stops |
 | `telegraph` | shown | the strip (below); `{ "show": false }` for an untelegraphed rush |
 | `hit` | none | applied once to everyone the body meets |
@@ -282,6 +306,17 @@ blade moves fast through body height, 0-1.8 blocks).
   after `stagger_min_distance` blocks of travel with `on_wall: stagger` it puffs smoke and the mob staggers (the
   behaviour's `stagger` block; without one it just stops).
 
+### `leap` - jump into a marked landing
+
+```json
+{ "type": "leap", "at": 0.5, "until": 1.1, "height": 1.9, "max_distance": 8.0, "radius": 1.7,
+  "telegraph": { "from": 0.32 }, "hit": { "amount": 8.0 } }
+```
+
+The landing circle locks under the aim when the telegraph appears. The body takes off at `at` and follows an arc
+of `height` blocks above the straight path. The landing is capped at `max_distance` blocks horizontally and
+deals damage at `until` if the mob reaches the ground close to the marked centre. Walls stop the leap.
+
 ### `chase` - homing run that hands over to another ability
 `at`, `clip` (loop played while running), `max_time`, `speed` (blocks per tick; a sprinting player is ~0.28),
 `turn_rate` (6, degrees per tick - lower is easier to side-step), `reach` (3.0), `on_reach` / `on_timeout` (ability
@@ -310,6 +345,9 @@ just plays on to its end. The follow-up's cooldown starts as usual. The Wither's
 Grave Call this way, so its skeletons rise after a full sequence, and never after one that ended in a wall stagger.
 
 ### `summon` - adds
+
+An optional `alternatives` list adds entity IDs to the pool alongside `entity`. Each spot in the wave rolls
+independently from the pool, so a two-add wave can contain matching or different types.
 ```json
 { "type": "summon", "at": 1.6, "entity": "minecraft:wither_skeleton",
   "count": { "min": 2, "max": 4, "per_extra_player": 2, "cap": 12 },
@@ -327,8 +365,9 @@ Only `at` and `entity` are required; every other field is optional, and left out
 |---|---|---|
 | `at` | required | the adds rise |
 | `entity` | required | entity id (any mod's) |
-| `count` | 1 | a number, or `{ "min", "max", "per_extra_player", "cap" }`: a random count in [min, max] (max defaults to min), plus `per_extra_player` for each [fighting player](#fighting-players) beyond the first, at most `cap` |
-| `max_alive` | 8 | no more spawn while this many of the mob's adds (of any summon) live: a number, or `{ "base", "per_extra_player", "cap" }`. A wave only fills the free room |
+| `count` | 1 | a number or an object with `min` and optional `max` (defaults to `min`). The roll adds `per_player` per [fighting player](#fighting-players) and `per_extra_player` per fighter beyond the first, up to `cap` |
+| `max_alive` | 8 | a number or an object with `base` and the same optional player bonuses and `cap` as `count`. A wave only fills the free room under this limit |
+| `per_type` | false | `max_alive` (and `skip_when_full`) count only the summoner's live adds of this summon's own types (`entity` and its `alternatives`), not all its adds, so a boss with several kinds of adds keeps a separate limit for each |
 | `forward` / `up` / `right` | 0 | offset of the spawn point from the mob, along its facing |
 | `spread` | 1.0 | random scatter around that point (without a `placement`) |
 | `telegraph` | none | runes: `{ "from", "radius": 0.9, "color", "style", "show" }` (the telegraph block, plus the circle's `radius`). The wave (how many, where) is decided when the runes appear at `from` (default 1 s before `at`), one circle per add on its spot; the adds rise on them at `at`. Without it nothing is drawn and the wave is decided at `at` |
@@ -346,8 +385,8 @@ marks are entity tags (`mobs_ld_no_loot`, `mobs_ld_no_xp`, `mobs_ld_summon` + `m
 the add enters the level, so they survive restarts.
 
 **Fighting players.** Players with threat on the summoner's table (they hit, healed against or debuffed it), alive,
-not spectating or in creative, within 48 blocks. Bystanders do not count. With nobody fighting, `per_extra_player`
-adds nothing (a solo count).
+not spectating or in creative, within 48 blocks. Bystanders do not count. Both bonuses default to zero.
+With no fighters, neither bonus adds to the base count or limit.
 
 **`placement`**
 
@@ -432,6 +471,7 @@ chunk unload that kept only the add, the summoner gone through a portal or disca
 | `height` | required | blocks above the reference (may be negative) |
 | `relative_to` | `ground` | `ground` (the floor under the mob, see `movement.ground_scan`; over the void it keeps its altitude), `aim` (the aim's feet: tracked until `track_until`, then where it stood), `self` (its own height when the hover began) |
 | `rate` | 0.4 | top speed in blocks per tick (scaled with the phase's `attack_speed`) |
+| `home` | false | also fly horizontally to the mob's home (where it first ticked: an Arenas_LD arena's spawn point) instead of holding still or backing off |
 | `retreat_to` | none | also back off horizontally until this far from the aim (only backs off; never closes in) |
 
 Every tick its velocity is set straight toward the point (horizontally it holds still unless `retreat_to` moves it),
@@ -536,10 +576,51 @@ Applies a per-tick velocity force (`inward`, `outward`, `updraft`, or `orbit`) t
 | `spread` | 0 | each wave fires one skull per head as a flat wall across the line of fire, its ends `spread` blocks to either side of the target (the host's right head takes the right end) |
 | `speed` | the spec's | blocks per tick |
 | `dangerous` | false | vanilla's blue skulls (only the look: speed and damage stay the spec's) |
+| `directions` | none | `{ "count": 24, "rotate": 0, "height": 1.0, "start": 1.5 }`: instead of aiming, each wave fires one skull along each of `count` directions evenly around the mob, the first `rotate` degrees from the facing the ability locked (the layout of a `rays` shape with that count, so a `telegraph` event can draw the paths). Skulls start `start` blocks out from the mob, `height` above the floor under it, and fly level. `from`, `aim` and `spread` are ignored. `"step": 0.1` fires the directions one after another, clockwise, `step` seconds apart (each direction its own `waves`), to match a `telegraph` with the same `repeat` |
 
 Skulls fly at a constant speed from launch, so one reaches a target `d` blocks away after `d / speed` ticks (vanilla
 skulls start slow and settle at 1.9; the blue ones at 0.27). They are vanilla wither skulls, spawned inside the mob's
 tick, and deal their spec: see [The Wither](#the-wither-dataminecraftmob_behaviourwitherjson).
+
+### `sandstone_spikes` - a cosmetic row on impact
+
+`{ "type": "sandstone_spikes", "at": 1.2 }` draws a short-lived row of sandstone spikes over a rectangular hit at
+the same time. The row follows the locked lane and uses the hit's height and depth to find stair treads and other
+floor surfaces. Damage comes from the accompanying `hit` event.
+
+### `telegraph` - a warning that deals nothing
+```json
+{ "type": "telegraph", "at": 4.0, "rotate": 0, "shape": { "type": "rays", "count": 24, "length": 24, "width": 1.0 },
+  "telegraph": { "from": 3.0, "color": "#6A2CB0" } }
+```
+Draws `shape` on the ground from `telegraph.from` until `at` and flashes at `at`; nobody is hit. Laid out like a `hit`
+on the mob: `offset` blocks ahead, `rotate` degrees from the facing the ability locked (unset: the current facing).
+For warnings of something else on the timeline, e.g. the paths of a `projectile` event with `directions`.
+`"repeat": { "count": 36, "rotate": 10, "step": 0.1 }` draws `count` copies instead, copy `k` turned `k x rotate`
+degrees further (positive = clockwise from above) and appearing and filling `k x step` seconds later than the first:
+lines swept around the mob one after another.
+
+### `shoot` - a projectile down a drawn line
+```json
+{ "type": "shoot", "at": 1.2, "projectile": "minecraft:arrow", "speed": 1.8, "width": 0.8, "range": 24,
+  "telegraph": { "from": 0.4, "color": "#D0D0D0" } }
+```
+| field | default | meaning |
+|---|---|---|
+| `at` | required | the (first) shot |
+| `projectile` | required | any projectile entity id: `minecraft:arrow`, `minecraft:small_fireball`, `minecraft:fireball`, other mods' |
+| `speed` | 1.6 | blocks per tick, constant (fireballs are held at it against their drag) |
+| `shots` / `interval` | 1 / 0.3 | several shots down the same line, this many seconds apart |
+| `width` | 0.8 | width of the drawn line |
+| `range` / `overshoot` | 24 / 2 | the line runs to the aim and `overshoot` past it, at most `range` long, and stops where the shot's path (a straight ray from the mob's eyes) first meets a block: a low wall under the path does not cut it, a taller wall, a ceiling or the floor where a downward shot lands does |
+| `damage` | the projectile's | arrows only: base damage (vanilla 2; an arrow deals about base x speed) |
+| `gravity` | false | arrows fall as usual; off, they fly the drawn line straight |
+| `telegraph` | shown, `sweep`, `arrow` | the line on the ground (see the telegraph block) |
+
+The line locks when its telegraph appears: from the mob's eyes to the middle of the aim's body as it stands then. The
+shot flies exactly down it, so stepping off the line dodges it. The projectile deals its own damage with the mob as
+its owner (`loot_stage:damage_dealt`, attack profiles, threat and kill credit all count it as the mob's); a blaze's
+small fireball still sets on fire. On a vanilla host there is no draw animation, so the line is the warning.
 
 ## Target slots
 
@@ -677,6 +758,9 @@ vanilla AI. Everything above works the same, except:
   which ignore goals. The Warden is a Brain mob too, but its host adapter drives its Brain (see
   [The Warden](#the-warden-dataminecraftmob_behaviourwardenjson)); other mods' Warden subclasses stay refused.
   Players and armor stands are not mobs.
+- **Creepers never fuse.** A creeper running a behaviour (vanilla's or another mod's, e.g. Creeper Overhaul's) never
+  swells or explodes, and lighting it does nothing: its explosion would kill it, so give it an ability instead (a
+  telegraphed `hit` it survives). Creepers outside a file's `host.only_tagged` stay vanilla.
 - **Flyers and climbers.** A mob with flying navigation, a flying body (ghast, phantom), a flying move control, no
   gravity (vex) or a wall-climbing navigation (spider) always counts as able to reach its target by `path`, so it is
   never made to drop aggro as unreachable; give a ranged flyer `reach_rule: line_of_sight` instead, so hiding from it
@@ -778,6 +862,7 @@ A skull spec:
 | `range` | 30 | a head only fires it at targets this close |
 | `hit` | required | the direct hit (see `hit` under Events; `knockback` / `knock_up` are not used: vanilla's knockback applies) |
 | `splash` | none | `{ "radius": 1.5, "amount": ... }` |
+| `hit_radius` | 0 | how close the skull must pass to a target to hit it, in blocks (0 = vanilla: a direct hit only); a bigger "collision zone" for big skulls |
 
 Per phase, e.g. `"host": { "skulls": { "center": { "every": 3.5 } } }` tightens one cadence and keeps the rest.
 
@@ -978,6 +1063,8 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
   and whether it is burrowed.
 - `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks and in the server log (`Mobs_LD trace ...`) (abilities, hits, slot picks,
   skull hits and splashes with their amounts).
+- `/mobs_ld debug preview` - toggle the attack overlay for yourself. In a nearby area hit's windup it shows the
+  locked shape and its upper and lower reach. At impact it reports the tick and highlights the targets struck.
 - `/mobs_ld damage audit start|stop|dump|status` - records every hit on a player while it runs (to size mob attacks
   from data). Grouped by dealer kind (`attacker`, `direct`, `none`, `player`; the dealer is who DD Loot Stage scales
   by: the attacker, else a living direct source), dealer entity type, damage type, direct entity type and the Mobs_LD

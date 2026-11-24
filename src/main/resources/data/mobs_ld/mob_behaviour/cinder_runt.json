@@ -1,0 +1,98 @@
+{
+  "reference_attributes": { "minecraft:generic.attack_damage": 7.0 },
+  "movement": {
+    "style": "standoff",
+    "distance": 1.7,
+    "speed": 1.15,
+    "reach_height": 2.0,
+    "reach_depth": 1.0
+  },
+  "global_cooldown": 0.4,
+  "intro": { "clip": "spawn", "duration": 0.95 },
+  "abilities": {
+    "slash": {
+      "duration": 1.15,
+      "cooldown": [1.5, 2.3],
+      "weight": 3,
+      "range": { "max": 2.7 },
+      "track_until": 0.25,
+      "events": [
+        {
+          "type": "hit",
+          "at": 0.55,
+          "shape": { "type": "cone", "radius": 2.7, "angle": 110 },
+          "telegraph": { "from": 0.25, "style": "sweep", "color": "#E76E28" },
+          "hit": { "amount": 6.0, "knockback": 0.35 }
+        },
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:entity.player.attack.sweep", "volume": 0.85, "pitch": 1.15 }
+        }
+      ]
+    },
+    "pounce": {
+      "duration": 1.65,
+      "cooldown": [6.0, 8.0],
+      "range": { "min": 2.8, "max": 8.0 },
+      "track_until": 0.32,
+      "events": [
+        {
+          "type": "leap",
+          "at": 0.5,
+          "until": 1.1,
+          "max_distance": 8.0,
+          "height": 1.9,
+          "radius": 1.7,
+          "telegraph": { "from": 0.32, "color": "#E96D28" },
+          "hit": { "amount": 8.0, "knockback": 0.5 }
+        },
+        {
+          "type": "fx",
+          "at": 0.5,
+          "sound": { "id": "minecraft:block.basalt.hit", "volume": 0.9, "pitch": 0.9 }
+        }
+      ]
+    },
+    "roll": {
+      "clip": "roll_start",
+      "duration": 0.5,
+      "cooldown": [7.5, 9.0],
+      "range": { "min": 4.5, "max": 11.0 },
+      "track_until": 0.2,
+      "events": [
+        {
+          "type": "dash",
+          "at": 0.5,
+          "speed": 0.62,
+          "max_distance": 12.0,
+          "overshoot": 1.0,
+          "width": 1.5,
+          "on_wall": "stop",
+          "on_stop": "roll_recover",
+          "telegraph": { "from": 0.2, "style": "sweep", "color": "#C74820", "arrow": true },
+          "hit": { "amount": 7.0, "knockback": 0.65 }
+        },
+        { "type": "clip", "at": 0.5, "clip": "roll_loop" },
+        {
+          "type": "vfx",
+          "at": 0.5,
+          "kind": "roll_trail",
+          "origin": "locked",
+          "radius": 0.62,
+          "height": 0.34,
+          "duration": 1.05,
+          "count": 3,
+          "color": "#A53A22",
+          "secondary_color": "#EF913B"
+        }
+      ]
+    },
+    "roll_recover": {
+      "clip": "roll_end",
+      "duration": 0.6,
+      "track_until": 0.0,
+      "weight": 0
+    }
+  }
+}

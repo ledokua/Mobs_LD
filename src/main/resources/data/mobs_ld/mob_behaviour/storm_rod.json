@@ -38,7 +38,7 @@
   "abilities": {
     "conduit_arc": {
       "clip": "attack",
-      "duration": 1.4,
+      "duration": 1.8,
       "cooldown": [3.5, 4.5],
       "initial_cooldown": 2.2,
       "weight": 3,

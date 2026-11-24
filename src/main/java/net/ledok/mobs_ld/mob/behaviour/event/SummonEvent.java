@@ -62,7 +62,7 @@ import java.util.function.IntUnaryOperator;
  *
  * @param maxAlive no more spawn while this many of the summoner's adds are still alive
  */
-public record SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+public record SummonEvent(double at, EntityPool pool, Count count, double forward, double up, double right,
                           double spread, MaxAlive maxAlive, boolean perType, Optional<Runes> telegraph,
                           Optional<Placement> placement, Optional<Scale> scale, boolean loot, boolean xp,
                           boolean bound, AddTarget target, Optional<MinionLink> minionLink)
@@ -76,11 +76,11 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     private static final double RUNE_PLAYER_THREAT = 1.0;
 
     /** Core positioning and cap fields (split so DFU's 16-field group limit is never exceeded). */
-    private record Core(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+    private record Core(double at, EntityPool pool, Count count, double forward, double up, double right,
                         double spread, MaxAlive maxAlive, boolean perType) {
         private static final MapCodec<Core> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.DOUBLE.fieldOf("at").forGetter(Core::at),
-                ResourceLocation.CODEC.fieldOf("entity").forGetter(Core::entity),
+                EntityPool.CODEC.forGetter(Core::pool),
                 Count.CODEC.optionalFieldOf("count", Count.of(1)).forGetter(Core::count),
                 Codec.DOUBLE.optionalFieldOf("forward", 0.0).forGetter(Core::forward),
                 Codec.DOUBLE.optionalFieldOf("up", 0.0).forGetter(Core::up),
@@ -91,7 +91,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         ).apply(i, Core::new));
 
         private static Core of(SummonEvent e) {
-            return new Core(e.at, e.entity, e.count, e.forward, e.up, e.right, e.spread, e.maxAlive, e.perType);
+            return new Core(e.at, e.pool, e.count, e.forward, e.up, e.right, e.spread, e.maxAlive, e.perType);
         }
     }
 
@@ -117,8 +117,20 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     public static final MapCodec<SummonEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Core.CODEC.forGetter(Core::of),
             Rules.CODEC.forGetter(Rules::of)
-    ).apply(i, (c, r) -> new SummonEvent(c.at, c.entity, c.count, c.forward, c.up, c.right, c.spread, c.maxAlive,
+    ).apply(i, (c, r) -> new SummonEvent(c.at, c.pool, c.count, c.forward, c.up, c.right, c.spread, c.maxAlive,
             c.perType, r.telegraph, r.placement, r.scale, r.loot, r.xp, r.bound, r.target, r.minionLink)));
+
+    public SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+                       double spread, MaxAlive maxAlive, Optional<Runes> telegraph, Optional<Placement> placement,
+                       Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target,
+                       Optional<MinionLink> minionLink) {
+        this(at, new EntityPool(entity, List.of()), count, forward, up, right, spread, maxAlive, false, telegraph,
+                placement, scale, loot, xp, bound, target, minionLink);
+    }
+
+    public ResourceLocation entity() {
+        return pool.primary();
+    }
 
     @Override
     public String type() {
@@ -141,27 +153,36 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     // --- The wave ---
 
-    /** Live summons counted against this event's {@code max_alive} (all adds, or only this entity type when {@code per_type}). */
+    /**
+     * Live summons counted against this event's {@code max_alive}: all adds, or with {@code per_type} only adds of
+     * this event's entity types ({@code entity} and its {@code alternatives}).
+     */
     private int currentAlive(MobCombat combat) {
-        return perType ? combat.aliveSummons(entity) : combat.aliveSummons();
+        if (!perType) {
+            return combat.aliveSummons();
+        }
+        int alive = 0;
+        for (ResourceLocation id : pool.ids()) {
+            alive += combat.aliveSummons(id);
+        }
+        return alive;
     }
 
     /** How many more adds the summoner may have alive now under {@code max_alive} (for {@code skip_when_full}). */
     public int room(Mob mob, MobCombat combat) {
-        int fighters = maxAlive.perExtraPlayer() > 0 ? Fighters.of(mob).size() : 0;
+        int fighters = maxAlive.scalesWithPlayers() ? Fighters.of(mob).size() : 0;
         return Math.max(0, maxAlive.at(fighters) - currentAlive(combat));
     }
 
     private boolean needsFighters() {
-        return count.perExtraPlayer() > 0 || maxAlive.perExtraPlayer() > 0
+        return count.scalesWithPlayers() || maxAlive.scalesWithPlayers()
                 || placement.map(p -> p.around() == Placement.Around.FIGHTERS).orElse(false);
     }
 
     @Override
     public Instance start(AbilityRun run) {
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(entity).orElse(null);
-        if (type == null) {
-            LOGGER.warn("Mob behaviour summons unknown entity {}", entity);
+        List<EntityType<?>> types = pool.resolve();
+        if (types.isEmpty()) {
             return new Instance() {
             };
         }
@@ -172,12 +193,12 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             @Override
             public void finish(AbilityRun run) {
                 if (wave != null) {
-                    spawnWave(run, type, wave);
+                    spawnWave(run, types, wave);
                     run.flash(marker);
                 } else if (placement.isPresent()) {
-                    spawnWave(run, type, plan(run));
+                    spawnWave(run, types, plan(run));
                 } else {
-                    spawnScattered(run, type);
+                    spawnScattered(run, types);
                 }
             }
 
@@ -196,14 +217,14 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     }
 
     /** The default: one at a time around the anchor, while there is room (as summons always worked). */
-    private void spawnScattered(AbilityRun run, EntityType<?> type) {
+    private void spawnScattered(AbilityRun run, List<EntityType<?>> types) {
         Mob mob = run.mob();
         int fighters = needsFighters() ? Fighters.of(mob).size() : 0;
         int total = count.roll(fighters, bound -> mob.getRandom().nextInt(bound));
         int cap = maxAlive.at(fighters);
         Vec3 anchor = anchor(run);
         for (int n = 0; n < total && currentAlive(run.combat()) < cap; n++) {
-            Entity spawned = type.create(run.level());
+            Entity spawned = pickType(types, mob).create(run.level());
             if (spawned == null) {
                 return;
             }
@@ -242,7 +263,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
                 spots.add(new Spot(spot.get(), owner));
             }
         }
-        run.combat().trace(String.format("summon %d of %d %s (room %d, %d fighting)", spots.size(), rolled, entity,
+        run.combat().trace(String.format("summon %d of %d (room %d, %d fighting)", spots.size(), rolled,
                 room, fighters.size()));
         return new Wave(spots, cap);
     }
@@ -321,12 +342,12 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     }
 
     /** Raises a decided wave, each add on its spot facing its first target (while still under its max_alive). */
-    private void spawnWave(AbilityRun run, EntityType<?> type, Wave wave) {
+    private void spawnWave(AbilityRun run, List<EntityType<?>> types, Wave wave) {
         for (Spot spot : wave.spots()) {
             if (currentAlive(run.combat()) >= wave.cap()) {
                 return;
             }
-            Entity spawned = type.create(run.level());
+            Entity spawned = pickType(types, run.mob()).create(run.level());
             if (spawned == null) {
                 return;
             }
@@ -337,6 +358,11 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             spawned.moveTo(at.x, at.y, at.z, yaw, 0.0F);
             add(run, spawned, spot.owner());
         }
+    }
+
+    /** Roll each spot independently. Fixed-type summons leave the original random sequence intact. */
+    private static EntityType<?> pickType(List<EntityType<?>> types, Mob mob) {
+        return types.size() == 1 ? types.getFirst() : types.get(mob.getRandom().nextInt(types.size()));
     }
 
     /**
@@ -402,7 +428,8 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             // Whatever scaled the add inside addFreshEntity (Dungeon Difficulty, Arenas_LD, both synchronous there) is
             // evened out here, once.
             SummonStats.apply(living, stats);
-            run.combat().trace("summon " + entity + " scaled to" + describe(" HP", stats.maxHealth())
+            run.combat().trace("summon " + BuiltInRegistries.ENTITY_TYPE.getKey(spawned.getType())
+                    + " scaled to" + describe(" HP", stats.maxHealth())
                     + describe(" attack", stats.attackDamage()) + describe(" armor", stats.armor())
                     + describe(" damage_dealt", stats.damageDealt()));
         }
@@ -422,24 +449,66 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     // --- Data ---
 
+    public record EntityPool(ResourceLocation primary, List<ResourceLocation> alternatives) {
+        public static final MapCodec<EntityPool> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                ResourceLocation.CODEC.fieldOf("entity").forGetter(EntityPool::primary),
+                ResourceLocation.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(EntityPool::alternatives)
+        ).apply(i, EntityPool::new));
+
+        /** The primary entity id and its alternatives, without repeats. */
+        private List<ResourceLocation> ids() {
+            List<ResourceLocation> ids = new ArrayList<>();
+            ids.add(primary);
+            for (ResourceLocation alternative : alternatives) {
+                if (!ids.contains(alternative)) {
+                    ids.add(alternative);
+                }
+            }
+            return ids;
+        }
+
+        private List<EntityType<?>> resolve() {
+            List<EntityType<?>> types = new ArrayList<>();
+            resolve(primary).ifPresent(types::add);
+            for (ResourceLocation alternative : alternatives) {
+                resolve(alternative).filter(type -> !types.contains(type)).ifPresent(types::add);
+            }
+            return types;
+        }
+
+        private static Optional<EntityType<?>> resolve(ResourceLocation id) {
+            Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(id);
+            if (type.isEmpty()) {
+                LOGGER.warn("Mob behaviour summons unknown entity {}", id);
+            }
+            return type;
+        }
+    }
+
     /**
-     * How many adds one summon raises: a number (always that many), or {@code {min, max, per_extra_player, cap}}: a
-     * random count in [min, max], plus {@code per_extra_player} for each fighting player beyond the first, at most
-     * {@code cap}.
+     * How many adds one summon raises: a fixed number, or a random count in [min, max] with optional player bonuses.
+     * {@code per_player} counts every fighter and {@code per_extra_player} counts fighters beyond the first.
+     * {@code cap} limits the total.
      */
-    public record Count(int min, int max, int perExtraPlayer, int cap) {
+    public record Count(int min, int max, int perExtraPlayer, int perPlayer, int cap) {
         private static final Codec<Count> RANGE = RecordCodecBuilder.<Count>create(i -> i.group(
                 Codec.intRange(0, 256).fieldOf("min").forGetter(Count::min),
                 Codec.intRange(0, 256).optionalFieldOf("max").forGetter(c -> Optional.of(c.max)),
                 Codec.intRange(0, 64).optionalFieldOf("per_extra_player", 0).forGetter(Count::perExtraPlayer),
+                Codec.intRange(0, 64).optionalFieldOf("per_player", 0).forGetter(Count::perPlayer),
                 Codec.intRange(0, 1024).optionalFieldOf("cap").forGetter(c -> c.cap == Integer.MAX_VALUE
                         ? Optional.empty() : Optional.of(c.cap))
-        ).apply(i, (min, max, perExtra, cap) -> new Count(min, max.orElse(min), perExtra, cap.orElse(Integer.MAX_VALUE))))
+        ).apply(i, (min, max, perExtra, perPlayer, cap) ->
+                new Count(min, max.orElse(min), perExtra, perPlayer, cap.orElse(Integer.MAX_VALUE))))
                 .validate(c -> c.max < c.min ? DataResult.error(() -> "A summon count's max " + c.max
                         + " is below its min " + c.min) : DataResult.success(c));
         public static final Codec<Count> CODEC = Codec.either(Codec.INT, RANGE).xmap(
                 either -> either.map(Count::of, range -> range),
                 c -> c.plain() ? Either.left(c.min) : Either.right(c));
+
+        public Count(int min, int max, int perExtraPlayer, int cap) {
+            this(min, max, perExtraPlayer, 0, cap);
+        }
 
         /** Always {@code n}, whoever is fighting (a plain number, as summons always took). */
         public static Count of(int n) {
@@ -447,39 +516,52 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         }
 
         private boolean plain() {
-            return min == max && perExtraPlayer == 0 && cap == Integer.MAX_VALUE;
+            return min == max && !scalesWithPlayers() && cap == Integer.MAX_VALUE;
+        }
+
+        private boolean scalesWithPlayers() {
+            return perExtraPlayer > 0 || perPlayer > 0;
         }
 
         /** The count for a wave with {@code fighters} players fighting; {@code random}: bound -> [0, bound). */
         public int roll(int fighters, IntUnaryOperator random) {
             int rolled = max > min ? min + random.applyAsInt(max - min + 1) : min;
-            return Math.min(cap, rolled + perExtraPlayer * Fighters.extra(fighters));
+            return Math.min(cap, rolled + perPlayer * fighters + perExtraPlayer * Fighters.extra(fighters));
         }
     }
 
     /**
-     * How many of the summoner's adds may be alive at once: a number, or {@code {base, per_extra_player, cap}}: base
-     * plus {@code per_extra_player} for each fighting player beyond the first, at most {@code cap}. A wave only fills the
-     * free room.
+     * How many of the summoner's adds may be alive at once: a fixed number or a base with optional player bonuses.
+     * Uses the same scaling fields as {@link Count}. A wave only fills the free room.
      */
-    public record MaxAlive(int base, int perExtraPlayer, int cap) {
+    public record MaxAlive(int base, int perExtraPlayer, int perPlayer, int cap) {
         private static final Codec<MaxAlive> RANGE = RecordCodecBuilder.<MaxAlive>create(i -> i.group(
                 Codec.intRange(0, 1024).fieldOf("base").forGetter(MaxAlive::base),
                 Codec.intRange(0, 256).optionalFieldOf("per_extra_player", 0).forGetter(MaxAlive::perExtraPlayer),
+                Codec.intRange(0, 256).optionalFieldOf("per_player", 0).forGetter(MaxAlive::perPlayer),
                 Codec.intRange(0, 1024).optionalFieldOf("cap").forGetter(m -> m.cap == Integer.MAX_VALUE
                         ? Optional.empty() : Optional.of(m.cap))
-        ).apply(i, (base, perExtra, cap) -> new MaxAlive(base, perExtra, cap.orElse(Integer.MAX_VALUE))));
+        ).apply(i, (base, perExtra, perPlayer, cap) ->
+                new MaxAlive(base, perExtra, perPlayer, cap.orElse(Integer.MAX_VALUE))));
         public static final Codec<MaxAlive> CODEC = Codec.either(Codec.INT, RANGE).xmap(
                 either -> either.map(MaxAlive::of, range -> range),
-                m -> m.perExtraPlayer == 0 && m.cap == Integer.MAX_VALUE ? Either.left(m.base) : Either.right(m));
+                m -> !m.scalesWithPlayers() && m.cap == Integer.MAX_VALUE ? Either.left(m.base) : Either.right(m));
+
+        public MaxAlive(int base, int perExtraPlayer, int cap) {
+            this(base, perExtraPlayer, 0, cap);
+        }
 
         public static MaxAlive of(int n) {
             return new MaxAlive(n, 0, Integer.MAX_VALUE);
         }
 
+        private boolean scalesWithPlayers() {
+            return perExtraPlayer > 0 || perPlayer > 0;
+        }
+
         /** The limit with {@code fighters} players fighting. */
         public int at(int fighters) {
-            return Math.min(cap, base + perExtraPlayer * Fighters.extra(fighters));
+            return Math.min(cap, base + perPlayer * fighters + perExtraPlayer * Fighters.extra(fighters));
         }
     }
 

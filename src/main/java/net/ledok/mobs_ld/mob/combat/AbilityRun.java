@@ -9,6 +9,7 @@ import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.GrabEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.minecraft.core.BlockPos;
@@ -79,6 +80,8 @@ public final class AbilityRun {
     private LivingEntity chainAim;
     /** A {@code chain} with {@code taunt_wins}: a taunt lock on the mob beats the kept aim. */
     private boolean chainTauntWins;
+    /** Facing the follow-up inherits when a moving attack comes to a stop. */
+    private Float chainFacing;
     /** Facing an event asked to turn to (re-aim between beats); approached at {@link #steerRate}. */
     private Float steerYaw;
     /** Degrees per tick toward {@link #steerYaw}: the tracking rate, or a timed turn's ({@link #turnBody}). */
@@ -260,6 +263,12 @@ public final class AbilityRun {
         chain(abilityName, null, false);
     }
 
+    /** Starts recovery facing down the lane, even if the charge has passed its aim. */
+    public void chainFacing(String abilityName) {
+        chainFacing = yaw;
+        chain(abilityName);
+    }
+
     /**
      * Ends this ability and starts the named one right away. {@code aimAt} (if alive then) is its aim whatever its
      * own rule says; else it aims as a plain chain does, except that with {@code tauntWins} a taunt lock on the mob
@@ -277,6 +286,15 @@ public final class AbilityRun {
 
     String chainTo() {
         return chainTo;
+    }
+
+    Float chainFacing() {
+        return chainFacing;
+    }
+
+    void lockFacing(float facing) {
+        yaw = facing;
+        lockedYaw = facing;
     }
 
     /** The aim a chain asked for explicitly (see {@link #chain(String, LivingEntity, boolean)}), else null. */
@@ -409,6 +427,25 @@ public final class AbilityRun {
             }
         }
         return multiplier;
+    }
+
+    /** The protection this run currently gives its bound summoner. */
+    double wardMultiplier(LivingEntity summoner) {
+        if (summoner == null || aim != summoner || cancelled || !mob.isAlive() || !summoner.isAlive()) {
+            return 1.0;
+        }
+        double multiplier = 1.0;
+        for (Slot slot : slots) {
+            if (slot.state == State.ACTIVE && slot.event instanceof SummonerWardEvent ward
+                    && ward.inRange(mob, summoner)) {
+                multiplier = Math.min(multiplier, ward.multiplier());
+            }
+        }
+        if (multiplier < 1.0 && CombatTargets.summoner(mob) == summoner
+                && mob.getSensing().hasLineOfSight(summoner)) {
+            return multiplier;
+        }
+        return 1.0;
     }
 
     /** Lets an event steer the mob (e.g. a homing chase); the run keeps facing this way. */
@@ -560,12 +597,21 @@ public final class AbilityRun {
      * (the marker is still valid).
      */
     public Marker telegraph(List<Zone> zones, Telegraph style, double impactSeconds) {
+        return telegraph(zones, style, impactSeconds, combat.reachUp(), combat.reachDown());
+    }
+
+    /**
+     * {@link #telegraph(List, Telegraph, double)} for a hit whose height band ({@code up} / {@code down} blocks around
+     * each zone's floor) is not the mob's reach band: the client lays the telegraph only on floors inside it.
+     */
+    public Marker telegraph(List<Zone> zones, Telegraph style, double impactSeconds, double up, double down) {
         int total = Math.max(1, (int) Math.round((impactSeconds - seconds()) * 20.0 / speed));
         AttackDisplayConfig config = new AttackDisplayConfig(style.style().animation(), style.prepareColor(),
                 style.invokeColor());
         List<AttackZoneDisplay> displays = new ArrayList<>();
         for (Zone zone : zones) {
-            displays.add(AttackZoneDisplay.spawn(level(), zone.origin(), zone.yaw(), zone.zone(), config, total));
+            displays.add(AttackZoneDisplay.spawn(level(), zone.origin(), zone.yaw(), zone.zone(), config, total,
+                    (float) up, (float) down));
         }
         Marker marker = new Marker(List.copyOf(displays), impactSeconds, total);
         markers.add(marker);
@@ -704,7 +750,7 @@ public final class AbilityRun {
                 if (run.cancelled) {
                     return;
                 }
-                if (seconds >= event.end()) {
+                if (instance.readyToFinish(run, event.end())) {
                     state = State.DONE;
                     instance.finish(run);
                 }

@@ -5,6 +5,7 @@
   "mixins": [
     "AreaEffectCloudMixin",
     "BrainAccessor",
+    "CreeperNoFuseMixin",
     "EntityCombatViewersMixin",
     "EntityDashMixin",
     "EntityDropsMixin",

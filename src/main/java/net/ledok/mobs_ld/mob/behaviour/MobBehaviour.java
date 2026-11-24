@@ -8,6 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.HostSpec;
@@ -99,6 +100,11 @@ public record MobBehaviour(
         behaviour.phases().forEach(phase -> phase.transition().ifPresent(all::add));
         Map<String, SkullSpec> skulls = behaviour.host().options().map(HostOptions::skulls).orElse(Map.of());
         for (Ability ability : all) {
+            for (String prerequisite : ability.afterAbilities()) {
+                if (!behaviour.abilities().containsKey(prerequisite)) {
+                    return DataResult.error(() -> "An ability's after_abilities names unknown ability '" + prerequisite + "'");
+                }
+            }
             String slotError = behaviour.unknownSlot(ability.target(), "An ability aims at");
             if (slotError != null) {
                 return DataResult.error(() -> slotError);
@@ -108,6 +114,10 @@ public record MobBehaviour(
                 return DataResult.error(() -> alongError);
             }
             for (AbilityEvent event : ability.events()) {
+                if (event instanceof SandstoneSpikesEvent spikes && ability.events().stream().noneMatch(spikes::matches)) {
+                    return DataResult.error(() -> "A sandstone_spikes event at " + spikes.at()
+                            + " requires a rectangular hit at the same time");
+                }
                 for (String chained : event.chains()) {
                     if (!behaviour.abilities().containsKey(chained)) {
                         return DataResult.error(() -> "A " + event.type() + " event chains into unknown ability '" + chained + "'");
@@ -393,6 +403,7 @@ public record MobBehaviour(
      * @param cooldownGroup abilities naming the same group share one cooldown: using one puts all of them on the
      *                     cooldown it rolled (its own, or the phase's override for it)
      * @param noRepeat     not picked right after itself while another ability can be picked
+     * @param afterAbilities only picked once at least one of these named abilities completes in the current fight
      * @param minPlayers   only usable while at least this many players fight the mob ({@link
      *                     net.ledok.mobs_ld.mob.combat.Fighters}); empty = any number
      * @param maxPlayers   only usable while at most this many players fight it; empty = any number
@@ -416,10 +427,12 @@ public record MobBehaviour(
             boolean fixedSpeed,
             Optional<String> cooldownGroup,
             boolean noRepeat,
+            List<String> afterAbilities,
             Optional<Integer> minPlayers,
             Optional<Integer> maxPlayers,
             Optional<When> when,
             boolean includeUnreachable,
+            List<String> onlyTagged,
             List<AbilityEvent> events
     ) {
         /**
@@ -427,26 +440,29 @@ public record MobBehaviour(
          * flat): a separate group because one RecordCodecBuilder takes at most 16 fields. New optional ability fields
          * go here (or into a third group like it).
          */
-        private record Scheduling(boolean fixedSpeed, Optional<String> cooldownGroup, boolean noRepeat) {
+        private record Scheduling(boolean fixedSpeed, Optional<String> cooldownGroup, boolean noRepeat,
+                                  List<String> afterAbilities) {
             static final MapCodec<Scheduling> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                     Codec.BOOL.optionalFieldOf("fixed_speed", false).forGetter(Scheduling::fixedSpeed),
                     Codec.STRING.optionalFieldOf("cooldown_group").forGetter(Scheduling::cooldownGroup),
-                    Codec.BOOL.optionalFieldOf("no_repeat", false).forGetter(Scheduling::noRepeat)
+                    Codec.BOOL.optionalFieldOf("no_repeat", false).forGetter(Scheduling::noRepeat),
+                    Codec.STRING.listOf().optionalFieldOf("after_abilities", List.of()).forGetter(Scheduling::afterAbilities)
             ).apply(i, Scheduling::new));
 
             static Scheduling of(Ability ability) {
-                return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat());
+                return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat(), ability.afterAbilities());
             }
         }
 
         /** The Warden rework's M3 conditions: who must be fighting, and where, for the ability to be usable. */
         private record Conditions(Optional<Integer> minPlayers, Optional<Integer> maxPlayers, Optional<When> when,
-                                  boolean includeUnreachable) {
+                                  boolean includeUnreachable, List<String> onlyTagged) {
             static final MapCodec<Conditions> CODEC = RecordCodecBuilder.<Conditions>mapCodec(i -> i.group(
                     Codec.intRange(0, 64).optionalFieldOf("min_players").forGetter(Conditions::minPlayers),
                     Codec.intRange(0, 64).optionalFieldOf("max_players").forGetter(Conditions::maxPlayers),
                     When.CODEC.optionalFieldOf("when").forGetter(Conditions::when),
-                    Codec.BOOL.optionalFieldOf("include_unreachable", false).forGetter(Conditions::includeUnreachable)
+                    Codec.BOOL.optionalFieldOf("include_unreachable", false).forGetter(Conditions::includeUnreachable),
+                    Codec.STRING.listOf().optionalFieldOf("only_tagged", List.of()).forGetter(Conditions::onlyTagged)
             ).apply(i, Conditions::new)).validate(c -> c.minPlayers().isPresent() && c.maxPlayers().isPresent()
                     && c.maxPlayers().get() < c.minPlayers().get()
                     ? DataResult.error(() -> "An ability's max_players (" + c.maxPlayers().get() + ") is below its "
@@ -455,7 +471,7 @@ public record MobBehaviour(
 
             static Conditions of(Ability ability) {
                 return new Conditions(ability.minPlayers(), ability.maxPlayers(), ability.when(),
-                        ability.includeUnreachable());
+                        ability.includeUnreachable(), ability.onlyTagged());
             }
         }
 
@@ -493,8 +509,24 @@ public record MobBehaviour(
         ).apply(i, (core, scheduling, conditions) -> new Ability(core.clip(), core.duration(), core.cooldown(),
                 core.initialCooldown(), core.weight(), core.range(), core.target(), core.trackUntil(),
                 core.forceAfter(), core.aimSide(), core.invulnerable(), core.skipWhenFull(), scheduling.fixedSpeed(),
-                scheduling.cooldownGroup(), scheduling.noRepeat(), conditions.minPlayers(), conditions.maxPlayers(),
-                conditions.when(), conditions.includeUnreachable(), core.events())));
+                scheduling.cooldownGroup(), scheduling.noRepeat(), scheduling.afterAbilities(), conditions.minPlayers(), conditions.maxPlayers(),
+                conditions.when(), conditions.includeUnreachable(), conditions.onlyTagged(), core.events())));
+
+        /**
+         * Whether a mob with these entity tags may use it ({@code only_tagged}: at least one of them; empty = any mob),
+         * e.g. {@code ["arenas_ld_run_mob"]} for a move only an Arenas_LD run's boss has.
+         */
+        public boolean allowsTags(java.util.Set<String> tags) {
+            if (onlyTagged.isEmpty()) {
+                return true;
+            }
+            for (String tag : onlyTagged) {
+                if (tags.contains(tag)) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public String clipOr(String key) {
             return clip.isEmpty() ? key : clip;
@@ -562,7 +594,8 @@ public record MobBehaviour(
      * Who an ability aims at (or movement follows): {@code current} (the threat target, normally the tank),
      * {@code nearest}, {@code farthest}, {@code random} player, {@code lowest_threat} (the player with the least threat;
      * ties prefer someone other than the tank), {@code top_damage} (whoever dealt it the most damage in the last 10 s;
-     * else the threat top) or {@code slot:<name>} (whoever that target slot holds now).
+     * else the threat top), {@code slot:<name>} (whoever that target slot holds now), or {@code summoner} (the
+     * living owner of a bound add).
      *
      * @param slot the slot's name, for {@link Kind#SLOT}
      */
@@ -593,7 +626,7 @@ public record MobBehaviour(
                 }
             }
             return DataResult.error(() -> "Unknown target '" + text
-                    + "' (expected current, nearest, farthest, random, lowest_threat, top_damage or slot:<name>)");
+                    + "' (expected current, nearest, farthest, random, lowest_threat, top_damage, slot:<name> or summoner)");
         }
 
         public String serialized() {
@@ -607,7 +640,8 @@ public record MobBehaviour(
             RANDOM("random"),
             LOWEST_THREAT("lowest_threat"),
             TOP_DAMAGE("top_damage"),
-            SLOT("slot");
+            SLOT("slot"),
+            SUMMONER("summoner");
 
             private final String name;
 
@@ -794,21 +828,31 @@ public record MobBehaviour(
      * @param resetAfter  seconds without any target before an engaged boss resets (a wipe)
      * @param softEnrage  after this long in combat its damage is multiplied
      * @param engageOn    who may be its target and so start the fight
+     * @param wardDamage  outgoing damage bonus while enough linked adds are actively warding it
      */
     public record Boss(
             Optional<BossBar> bar,
             double leash,
             double resetAfter,
             Optional<SoftEnrage> softEnrage,
-            EngageOn engageOn
+            EngageOn engageOn,
+            Optional<WardDamage> wardDamage
     ) {
         public static final Codec<Boss> CODEC = RecordCodecBuilder.create(i -> i.group(
                 BossBar.CODEC.optionalFieldOf("bar").forGetter(Boss::bar),
                 Codec.DOUBLE.optionalFieldOf("leash", 0.0).forGetter(Boss::leash),
                 Codec.DOUBLE.optionalFieldOf("reset_after", 15.0).forGetter(Boss::resetAfter),
                 SoftEnrage.CODEC.optionalFieldOf("soft_enrage").forGetter(Boss::softEnrage),
-                EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn)
+                EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn),
+                WardDamage.CODEC.optionalFieldOf("ward_damage").forGetter(Boss::wardDamage)
         ).apply(i, Boss::new));
+    }
+
+    public record WardDamage(int minWards, double multiplier) {
+        public static final Codec<WardDamage> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(1, 256).fieldOf("min_wards").forGetter(WardDamage::minWards),
+                Codec.doubleRange(1.0, 100.0).fieldOf("multiplier").forGetter(WardDamage::multiplier)
+        ).apply(i, WardDamage::new));
     }
 
     /** Who a boss fights. */

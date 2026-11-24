@@ -20,7 +20,8 @@ import java.util.Optional;
  *               vanilla's, the spec's {@code knockback} / {@code knock_up} are not used
  * @param splash damage to the enemies around the impact, other than the one hit directly; empty = none
  */
-public record SkullSpec(Optional<Seconds> every, double speed, double range, HitSpec hit, Optional<Splash> splash) {
+public record SkullSpec(Optional<Seconds> every, double speed, double range, HitSpec hit, Optional<Splash> splash,
+                        double hitRadius) {
     /** Vanilla wither skull speed once it has settled. */
     public static final double VANILLA_SPEED = 1.9;
 
@@ -33,7 +34,9 @@ public record SkullSpec(Optional<Seconds> every, double speed, double range, Hit
             Codec.doubleRange(0.05, 3.9).optionalFieldOf("speed", VANILLA_SPEED).forGetter(SkullSpec::speed),
             Codec.doubleRange(1.0, 128.0).optionalFieldOf("range", 30.0).forGetter(SkullSpec::range),
             HitSpec.CODEC.fieldOf("hit").forGetter(SkullSpec::hit),
-            Splash.CODEC.optionalFieldOf("splash").forGetter(SkullSpec::splash)
+            Splash.CODEC.optionalFieldOf("splash").forGetter(SkullSpec::splash),
+            // How close it must pass to a target to hit it (0 = vanilla: a direct hit only).
+            Codec.doubleRange(0.0, 8.0).optionalFieldOf("hit_radius", 0.0).forGetter(SkullSpec::hitRadius)
     ).apply(i, SkullSpec::new)).validate(spec -> spec.every().filter(every -> every.min() < MIN_EVERY).isPresent()
             ? DataResult.error(() -> "A skull's 'every' must be at least " + MIN_EVERY + " s, got " + spec.every().get())
             : DataResult.success(spec));

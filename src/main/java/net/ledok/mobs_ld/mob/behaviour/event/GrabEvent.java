@@ -267,7 +267,7 @@ public record GrabEvent(
                     if (held.size() >= maxVictims) {
                         break;
                     }
-                    boolean caught = catchHit.map(spec -> spec.applyChecked(run, candidate, mob.position())).orElse(true);
+                    boolean caught = catchHit.map(spec -> spec.tryApply(run, candidate, mob.position())).orElse(true);
                     if (!caught || !candidate.isAlive()) {
                         continue;
                     }

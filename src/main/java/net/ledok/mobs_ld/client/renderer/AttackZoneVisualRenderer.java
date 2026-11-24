@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.ledok.mobs_ld.entity.attack.AttackDisplayConfig;
 import net.ledok.mobs_ld.entity.attack.AttackZone;
+import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.attack.AttackZoneVisualEntity;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -27,8 +28,35 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         boolean inside(float localX, float localZ);
     }
 
+    /** Steps lower than this between neighbouring cells draw no wall (rounding, a carpet). */
+    private static final float STEP = 0.02F;
+    /** Height band used when the server sends none (an older server). */
+    private static final float DEFAULT_BAND = 1.5F;
+
+    /** The floor under the zone being drawn now; null draws it flat (as before terrain draping). */
+    private TerrainDrape drape;
+
     public AttackZoneVisualRenderer(EntityRendererProvider.Context context) {
         super(context);
+    }
+
+    /**
+     * The zone's floor heights, sampled once and kept on the entity (re-sampled if it moved: zones that follow a mob).
+     * The entity sits {@link AttackZoneDisplay#PREVIEW_LIFT} / {@link AttackZoneDisplay#FILL_LIFT} above the floor at
+     * its origin, which is the reference the hit's height band is measured from.
+     */
+    private static TerrainDrape drapeFor(AttackZoneVisualEntity entity) {
+        double lift = entity.isPreview() ? AttackZoneDisplay.PREVIEW_LIFT : AttackZoneDisplay.FILL_LIFT;
+        double ground = entity.getY() - lift;
+        double up = entity.getBandUp() > 0.0F ? entity.getBandUp() : DEFAULT_BAND;
+        double down = entity.getBandDown() > 0.0F ? entity.getBandDown() : DEFAULT_BAND;
+        if (entity.clientDrape instanceof TerrainDrape cached
+                && cached.matches(entity.getX(), ground, entity.getZ(), up, down)) {
+            return cached;
+        }
+        TerrainDrape fresh = new TerrainDrape(entity.level(), entity.getX(), ground, entity.getZ(), up, down, reach(entity));
+        entity.clientDrape = fresh;
+        return fresh;
     }
 
     @Override
@@ -42,6 +70,7 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
     ) {
         VertexConsumer buffer = bufferSource.getBuffer(RenderType.debugQuads());
         Matrix4f matrix = poseStack.last().pose();
+        drape = drapeFor(entity);
 
         if (entity.isPreview()) {
             renderPreview(entity, matrix, buffer);
@@ -213,36 +242,20 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float outer2 = outer * outer;
         float min = -outer;
         int cells = Math.max(1, Mth.ceil(2.0F * outer / PIXEL_SIZE));
+        GridPainter painter = new GridPainter(matrix, buffer, color, 0.0F, min, outer, cells);
         for (int iz = 0; iz < cells; iz++) {
             float z0 = min + iz * PIXEL_SIZE;
             float z1 = Math.min(z0 + PIXEL_SIZE, outer);
             float zc = (z0 + z1) * 0.5F;
             float zc2 = zc * zc;
             if (zc2 > outer2) {
+                painter.skipRow();
                 continue;
             }
             float far = (float) Math.sqrt(outer2 - zc2);
-            if (zc2 >= inner2) {
-                ringSpan(matrix, buffer, color, min, cells, -far, far, z0, z1);
-            } else {
-                float near = (float) Math.sqrt(inner2 - zc2);
-                ringSpan(matrix, buffer, color, min, cells, -far, -near, z0, z1);
-                ringSpan(matrix, buffer, color, min, cells, near, far, z0, z1);
-            }
+            float near = zc2 >= inner2 ? -1.0F : (float) Math.sqrt(inner2 - zc2);
+            painter.row(z0, z1, x -> Math.abs(x) <= far && Math.abs(x) >= near);
         }
-    }
-
-    /** One row's run of grid cells whose centres lie within {@code [from, to]}, as a single quad. */
-    private void ringSpan(Matrix4f matrix, VertexConsumer buffer, int color, float min, int cells, float from, float to,
-                          float z0, float z1) {
-        int first = Math.max(0, Mth.ceil((from - min) / PIXEL_SIZE - 0.5F));
-        int last = Math.min(cells - 1, Mth.floor((to - min) / PIXEL_SIZE - 0.5F));
-        if (last < first) {
-            return;
-        }
-        float x0 = min + first * PIXEL_SIZE;
-        float x1 = min + (last + 1) * PIXEL_SIZE;
-        addQuad(matrix, buffer, color, x0, z0, x1, z0, x1, z1, x0, z1);
     }
 
     private void renderCircleRays(
@@ -303,22 +316,12 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         }
         int cellsX = Math.max(1, Mth.ceil((maxX - minX) / PIXEL_SIZE));
         int cellsZ = Math.max(1, Mth.ceil((maxZ - minZ) / PIXEL_SIZE));
-        for (int ix = 0; ix < cellsX; ix++) {
-            float x0 = minX + ix * PIXEL_SIZE;
-            float x1 = Math.min(x0 + PIXEL_SIZE, maxX);
-            float cx = (x0 + x1) * 0.5F;
-            for (int iz = 0; iz < cellsZ; iz++) {
-                float z0 = minZ + iz * PIXEL_SIZE;
-                float z1 = Math.min(z0 + PIXEL_SIZE, maxZ);
-                if (!test.inside(cx, (z0 + z1) * 0.5F)) {
-                    continue;
-                }
-                addQuad(matrix, buffer, color,
-                        rotateX(x0, z0, yaw), rotateZ(x0, z0, yaw),
-                        rotateX(x1, z0, yaw), rotateZ(x1, z0, yaw),
-                        rotateX(x1, z1, yaw), rotateZ(x1, z1, yaw),
-                        rotateX(x0, z1, yaw), rotateZ(x0, z1, yaw));
-            }
+        GridPainter painter = new GridPainter(matrix, buffer, color, yaw, minX, maxX, cellsX);
+        for (int iz = 0; iz < cellsZ; iz++) {
+            float z0 = minZ + iz * PIXEL_SIZE;
+            float z1 = Math.min(z0 + PIXEL_SIZE, maxZ);
+            float zc = (z0 + z1) * 0.5F;
+            painter.row(z0, z1, x -> test.inside(x, zc));
         }
     }
 
@@ -343,48 +346,144 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float minX = -maxX;
         int cellsX = Math.max(1, Mth.ceil((maxX - minX) / PIXEL_SIZE));
         int cellsZ = Math.max(1, Mth.ceil(2.0F * length / PIXEL_SIZE));
+        GridPainter painter = new GridPainter(matrix, buffer, color, yaw, minX, maxX, cellsX);
         for (int iz = 0; iz < cellsZ; iz++) {
             float z0 = -length + iz * PIXEL_SIZE;
             float z1 = Math.min(z0 + PIXEL_SIZE, length);
             float half = halfWidth + halfWiden * Math.abs((z0 + z1) * 0.5F);
-            // Cells whose centre (minX + (i + 0.5) x PIXEL_SIZE) lies within [-half, half].
-            int first = Math.max(0, Mth.ceil((-half - minX) / PIXEL_SIZE - 0.5F));
-            int last = Math.min(cellsX - 1, Mth.floor((half - minX) / PIXEL_SIZE - 0.5F));
-            if (last < first) {
-                continue;
-            }
-            float x0 = minX + first * PIXEL_SIZE;
-            float x1 = Math.min(minX + (last + 1) * PIXEL_SIZE, maxX);
-            addQuad(matrix, buffer, color,
-                    rotateX(x0, z0, yaw), rotateZ(x0, z0, yaw),
-                    rotateX(x1, z0, yaw), rotateZ(x1, z0, yaw),
-                    rotateX(x1, z1, yaw), rotateZ(x1, z1, yaw),
-                    rotateX(x0, z1, yaw), rotateZ(x0, z1, yaw));
+            painter.row(z0, z1, x -> Math.abs(x) <= half);
         }
     }
 
-    private void addQuad(
-            Matrix4f matrix,
-            VertexConsumer buffer,
-            int argb,
-            float x1, float z1,
-            float x2, float z2,
-            float x3, float z3,
-            float x4, float z4
-    ) {
-        float y = 0.02F;
-        buffer.addVertex(matrix, x1, y, z1).setColor(argb);
-        buffer.addVertex(matrix, x2, y, z2).setColor(argb);
-        buffer.addVertex(matrix, x3, y, z3).setColor(argb);
-        buffer.addVertex(matrix, x4, y, z4).setColor(argb);
+    /** Which cells of a row are inside the zone, by the cell centre's x in the zone's local frame. */
+    private interface RowTest {
+        boolean inside(float localX);
     }
 
-    private float rotateX(float localX, float localZ, float yaw) {
-        return (float) (localX * Math.cos(yaw) - localZ * Math.sin(yaw));
-    }
+    /**
+     * Draws a zone row by row on the {@link #PIXEL_SIZE} grid of its local (rotated) frame, each cell at the height of
+     * the floor under it ({@link #drape}). Cells with no floor inside the hit's band are left out; a run of cells at
+     * one height is one quad, so a zone on flat ground costs one quad per row. Where two neighbouring cells sit at
+     * different heights (a step, a stair), a wall joins them, so the shape stays one surface over the terrain.
+     */
+    private final class GridPainter {
+        private final Matrix4f matrix;
+        private final VertexConsumer buffer;
+        private final int color;
+        private final float sin;
+        private final float cos;
+        private final float minX;
+        private final float maxX;
+        private final int cellsX;
+        private float[] previous;
+        private float[] current;
+        /** The far edge of the previous row, if the previous row was drawn and touches the next one. */
+        private float previousEdge = Float.NaN;
 
-    private float rotateZ(float localX, float localZ, float yaw) {
-        return (float) (localX * Math.sin(yaw) + localZ * Math.cos(yaw));
+        GridPainter(Matrix4f matrix, VertexConsumer buffer, int color, float yaw, float minX, float maxX, int cellsX) {
+            this.matrix = matrix;
+            this.buffer = buffer;
+            this.color = color;
+            this.sin = (float) Math.sin(yaw);
+            this.cos = (float) Math.cos(yaw);
+            this.minX = minX;
+            this.maxX = maxX;
+            this.cellsX = cellsX;
+            this.previous = new float[cellsX];
+            this.current = new float[cellsX];
+        }
+
+        private float x(int cell) {
+            return Math.min(minX + cell * PIXEL_SIZE, maxX);
+        }
+
+        /** A row with nothing inside: the next row has no neighbour behind it. */
+        void skipRow() {
+            previousEdge = Float.NaN;
+        }
+
+        void row(float z0, float z1, RowTest test) {
+            float zc = (z0 + z1) * 0.5F;
+            boolean any = false;
+            for (int ix = 0; ix < cellsX; ix++) {
+                float xc = (x(ix) + x(ix + 1)) * 0.5F;
+                float height = Float.NaN;
+                if (test.inside(xc)) {
+                    height = drape == null ? 0.0F : drape.at(worldX(xc, zc), worldZ(xc, zc));
+                }
+                current[ix] = height;
+                any |= !Float.isNaN(height);
+            }
+            if (!any) {
+                skipRow();
+                return;
+            }
+            // Runs of cells at one height.
+            int ix = 0;
+            while (ix < cellsX) {
+                float height = current[ix];
+                if (Float.isNaN(height)) {
+                    ix++;
+                    continue;
+                }
+                int end = ix;
+                while (end + 1 < cellsX && !Float.isNaN(current[end + 1]) && Math.abs(current[end + 1] - height) < STEP) {
+                    end++;
+                }
+                flat(x(ix), z0, x(end + 1), z1, height);
+                ix = end + 1;
+            }
+            // Walls between neighbours in this row, and toward the row before.
+            for (int i = 0; i + 1 < cellsX; i++) {
+                if (steps(current[i], current[i + 1])) {
+                    wall(x(i + 1), z0, x(i + 1), z1, current[i], current[i + 1]);
+                }
+            }
+            if (!Float.isNaN(previousEdge) && Math.abs(previousEdge - z0) < 1.0e-4F) {
+                for (int i = 0; i < cellsX; i++) {
+                    if (steps(previous[i], current[i])) {
+                        wall(x(i), z0, x(i + 1), z0, previous[i], current[i]);
+                    }
+                }
+            }
+            float[] swap = previous;
+            previous = current;
+            current = swap;
+            previousEdge = z1;
+        }
+
+        private boolean steps(float a, float b) {
+            return !Float.isNaN(a) && !Float.isNaN(b) && Math.abs(a - b) >= STEP;
+        }
+
+        private float worldX(float localX, float localZ) {
+            return localX * cos - localZ * sin;
+        }
+
+        private float worldZ(float localX, float localZ) {
+            return localX * sin + localZ * cos;
+        }
+
+        private void vertex(float localX, float y, float localZ) {
+            buffer.addVertex(matrix, worldX(localX, localZ), y + 0.02F, worldZ(localX, localZ)).setColor(color);
+        }
+
+        private void flat(float x0, float z0, float x1, float z1, float y) {
+            vertex(x0, y, z0);
+            vertex(x1, y, z0);
+            vertex(x1, y, z1);
+            vertex(x0, y, z1);
+        }
+
+        /** A vertical quad along the edge (x0, z0) - (x1, z1) from one height to the other. */
+        private void wall(float x0, float z0, float x1, float z1, float a, float b) {
+            float low = Math.min(a, b);
+            float high = Math.max(a, b);
+            vertex(x0, low, z0);
+            vertex(x1, low, z1);
+            vertex(x1, high, z1);
+            vertex(x0, high, z0);
+        }
     }
 
     @Override

@@ -1109,7 +1109,7 @@
     },
     "summon_mites": {
       "clip": "crystal_roar",
-      "duration": 2.5,
+      "duration": 2.6,
       "cooldown": [17.0, 21.0],
       "initial_cooldown": 9.0,
       "skip_when_full": true,

@@ -5,6 +5,7 @@ import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.entity.attack.AttackZoneDisplay;
 import net.ledok.mobs_ld.entity.threat.ThreatEffects;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
+import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.behaviour.Seconds;
@@ -13,6 +14,7 @@ import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.host.HostAdapter;
 import net.ledok.mobs_ld.mob.host.HostAdapters;
 import net.ledok.mobs_ld.mob.host.HostOptions;
@@ -139,6 +141,8 @@ public final class MobCombat {
     private AbilityRun current;
     /** The ability started last (for {@code no_repeat}); null after a reset. */
     private String lastStarted;
+    /** Named abilities that have finished in this engagement (for {@code after_abilities}). */
+    private final Set<String> completedAbilities = new HashSet<>();
     private AbilityRun deathRun;
     private long globalReadyAt;
     private long staggerUntil = -1;
@@ -264,6 +268,10 @@ public final class MobCombat {
     public void tick() {
         tickFight();
         syncBody();
+        if (mob instanceof LdMob add) {
+            LivingEntity aim = current == null ? null : current.aim();
+            add.setWardTargetId(aim != null && current.wardMultiplier(aim) < 1.0 ? aim.getId() : -1);
+        }
     }
 
     private void tickFight() {
@@ -346,6 +354,12 @@ public final class MobCombat {
 
     private void tickEngagement(MobBehaviour behaviour, long now) {
         LivingEntity target = mob.getTarget();
+        if (movement().follow().kind() == MobBehaviour.TargetRule.Kind.SUMMONER) {
+            Mob summoner = CombatTargets.summoner(mob);
+            if (summoner != null) {
+                target = summoner.getTarget();
+            }
+        }
         if (!engaged) {
             if (target != null && target.isAlive()) {
                 engage(behaviour, target, now);
@@ -484,6 +498,7 @@ public final class MobCombat {
         engaged = true;
         engagedAt = now;
         idleTicks = 0;
+        completedAbilities.clear();
         behaviour.abilities().forEach((name, ability) -> {
             if (ability.initialCooldown().max() > 0.0) {
                 readyAt.put(name, now + ticks(ability.initialCooldown()));
@@ -703,7 +718,9 @@ public final class MobCombat {
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
-            if ((active != null && !active.allows(name)) || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
+            if ((active != null && !active.allows(name)) || !ability.allowsTags(mob.getTags())
+                    || !prerequisiteMet(ability)
+                    || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                     || (ability.skipWhenFull() && summonsFull(ability)) || !behindHolds(name, ability, now)) {
                 continue;
             }
@@ -717,6 +734,11 @@ public final class MobCombat {
             }
             LivingEntity aim = CombatTargets.pick(mob, ability.target(), ability.includeUnreachable());
             if (aim == null) {
+                continue;
+            }
+            if (ability.target().kind() == MobBehaviour.TargetRule.Kind.SUMMONER
+                    && (!mob.getSensing().hasLineOfSight(aim) || ability.events().stream().anyMatch(event ->
+                    event instanceof SummonerWardEvent ward && !ward.inRange(mob, aim)))) {
                 continue;
             }
             boolean forced = ability.forceAfter().map(after -> now - engagedAt >= after * 20.0).orElse(false);
@@ -773,8 +795,8 @@ public final class MobCombat {
     }
 
     /**
-     * Whether {@code name} could start on its own now, range and weight aside: its phase allows it, it is off cooldown
-     * and, with {@code skip_when_full}, one of its summons has room ({@code chain.if_ready}).
+     * Whether {@code name} could start on its own now, range and weight aside: its phase allows it, it is off cooldown,
+     * its opening prerequisite is met and, with {@code skip_when_full}, one of its summons has room ({@code chain.if_ready}).
      */
     public boolean readyToChain(String name) {
         MobBehaviour behaviour = behaviour();
@@ -784,9 +806,14 @@ public final class MobCombat {
         }
         MobBehaviour.Phase active = activePhase(behaviour);
         long now = mob.level().getGameTime();
-        return (active == null || active.allows(name))
+        return (active == null || active.allows(name)) && ability.allowsTags(mob.getTags())
+                && prerequisiteMet(ability)
                 && AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                 && !(ability.skipWhenFull() && summonsFull(ability));
+    }
+
+    private boolean prerequisiteMet(MobBehaviour.Ability ability) {
+        return ability.afterAbilities().isEmpty() || ability.afterAbilities().stream().anyMatch(completedAbilities::contains);
     }
 
     /**
@@ -809,15 +836,22 @@ public final class MobCombat {
     private void finishCurrent(MobBehaviour behaviour, long now) {
         boolean staggered = current.wasStaggered();
         String chained = current.chainTo();
+        if (!staggered && chained == null && behaviour.abilities().get(current.name()) == current.ability()) {
+            completedAbilities.add(current.name());
+        }
         trace("end " + current.name() + (staggered ? " (staggered)" : chained != null ? " -> chain " + chained : ""));
         LivingEntity aim = current.aim();
         LivingEntity asked = current.chainAim();
         boolean tauntWins = current.chainTauntWins();
+        Float facing = current.chainFacing();
         current = null;
         if (chained != null && behaviour.abilities().containsKey(chained)) {
             MobBehaviour.Ability next = behaviour.abilities().get(chained);
             LivingEntity nextAim = asked != null && asked.isAlive() ? asked : chainedAim(next, aim, tauntWins);
             start(chained, next, nextAim);
+            if (facing != null) {
+                current.lockFacing(facing);
+            }
             return;
         }
         globalReadyAt = now + Math.round(behaviour.globalCooldown() * 20.0);
@@ -1058,7 +1092,7 @@ public final class MobCombat {
 
     /**
      * Damage the mob takes: times the phase's {@code damage_taken} rules, any {@code vulnerable} window of the
-     * ability running now and the {@code minion_link.all_dead} multiplier while all its linked adds are dead.
+     * ability running now, protection from any channeling adds and the {@code minion_link.all_dead} multiplier.
      */
     public float adjustDamage(DamageSource source, float amount) {
         MobBehaviour behaviour = behaviour();
@@ -1076,7 +1110,48 @@ public final class MobCombat {
         if (exposed) {
             multiplier *= exposedMultiplier;
         }
+        multiplier *= summonWardMultiplier();
         return multiplier == 1.0 ? amount : (float) (amount * multiplier);
+    }
+
+    /** Take the strongest active ward. Looking up the live add also drops wards when an add dies or unloads. */
+    private double summonWardMultiplier() {
+        if (summons.isEmpty() || !(mob.level() instanceof ServerLevel level)) {
+            return 1.0;
+        }
+        double multiplier = 1.0;
+        for (UUID id : summons) {
+            multiplier = Math.min(multiplier, wardFrom(level, id));
+        }
+        return multiplier;
+    }
+
+    private double wardFrom(ServerLevel level, UUID id) {
+        Entity entity = level.getEntity(id);
+        if (entity == null || !entity.isAlive()) {
+            return 1.0;
+        }
+        MobCombat add = CombatHost.of(entity);
+        return add != null && add.current != null && add.behaviour() != null ? add.current.wardMultiplier(mob) : 1.0;
+    }
+
+    /** Counts live connections, so breaking a third ward removes the boss's damage bonus immediately. */
+    public float adjustWardDamageDealt(float amount) {
+        if (summons.isEmpty() || !(mob.level() instanceof ServerLevel level)) {
+            return amount;
+        }
+        MobBehaviour behaviour = behaviour();
+        MobBehaviour.WardDamage bonus = behaviour == null ? null
+                : behaviour.boss().flatMap(MobBehaviour.Boss::wardDamage).orElse(null);
+        if (bonus != null) {
+            int connected = 0;
+            for (UUID id : summons) {
+                if (wardFrom(level, id) < 1.0 && ++connected >= bonus.minWards()) {
+                    return (float) (amount * bonus.multiplier());
+                }
+            }
+        }
+        return amount;
     }
 
     // --- Reset / leash ---
@@ -1100,6 +1175,7 @@ public final class MobCombat {
         groupReadyAt.clear();
         readyInWins.clear();
         lastStarted = null;
+        completedAbilities.clear();
         stacks.clear();
         damageLedger.clear();
         clearWatches();

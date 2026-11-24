@@ -24,6 +24,7 @@ is the contract between modeling and code. If a model needs something not listed
 - Origin `[0, 0, 0]` is the center of the entity's feet, on the ground.
 - The gameplay hitbox is a separate axis-aligned box set in code (width x height in blocks). State the intended
   hitbox in the hand-off notes; the model may overhang it (big arms, weapons).
+- An entity declaration can set `"pushable": false` to resist shoves from overlapping entities.
 
 ## Geometry: supported
 
@@ -52,6 +53,8 @@ geometries per file, per-cube textures from different files.
 - Optional emissive layer: `<mob>_glowmask.png` (GeckoLib's naming), same size/UV; fully transparent except
   glowing pixels (eyes, cracks, embers). Rendered full-bright.
 - Optional damage/phase variants: `<mob>_phase2.png` etc., same UV.
+- To use a variant only during an action, set `render.action_textures` in the entity declaration. For example,
+  `{"enrage": "phase2", "enrage_exit": "phase2"}` uses the `_phase2` texture for those two clips.
 
 ## Animations
 
@@ -97,6 +100,9 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
     error, so prefer the call form.
 
 ## Hand-off
+
+`./gradlew check` verifies shipped mob animation and model references, including clip timing and marker bones.
+Hit tracks baked with `/mobs_ldc bake` include the geometry and animation fingerprints used by this check.
 
 Per mob, deliver:
 
