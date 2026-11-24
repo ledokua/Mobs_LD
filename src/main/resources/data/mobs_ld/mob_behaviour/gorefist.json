@@ -4,7 +4,7 @@
     "distance": 3.0,
     "speed": 1.0
   },
-  "global_cooldown": 0.6,
+  "global_cooldown": 1.4,
   "intro": {
     "clip": "intro",
     "duration": 2.0,
@@ -142,7 +142,7 @@
       "weight": 2,
       "target": "farthest",
       "range": {
-        "min": 7,
+        "min": 5.5,
         "max": 32
       },
       "events": [
@@ -276,6 +276,7 @@
     }
   ],
   "boss": {
+    "recovery": 1.1,
     "bar": {
       "color": "red"
     },

@@ -6,7 +6,7 @@
   "host": {
     "type": "mobs_ld:wither",
     "enabled": true,
-    "hover_height": 3.5,
+    "hover_height": 1.5,
     "regen_while_engaged": false,
     "arrow_immunity": false,
     "block_breaking": "outside_runs",
@@ -32,9 +32,10 @@
     "reach_depth": 8,
     "ground_scan": 40
   },
-  "global_cooldown": 1.0,
+  "global_cooldown": 1.6,
   "stagger": { "clip": "stagger", "duration": 2.0, "recover": 3.0 },
   "boss": {
+    "recovery": 1.35,
     "engage_on": "players",
     "leash": 64,
     "reset_after": 15,
@@ -96,7 +97,7 @@
       "duration": 3.0, "cooldown": [30, 60], "initial_cooldown": 20, "weight": 0,
       "skip_when_full": true,
       "events": [
-        { "type": "hover", "from": 0.0, "until": 3.0, "relative_to": "ground", "height": 3 },
+        { "type": "hover", "from": 0.0, "until": 3.0, "relative_to": "ground", "height": 1.6 },
         { "type": "fx", "at": 0.0,
           "message": { "key": "mobs_ld.cue.wither.grave_call", "where": "actionbar" },
           "sound": { "id": "minecraft:entity.wither.ambient", "pitch": 0.6, "volume": 4 },

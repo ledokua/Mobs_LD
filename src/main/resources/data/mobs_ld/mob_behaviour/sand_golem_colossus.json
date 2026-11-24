@@ -7,7 +7,7 @@
     "style": "standoff",
     "distance": 3.0
   },
-  "global_cooldown": 0.8,
+  "global_cooldown": 1.5,
   "abilities": {
     "ground_slam": {
       "duration": 2.7,
@@ -142,6 +142,7 @@
     }
   },
   "boss": {
+    "recovery": 1.2,
     "bar": {
       "color": "yellow"
     },

@@ -10,13 +10,13 @@ import net.minecraft.world.phys.Vec3;
 import java.util.EnumSet;
 
 /**
- * The one AI goal of a mob in a behaviour fight: holds still while an ability or stagger runs, otherwise tries to
+ * The one AI goal of a mob in a behaviour fight: holds still during an ability, stagger or recovery, then tries to
  * start an ability and, failing that, moves according to the behaviour's movement style. Targeting itself stays
  * with the threat system; the ability timeline is ticked by {@link MobCombat}. While a boss walks home after a reset
  * it only holds the movement and look flags, so no vanilla goal takes over the path {@link MobCombat} set.
  *
- * <p>With {@code movement.style: vanilla} it only runs while an ability, a stagger or the walk home does: between
- * abilities the host's own goals move and attack, and {@link MobCombat} picks the next ability itself.
+ * <p>With {@code movement.style: vanilla} the host's own goals move and attack whenever the engine releases the body.
+ * {@link MobCombat} picks the next ability itself.
  *
  * <p>The combat is looked up on every use, never held: LdMob adds this goal from inside its constructor, before its
  * combat exists, and a vanilla mob only gets a combat once its type has a behaviour.

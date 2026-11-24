@@ -141,8 +141,8 @@ public final class WitherAdapter implements HostAdapter {
     }
 
     /**
-     * Holds the body still through an ability, unless an event (a hover, a dash) moved it this tick: its move control
-     * would otherwise let it sink and drift. A stagger is left to gravity, so it drops.
+     * Holds the body still through an ability and its recovery, unless a hover or dash moved it this tick.
+     * A stagger is left to gravity, so it drops.
      */
     @Override
     public void tick(Mob mob) {
@@ -150,7 +150,7 @@ public final class WitherAdapter implements HostAdapter {
         if (combat == null || combat.behaviour() == null) {
             return;
         }
-        if (combat.inAbility() && !combat.bodyMovedThisTick()) {
+        if ((combat.inAbility() || combat.recovering()) && !combat.bodyMovedThisTick()) {
             mob.setDeltaMovement(Vec3.ZERO);
         }
         if (mob instanceof WitherBoss wither && combat.hostOptions() instanceof WitherHostOptions options

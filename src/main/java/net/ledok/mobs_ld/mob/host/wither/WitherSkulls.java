@@ -47,7 +47,7 @@ final class WitherSkulls {
             return;
         }
         if (combat.busy()) {
-            return; // all skull fire pauses while an ability or a stagger runs
+            return; // all skull fire pauses during abilities, stagger and recovery
         }
         cadence.advance();
         SkullSpec side = options.skulls().get(WitherHostOptions.SIDE_SKULL);

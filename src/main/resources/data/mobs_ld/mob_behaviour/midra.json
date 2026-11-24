@@ -4,14 +4,14 @@
   },
   "movement": {
     "style": "standoff",
-    "distance": 3.4,
+    "distance": 3.0,
     "speed": 1.0,
     "reach_height": 4.2,
     "reach_depth": 2.0,
     "reach_rule": "path",
     "ground_scan": 10
   },
-  "global_cooldown": 0.6,
+  "global_cooldown": 1.2,
   "intro": {
     "clip": "spawn",
     "duration": 3.8,
@@ -1344,7 +1344,7 @@
           "at": 2.15,
           "origin": "self",
           "radius": 3.0,
-          "duration": 6.0,
+          "duration": 1.0,
           "effects": [
             {
               "id": "mobs_ld:frenzied_burn",
@@ -3955,6 +3955,7 @@
     }
   ],
   "boss": {
+    "recovery": 0.95,
     "bar": {
       "color": "yellow",
       "overlay": "notched_10"

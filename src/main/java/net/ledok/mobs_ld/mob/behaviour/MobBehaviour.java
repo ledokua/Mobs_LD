@@ -829,6 +829,7 @@ public record MobBehaviour(
      * @param softEnrage  after this long in combat its damage is multiplied
      * @param engageOn    who may be its target and so start the fight
      * @param wardDamage  outgoing damage bonus while enough linked adds are actively warding it
+     * @param recovery    seconds the boss holds position after a named ability or chain ends
      */
     public record Boss(
             Optional<BossBar> bar,
@@ -836,7 +837,8 @@ public record MobBehaviour(
             double resetAfter,
             Optional<SoftEnrage> softEnrage,
             EngageOn engageOn,
-            Optional<WardDamage> wardDamage
+            Optional<WardDamage> wardDamage,
+            double recovery
     ) {
         public static final Codec<Boss> CODEC = RecordCodecBuilder.create(i -> i.group(
                 BossBar.CODEC.optionalFieldOf("bar").forGetter(Boss::bar),
@@ -844,7 +846,8 @@ public record MobBehaviour(
                 Codec.DOUBLE.optionalFieldOf("reset_after", 15.0).forGetter(Boss::resetAfter),
                 SoftEnrage.CODEC.optionalFieldOf("soft_enrage").forGetter(Boss::softEnrage),
                 EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn),
-                WardDamage.CODEC.optionalFieldOf("ward_damage").forGetter(Boss::wardDamage)
+                WardDamage.CODEC.optionalFieldOf("ward_damage").forGetter(Boss::wardDamage),
+                Codec.doubleRange(0.0, 60.0).optionalFieldOf("recovery", 0.0).forGetter(Boss::recovery)
         ).apply(i, Boss::new));
     }
 

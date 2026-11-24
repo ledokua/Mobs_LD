@@ -18,9 +18,10 @@
     "style": "vanilla",
     "reach_rule": "path"
   },
-  "global_cooldown": 0.8,
+  "global_cooldown": 1.25,
   "stagger": { "clip": "sniff", "duration": 4.2 },
   "boss": {
+    "recovery": 1.0,
     "engage_on": "players"
   },
   "abilities": {
@@ -232,7 +233,7 @@
         { "type": "fx", "at": 1.4, "sound": { "id": "minecraft:entity.warden.tendril_clicks", "pitch": 1.8, "volume": 3 } },
         { "type": "fx", "at": 1.7, "sound": { "id": "minecraft:entity.warden.sonic_boom", "volume": 3 },
           "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } },
-        { "type": "cloud", "at": 1.7, "radius": 3, "duration": 8,
+        { "type": "cloud", "at": 1.7, "radius": 3, "duration": 1.3,
           "effects": [ { "id": "minecraft:slowness", "duration": 2, "amplifier": 1 } ] }
       ]
     },

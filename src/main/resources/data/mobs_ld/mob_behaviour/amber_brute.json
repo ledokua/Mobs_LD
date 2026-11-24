@@ -11,7 +11,7 @@
     "reach_rule": "path",
     "ground_scan": 10
   },
-  "global_cooldown": 0.75,
+  "global_cooldown": 1.3,
   "intro": {
     "clip": "spawn",
     "duration": 3.2,
@@ -240,7 +240,7 @@
           "at": 0.98,
           "origin": "self",
           "radius": 2.6,
-          "duration": 5.5,
+          "duration": 1.45,
           "effects": [
             {
               "id": "mobs_ld:amber_mire",
@@ -2241,6 +2241,7 @@
     }
   ],
   "boss": {
+    "recovery": 1.05,
     "bar": {
       "color": "yellow",
       "overlay": "notched_6"

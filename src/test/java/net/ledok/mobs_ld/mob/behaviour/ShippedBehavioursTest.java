@@ -68,6 +68,35 @@ class ShippedBehavioursTest {
     }
 
     @Test
+    void shippedBossesHaveARecoveryAndSoloAttacksAtCloseAndRangedDistances() throws Exception {
+        for (String id : List.of("minecraft/warden", "minecraft/wither", "mobs_ld/amber_brute", "mobs_ld/emberroot",
+                "mobs_ld/gorefist", "mobs_ld/midra", "mobs_ld/nameless_king", "mobs_ld/sand_golem_colossus")) {
+            String[] parts = id.split("/");
+            MobBehaviour behaviour = load("/data/" + parts[0] + "/mob_behaviour/" + parts[1] + ".json");
+            double recovery = behaviour.boss().orElseThrow().recovery();
+            assertTrue(recovery >= 0.9 && behaviour.globalCooldown() >= recovery, id + " recovery");
+            List<List<String>> phases = behaviour.phases().stream().map(MobBehaviour.Phase::abilities).toList();
+            if (phases.isEmpty()) {
+                phases = List.of(List.of());
+            }
+            for (List<String> phase : phases) {
+                for (double distance : List.of(3.0, 12.0)) {
+                    assertTrue(behaviour.abilities().entrySet().stream().anyMatch(entry -> {
+                        MobBehaviour.Ability ability = entry.getValue();
+                        return (phase.isEmpty() || phase.contains(entry.getKey())) && ability.weight() > 0
+                                && ability.allowsPlayers(1) && ability.behind().isEmpty()
+                                && ability.range().contains(distance, 0.0, 3.0, 2.0)
+                                && ability.events().stream().anyMatch(event -> switch (event.type()) {
+                                    case "hit", "trace", "dash", "chase", "projectile", "grab" -> true;
+                                    default -> false;
+                                });
+                    }), id + " needs a solo attack at " + distance + " blocks in " + phase);
+                }
+            }
+        }
+    }
+
+    @Test
     void ldMobsLoad() throws Exception {
         load("/data/mobs_ld/mob_behaviour/gorefist.json");
         load("/data/mobs_ld/mob_behaviour/rot_wart.json");
@@ -739,7 +768,7 @@ class ShippedBehavioursTest {
         assertTrue(summon.bound());
         assertEquals(SummonEvent.AddTarget.RUNE_PLAYER, summon.target());
         assertTrue(call.events().stream().anyMatch(event -> event instanceof HoverEvent hover
-                && hover.relativeTo() == HoverEvent.Reference.GROUND && hover.height() == 3.0 && hover.until() == 3.0));
+                && hover.relativeTo() == HoverEvent.Reference.GROUND && hover.height() == 1.6 && hover.until() == 3.0));
         FxEvent fx = call.events().stream().filter(FxEvent.class::isInstance).map(FxEvent.class::cast).findFirst().orElseThrow();
         assertEquals("mobs_ld.cue.wither.grave_call", fx.message().orElseThrow().key());
         assertEquals(0.6F, fx.sound().orElseThrow().pitch());

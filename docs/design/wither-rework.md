@@ -49,7 +49,7 @@ How to read the damage column:
 | P3 | 20-0% | the P2 kit with every timeline 15% faster (attack_speed 1.15) and the cooldowns above; a third chained rush comes only after the 2-rush chain has been playtested | | | |
 | Soft enrage (R1) | 480 s in combat | action-bar text | kill it faster | all Wither hits x1.5; adds raised after this also hit x1.5 | once |
 
-**Phases** are P1 100-50% (purple bar), P2 50-20% (blue), P3 20-0% (red). They latch downward and never return. P2 starts at the same edge as vanilla's isPowered: armor swirl, and hovering at player height. In P2 and P3, projectile damage taken is x0.6 instead of vanilla's full arrow and wind-charge immunity (see question 2).
+**Phases** are P1 100-50% (purple bar), P2 50-20% (blue), P3 20-0% (red). They latch downward and never return. P2 starts at the same edge as vanilla's isPowered: armor swirl, and hovering at player height. In P2 and P3, projectiles deal 60% of their normal damage.
 
 **Soul Rush timeline (requirement 2)**
 - 0.0-0.8 s: hovers back to 12 blocks from the target, 4 above it. All three heads snap on, with ambient sound (pitch 0.7) and soul flames at the mouths.
@@ -65,7 +65,7 @@ How to read the damage column:
 - About 2.8-4.0 s: it recovers low, which gives a short melee window.
 
 **Grave Call timeline (requirement 3)**
-- 0.0 s: hovers 3 blocks above the ground and holds still (a window for ranged attacks and spells). Action-bar text "The Wither calls up its dead", low ambient sound, a soul particle column. Side heads hold fire.
+- 0.0 s: hovers 1.6 blocks above the ground and holds still, within reach of players who close in. Action-bar text "The Wither calls up its dead", low ambient sound, a soul particle column. Side heads hold fire.
 - 0.2 s: one rune (r0.9) per add, placed 3-6 blocks from its player.
   - A valid spot has a solid floor, 3 blocks of air, no fluid, and is at least 2 blocks from other runes.
   - After 8 failed tries it uses the spot next to the Wither's ground shadow. Over the void the rune is skipped.
@@ -125,7 +125,7 @@ Results:
   - the nether star from dropCustomDeathLoot, so Soulslike Weaponry's TAIL hook still works;
   - the DataRewriter boss gear and ribcage pools, FTB kill quests, the BOMD lich counter, soul_trap and the Omen of War all keep working.
 - The vanilla boss bar (purple, darkens the screen, progress = health). Only its color changes per phase. There is no second Mobs_LD bar.
-- Flight between abilities: the vanilla straight-line chase, parking within 3 blocks. It hovers 3.5 above the target in P1 (vanilla: 5) and at player height from 50%.
+- Flight between abilities: the vanilla straight-line chase, parking within 3 blocks. It aims to hover 1.5 blocks above the target in P1 and at player height from 50%. After a named ability or its last chained move ends, it holds position and pauses skull fire for 1.35 seconds.
 - Fire, drowning and wither-rose immunity; #c:bosses crowd-control immunity; never despawns; discarded on Peaceful.
 - Block breaking 1 s after being hit: unchanged outside Arenas runs, off inside runs (see question 5).
 
@@ -310,7 +310,7 @@ The existing `mixin/WitherBossMixin.java` (full heal at the end of the charge, s
 ```json
 {
   "base_attributes": {"minecraft:generic.max_health": 1711, "minecraft:generic.attack_damage": 2.0},
-  "host": {"type": "mobs_ld:wither", "enabled": true, "hover_height": 3.5, "regen_while_engaged": false,
+  "host": {"type": "mobs_ld:wither", "enabled": true, "hover_height": 1.5, "regen_while_engaged": false,
     "arrow_immunity": false, "block_breaking": "outside_runs",
     "skulls": {
       "center": {"every": 4.0, "speed": 1.6, "hit": {"amount": 2.4}, "splash": {"radius": 1.5, "amount": 0.6}},
@@ -320,8 +320,9 @@ The existing `mixin/WitherBossMixin.java` (full heal at the end of the charge, s
     "right_head": {"rule": "lowest_threat", "range": 30, "line_of_sight": true, "repick": [9, 11], "lost_after": 2},
     "left_head":  {"rule": "spread", "range": 30, "line_of_sight": true, "repick": [9, 11], "offset": 5, "lost_after": 2}},
   "movement": {"style": "vanilla", "reach_rule": "line_of_sight", "lose_after": 3, "reach_height": 4, "reach_depth": 8, "ground_scan": 40},
-  "global_cooldown": 1.0,
-  "boss": {"engage_on": "players", "leash": 64, "reset_after": 15, "soft_enrage": {"after": 480, "damage_multiplier": 1.5}},
+  "global_cooldown": 1.6,
+  "boss": {"engage_on": "players", "leash": 64, "reset_after": 15, "recovery": 1.35,
+           "soft_enrage": {"after": 480, "damage_multiplier": 1.5}},
   "abilities": {
     "soul_rush": {"duration": 4.0, "cooldown": 12, "initial_cooldown": 8, "weight": 3, "target": "current",
       "range": {"max": 30, "above": 6, "below": 16}, "track_until": 0.8, "events": [
@@ -334,7 +335,7 @@ The existing `mixin/WitherBossMixin.java` (full heal at the end of the charge, s
          "telegraph": {"from": 0.8, "style": "sweep", "arrow": true, "color": "#6A2CB0"},
          "hit": {"amount": 20.0, "knockback": 0.8, "knock_up": 0.3}}]},
     "grave_call": {"duration": 3.0, "cooldown": [30, 60], "initial_cooldown": 20, "weight": 0, "force_after": 0, "skip_when_full": true, "events": [
-        {"type": "hover", "from": 0, "until": 3.0, "relative_to": "ground", "height": 3},
+        {"type": "hover", "from": 0, "until": 3.0, "relative_to": "ground", "height": 1.6},
         {"type": "fx", "at": 0, "message": {"key": "mobs_ld.cue.wither.grave_call", "where": "actionbar"}, "sound": {"id": "minecraft:entity.wither.ambient", "pitch": 0.6, "volume": 4}},
         {"type": "summon", "at": 1.6, "entity": "minecraft:wither_skeleton",
          "count": {"min": 2, "max": 4, "per_extra_player": 2, "cap": 12},

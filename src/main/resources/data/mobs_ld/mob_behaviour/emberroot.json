@@ -34,7 +34,7 @@
     "reach_rule": "path",
     "ground_scan": 10
   },
-  "global_cooldown": 0.65,
+  "global_cooldown": 1.25,
   "intro": {
     "clip": "spawn",
     "duration": 3.2,
@@ -566,7 +566,7 @@
           "at": 1.68,
           "origin": "self",
           "radius": 3.2,
-          "duration": 5.5,
+          "duration": 1.1,
           "effects": [
             {
               "id": "mobs_ld:charred_roots",
@@ -689,7 +689,7 @@
           "at": 1.68,
           "origin": "self",
           "radius": 3.6,
-          "duration": 6.0,
+          "duration": 2.25,
           "effects": [
             {
               "id": "mobs_ld:charred_roots",
@@ -2545,7 +2545,7 @@
           "at": 1.25,
           "origin": "self",
           "radius": 4.2,
-          "duration": 6.5,
+          "duration": 1.95,
           "effects": [
             {
               "id": "mobs_ld:charred_roots",
@@ -3214,7 +3214,7 @@
           "at": 3.1,
           "origin": "self",
           "radius": 4.5,
-          "duration": 6.5,
+          "duration": 1.0,
           "effects": [
             {
               "id": "mobs_ld:charred_roots",
@@ -3548,6 +3548,7 @@
     }
   ],
   "boss": {
+    "recovery": 1.0,
     "bar": {
       "color": "yellow",
       "overlay": "notched_6"

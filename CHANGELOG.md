@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- All eight bosses hold position briefly after attack sequences. Wither stays closer to sword height, and
+  hazards at bosses' feet clear sooner.
 - With Paladins installed, its Barrier stops Emberroot and Cinder Runt rolls and clips each furnace beam at impact.
 - Amethyst Splinters credits the mob that applied it, respects armour, and ticks every 1.5 seconds through refreshes.
 - Gorefist gains an amethyst cleaver trail, fissure warnings for overhead chops, and Amethyst Splinters on its

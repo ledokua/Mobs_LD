@@ -145,6 +145,7 @@ public final class MobCombat {
     private final Set<String> completedAbilities = new HashSet<>();
     private AbilityRun deathRun;
     private long globalReadyAt;
+    private long recoveryUntil;
     private long staggerUntil = -1;
     private int phase;
     private boolean engaged;
@@ -515,6 +516,7 @@ public final class MobCombat {
             current = null;
         }
         staggerUntil = -1;
+        recoveryUntil = 0;
         host.mobs_ld$stopAction();
         slots.clear();
         clearWatches();
@@ -555,6 +557,7 @@ public final class MobCombat {
         host.mobs_ld$stopAction();
         slots.clear();
         staggerUntil = -1;
+        recoveryUntil = 0;
         returning = false;
         engaged = false;
         idleTicks = 0;
@@ -621,13 +624,17 @@ public final class MobCombat {
         return combat == null ? null : combat.currentAbility();
     }
 
-    /** Whether the mob is committed to something (an ability or a stagger) and must not move on its own. */
+    /** Whether the mob is committed to an ability, stagger or recovery and must not move on its own. */
     public boolean busy() {
-        return current != null || staggerUntil >= 0;
+        return current != null || staggerUntil >= 0 || recovering();
+    }
+
+    public boolean recovering() {
+        return recoveryUntil > mob.level().getGameTime();
     }
 
     /**
-     * Tells the host adapter when the engine takes the body (an ability, a stagger or the walk home starts) and when
+     * Tells the host adapter when the engine takes the body (ability, stagger, recovery or walk home) and when
      * it gives it back: {@link HostAdapter#onClaimBody} / {@link HostAdapter#onReleaseBody}, once per edge.
      */
     private void syncBody() {
@@ -775,6 +782,7 @@ public final class MobCombat {
             current.cancel();
         }
         staggerUntil = -1;
+        recoveryUntil = 0;
         double speed = AbilityChoice.speed(ability, attackSpeed());
         // Whatever ran before may have been cut off here (a chain, a phase transition, a command) without its action
         // being stopped: the host clears what it left on the body (a held pose) before the new clip.
@@ -836,7 +844,8 @@ public final class MobCombat {
     private void finishCurrent(MobBehaviour behaviour, long now) {
         boolean staggered = current.wasStaggered();
         String chained = current.chainTo();
-        if (!staggered && chained == null && behaviour.abilities().get(current.name()) == current.ability()) {
+        MobBehaviour.Ability named = behaviour.abilities().get(current.name());
+        if (!staggered && chained == null && named == current.ability()) {
             completedAbilities.add(current.name());
         }
         trace("end " + current.name() + (staggered ? " (staggered)" : chained != null ? " -> chain " + chained : ""));
@@ -861,6 +870,12 @@ public final class MobCombat {
             host.mobs_ld$playAction(stagger.clip(), 1.0);
         } else {
             host.mobs_ld$stopAction();
+            long recoveryTicks = named == null ? 0L
+                    : Math.round(behaviour.boss().map(MobBehaviour.Boss::recovery).orElse(0.0) * 20.0);
+            if (recoveryTicks > 0) {
+                recoveryUntil = now + recoveryTicks;
+                globalReadyAt = Math.max(globalReadyAt, recoveryUntil);
+            }
         }
     }
 
@@ -1164,6 +1179,8 @@ public final class MobCombat {
             current = null;
         }
         staggerUntil = -1;
+        recoveryUntil = 0;
+        globalReadyAt = 0;
         host.mobs_ld$stopAction();
         ((ThreatHolder) mob).getThreatTable().clear();
         mob.setTarget(null);
@@ -1241,6 +1258,7 @@ public final class MobCombat {
             current.cancel();
             current = null;
         }
+        recoveryUntil = 0;
         stacks.clear();
         clearWatches();
         ListenWindows.closeFor(mob);

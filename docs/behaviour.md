@@ -43,9 +43,8 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `lose_after` | 2 (`path`), 3 (`line_of_sight`) | seconds a target must stay unreachable before it loses aggro |
 | `ground_scan` | 8 | how many blocks below a point telegraphs and `hover` look for the floor; a high flyer needs more (the Wither uses 40) |
 
-**`style: vanilla`** (vanilla hosts): between abilities the mob keeps its own movement and attacks (the Wither flies
-and fires skulls as usual); the engine still picks an ability every tick it is free, and only takes the body over
-while an ability, a stagger or the walk home runs.
+**`style: vanilla`** (vanilla hosts): the mob uses its own movement and attacks whenever the engine releases its body.
+The engine holds the body during abilities, stagger, boss recovery and the walk home.
 
 **Ground scan**: the floor is found by scanning down block by block (from 2 blocks above a telegraph's point, from
 the mob's feet for `hover`), never by heightmap, so under the Nether roof it is the floor, not the roof. The surface
@@ -711,10 +710,15 @@ disengage). Results for the Wither's heads (middle head = the main target):
 
 ```json
 "boss": { "bar": { "color": "red", "overlay": "progress" }, "leash": 32, "reset_after": 15,
-          "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" }, "engage_on": "players" }
+          "recovery": 1.0, "soft_enrage": { "after": 420, "damage_multiplier": 2.0, "clip": "enrage" },
+          "engage_on": "players" }
 ```
 
 - `bar`: vanilla boss bar, shown while engaged.
+- Set `recovery` to the seconds the boss holds position and pauses its attacks after a named ability or the last move
+  of a chain. Recovery runs alongside `global_cooldown`, and both must elapse before a new ability starts. Phase attack
+  speed and move cooldowns use their own clocks. Omit `recovery` to let the boss resume movement as soon as the
+  animation ends.
 - `engage_on`: `any` (default: whatever its own AI targets) or `players`: only players, player-owned summons on its
   threat table and mobs that hurt it in the last 10 s can be its target, so only they start or steer the fight
   (cows and endermen never pull it).
@@ -821,8 +825,8 @@ Mobs_LD ships a behaviour for the vanilla Wither; a datapack can replace it at t
 - **Skulls.** With `host.skulls` Mobs_LD fires all its skulls: vanilla's shots, its side-head shots and the idle blue
   skulls (and their sound) stop. Between abilities the middle head fires the `center` spec at the tank and each side
   head the `side` spec at its own target, each exactly every `every`, from its own mouth (shoot sound per skull).
-  A head holds its shot while its target is out of sight or `range`; all skull fire pauses while an ability or a
-  stagger runs (the timers wait, so the heads do not all fire the moment it ends), and the first shots come one
+  A head holds its shot while its target is out of sight or `range`. Skull timers pause during abilities, stagger and
+  boss recovery, and the first shots come one
   interval into the fight. The side heads are kept apart: the left one starts half an interval after the right one,
   and neither fires within half a `side` interval (its average) of the other's last shot, so on a lone player the
   second skull does not land inside the first one's hurt immunity; the middle head keeps its own timing. `projectile` events fire any spec by name. The skulls are vanilla wither skulls (vanilla
