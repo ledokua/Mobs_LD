@@ -23,7 +23,7 @@ public record Telegraph(boolean show, Optional<Double> from, int color, Style st
     public static final Telegraph DEFAULT = new Telegraph(true, Optional.empty(), DEFAULT_COLOR, Style.GROW, false);
     public static final Telegraph NONE = new Telegraph(false, Optional.empty(), DEFAULT_COLOR, Style.GROW, false);
 
-    private static final Codec<Integer> HEX = Codec.STRING.comapFlatMap(text -> {
+    public static final Codec<Integer> HEX = Codec.STRING.comapFlatMap(text -> {
         String hex = text.startsWith("#") ? text.substring(1) : text;
         try {
             return DataResult.success(Integer.parseInt(hex, 16) & 0xFFFFFF);

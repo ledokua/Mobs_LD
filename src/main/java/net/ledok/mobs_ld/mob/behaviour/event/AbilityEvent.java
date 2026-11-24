@@ -28,6 +28,7 @@ public interface AbilityEvent {
             Map.entry("hover", HoverEvent.CODEC),
             Map.entry("look", LookEvent.CODEC),
             Map.entry("fx", FxEvent.CODEC),
+            Map.entry("vfx", VfxEvent.CODEC),
             Map.entry("projectile", ProjectileEvent.CODEC),
             Map.entry("chain", ChainEvent.CODEC),
             Map.entry("clip", ClipEvent.CODEC),

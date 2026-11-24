@@ -148,7 +148,12 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
 
     @Override
     public double begin() {
-        return telegraph.show() ? telegraph.start(at, DEFAULT_LEAD) : at;
+        if (telegraph.show()) {
+            return telegraph.start(at, DEFAULT_LEAD);
+        }
+        // Hidden telegraph with an explicit `from` still locks the dash corridor early without spawning ground arrows,
+        // allowing a custom 3D `vfx` event (origin: locked) to telegraph the exact locked lane.
+        return telegraph.from().map(from -> Math.min(at, from)).orElse(at);
     }
 
     @Override
@@ -169,6 +174,7 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
         Vec3 forward = AbilityRun.forward(yaw);
         Vec3 right = AbilityRun.right(yaw);
         DashLane lane = new DashLane(width.resolve(run), Math.min(maxDistance, toAim + overshoot));
+        run.noteDash(this, new AbilityRun.DashLock(origin, yaw, lane.length(), lane.width()));
         Optional<Double> targetY = height.map(blocks -> aim.y + blocks);
         double halfDepth = mob.getBbWidth() / 2.0;
         AbilityRun.Marker marker = telegraph.show() && begin() < at

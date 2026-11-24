@@ -2,6 +2,9 @@
   "replace": false,
   "values": [
     "mobs_ld:warden_sonic",
-    "mobs_ld:minion_link"
+    "mobs_ld:minion_link",
+    "mobs_ld:frenzied_flame",
+    "mobs_ld:amber_shatter",
+    "mobs_ld:ember_blight"
   ]
 }

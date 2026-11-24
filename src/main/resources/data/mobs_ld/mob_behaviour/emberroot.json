@@ -1,0 +1,1930 @@
+{
+  "reference_attributes": {
+    "minecraft:generic.attack_damage": 14.0
+  },
+  "target_slots": {
+    "cinder_prey": {
+      "rule": "spread",
+      "range": 38,
+      "line_of_sight": false,
+      "repick": [8, 11],
+      "lost_after": 3
+    },
+    "ember_mark": {
+      "rule": "lowest_threat",
+      "range": 38,
+      "line_of_sight": false,
+      "repick": [9, 12],
+      "offset": 4.0,
+      "lost_after": 3
+    }
+  },
+  "movement": {
+    "style": "standoff",
+    "distance": 3.5,
+    "speed": 1.0,
+    "reach_height": 3.8,
+    "reach_depth": 2.0,
+    "reach_rule": "path",
+    "ground_scan": 10
+  },
+  "global_cooldown": 0.65,
+  "intro": {
+    "clip": "spawn",
+    "duration": 3.2,
+    "invulnerable": true,
+    "events": [
+      {
+        "type": "fx",
+        "at": 0.0,
+        "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.58, "volume": 2.6 },
+        "message": { "key": "mobs_ld.cue.emberroot.intro", "where": "actionbar" }
+      },
+      {
+        "type": "vfx",
+        "at": 0.0,
+        "kind": "burrow_mound",
+        "radius": 3.8,
+        "height": 1.6,
+        "count": 8,
+        "windup": 0.55,
+        "duration": 1.45,
+        "color": "#C44516",
+        "secondary_color": "#FFB84A"
+      },
+      {
+        "type": "fx",
+        "at": 1.0,
+        "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.62, "volume": 2.6 }
+      },
+      {
+        "type": "vfx",
+        "at": 1.0,
+        "kind": "drum_tremor",
+        "radius": 5.0,
+        "height": 1.0,
+        "count": 8,
+        "duration": 0.75,
+        "color": "#B83E18",
+        "secondary_color": "#FFA63B"
+      },
+      {
+        "type": "fx",
+        "at": 2.0,
+        "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.68, "volume": 2.8 }
+      },
+      {
+        "type": "vfx",
+        "at": 2.0,
+        "kind": "rib_furnace",
+        "radius": 3.8,
+        "height": 2.6,
+        "count": 10,
+        "duration": 0.85,
+        "color": "#E64A19",
+        "secondary_color": "#FFD166"
+      }
+    ]
+  },
+  "on_death": {
+    "clip": "death",
+    "duration": 3.4,
+    "events": [
+      {
+        "type": "fx",
+        "at": 0.0,
+        "sound": { "id": "minecraft:entity.iron_golem.death", "pitch": 0.64, "volume": 2.8 },
+        "message": { "key": "mobs_ld.cue.emberroot.death", "where": "actionbar" }
+      },
+      {
+        "type": "fx",
+        "at": 1.25,
+        "sound": { "id": "minecraft:block.fire.extinguish", "pitch": 0.7, "volume": 2.2 }
+      },
+      {
+        "type": "fx",
+        "at": 2.2,
+        "sound": { "id": "minecraft:block.basalt.break", "pitch": 0.65, "volume": 2.6 }
+      },
+      {
+        "type": "vfx",
+        "at": 2.2,
+        "kind": "drum_tremor",
+        "radius": 4.2,
+        "height": 0.85,
+        "count": 8,
+        "duration": 0.9,
+        "color": "#9E3414",
+        "secondary_color": "#FF9436"
+      }
+    ]
+  },
+  "abilities": {
+    "swipe": {
+      "duration": 2.1,
+      "cooldown": [4.0, 5.2],
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "max": 5.2 },
+      "track_until": 0.45,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.68,
+          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 0.72, "volume": 2.4 }
+        },
+        {
+          "type": "trace",
+          "from": 0.68,
+          "to": 0.84,
+          "path": ["forearm_r", "hit_hand_right"],
+          "radius": 1.2,
+          "hit": {
+            "amount": 12.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.7,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "hit",
+          "at": 0.85,
+          "offset": 2.1,
+          "side": -0.6,
+          "shape": { "type": "circle", "radius": 3.4 },
+          "telegraph": { "show": false, "from": 0.4 },
+          "hit": {
+            "amount": 9.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.6,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.4,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.45,
+          "duration": 0.95,
+          "height": 0.9,
+          "count": 6,
+          "color": "#C44516",
+          "secondary_color": "#FFB84A"
+        }
+      ]
+    },
+    "hammer_slam": {
+      "clip": "attack",
+      "duration": 2.6,
+      "cooldown": [5.5, 7.0],
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "max": 5.8 },
+      "track_until": 0.32,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.4,
+          "sound": { "id": "minecraft:block.campfire.crackle", "pitch": 0.75, "volume": 2.1 }
+        },
+        {
+          "type": "hit",
+          "at": 0.92,
+          "offset": 2.3,
+          "shape": { "type": "circle", "radius": 4.2 },
+          "telegraph": { "show": false, "from": 0.32 },
+          "hit": {
+            "amount": 18.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.85,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.32,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.6,
+          "duration": 1.35,
+          "height": 1.15,
+          "count": 8,
+          "color": "#C94616",
+          "secondary_color": "#FFB84A"
+        },
+        {
+          "type": "fx",
+          "at": 0.92,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.62, "volume": 2.6 }
+        },
+        {
+          "type": "hit",
+          "at": 1.48,
+          "offset": 2.3,
+          "shape": { "type": "ring", "inner": 4.2, "outer": 10.5 },
+          "telegraph": { "show": false, "from": 0.92 },
+          "hit": {
+            "amount": 11.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.55,
+            "knock_up": 0.25,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.92,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.56,
+          "duration": 1.25,
+          "height": 1.05,
+          "count": 10,
+          "color": "#DC5218",
+          "secondary_color": "#FFC85A"
+        },
+        {
+          "type": "fx",
+          "at": 1.48,
+          "sound": { "id": "minecraft:block.basalt.break", "pitch": 0.72, "volume": 2.3 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.7,
+          "until": 2.5,
+          "multiplier": 1.25
+        }
+      ]
+    },
+    "shoulder_barge": {
+      "clip": "attack_shoulder",
+      "duration": 2.15,
+      "cooldown": [6.5, 8.5],
+      "weight": 2,
+      "no_repeat": true,
+      "target": "slot:cinder_prey",
+      "range": { "max": 7.5 },
+      "track_until": 0.25,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.25,
+          "sound": { "id": "minecraft:block.basalt.step", "pitch": 0.68, "volume": 2.2 }
+        },
+        {
+          "type": "dash",
+          "at": 0.65,
+          "until": 0.95,
+          "max_distance": 6.5,
+          "overshoot": 1.0,
+          "width": 3.0,
+          "push": "side",
+          "on_wall": "stop",
+          "telegraph": { "show": false, "from": 0.25 },
+          "hit": {
+            "amount": 14.5,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 1.2,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.25,
+          "kind": "roll_trail",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 1.05,
+          "height": 1.15,
+          "color": "#BA3F16",
+          "secondary_color": "#FFA63B"
+        },
+        {
+          "type": "fx",
+          "at": 0.7,
+          "sound": { "id": "minecraft:entity.ravager.attack", "pitch": 0.72, "volume": 2.4 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.4,
+          "until": 2.1,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "root_snare": {
+      "duration": 3.0,
+      "cooldown_group": "roots",
+      "cooldown": [13.0, 16.0],
+      "initial_cooldown": 7.0,
+      "max_players": 2,
+      "weight": 3,
+      "no_repeat": true,
+      "include_unreachable": true,
+      "range": { "min": 3.5, "max": 24.0, "above": 8.0, "below": 5.0 },
+      "track_until": 0.6,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.2,
+          "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.6, "volume": 2.3 },
+          "message": { "key": "mobs_ld.cue.emberroot.root_snare", "where": "actionbar" }
+        },
+        {
+          "type": "fx",
+          "at": 0.62,
+          "sound": { "id": "minecraft:block.rooted_dirt.place", "pitch": 0.58, "volume": 2.4 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.62,
+          "kind": "drum_tremor",
+          "offset": 1.8,
+          "radius": 2.4,
+          "height": 0.85,
+          "count": 6,
+          "duration": 0.65,
+          "color": "#B33B14",
+          "secondary_color": "#FF9C38"
+        },
+        {
+          "type": "hit",
+          "at": 1.68,
+          "origin": "each_fighter",
+          "height": 4.5,
+          "depth": 2.5,
+          "shape": { "type": "circle", "radius": 2.5 },
+          "telegraph": { "show": false, "from": 0.72 },
+          "hit": {
+            "amount": 13.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.15,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.1, "max": 5, "duration": 15, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.72,
+          "kind": "root_tendrils",
+          "origin": "locked",
+          "windup": 0.96,
+          "duration": 1.95,
+          "height": 2.8,
+          "count": 6,
+          "color": "#C94616",
+          "secondary_color": "#FFC052"
+        },
+        {
+          "type": "fx",
+          "at": 1.68,
+          "sound": { "id": "minecraft:block.mangrove_roots.break", "pitch": 0.7, "volume": 2.5 }
+        },
+        {
+          "type": "cloud",
+          "at": 1.68,
+          "origin": "self",
+          "radius": 3.2,
+          "duration": 5.5,
+          "effects": [
+            { "id": "mobs_ld:charred_roots", "duration": 2.0, "amplifier": 0 }
+          ]
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.15,
+          "until": 2.9,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "root_cascade": {
+      "clip": "root_snare",
+      "duration": 4.4,
+      "cooldown_group": "roots",
+      "cooldown": [16.0, 20.0],
+      "initial_cooldown": 7.0,
+      "min_players": 3,
+      "weight": 4,
+      "no_repeat": true,
+      "fixed_speed": true,
+      "include_unreachable": true,
+      "range": { "max": 38.0, "above": 10.0, "below": 6.0 },
+      "track_until": 0.6,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.15,
+          "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.56, "volume": 2.8 },
+          "message": { "key": "mobs_ld.cue.emberroot.root_cascade", "where": "actionbar" }
+        },
+        {
+          "type": "fx",
+          "at": 0.62,
+          "sound": { "id": "minecraft:block.rooted_dirt.place", "pitch": 0.54, "volume": 2.6 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.62,
+          "kind": "drum_tremor",
+          "offset": 1.8,
+          "radius": 3.0,
+          "height": 0.95,
+          "count": 8,
+          "duration": 0.7,
+          "color": "#B33B14",
+          "secondary_color": "#FF9C38"
+        },
+        {
+          "type": "hit",
+          "at": 1.68,
+          "origin": "each_fighter",
+          "lead": 0.55,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "circle", "radius": 2.6 },
+          "telegraph": { "show": false, "from": 0.72 },
+          "hit": {
+            "amount": 11.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.15,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.72,
+          "kind": "root_tendrils",
+          "origin": "locked",
+          "windup": 0.96,
+          "duration": 1.75,
+          "height": 2.8,
+          "count": 6,
+          "color": "#C94616",
+          "secondary_color": "#FFC052"
+        },
+        {
+          "type": "fx",
+          "at": 1.68,
+          "sound": { "id": "minecraft:block.mangrove_roots.break", "pitch": 0.68, "volume": 2.6 }
+        },
+        {
+          "type": "cloud",
+          "at": 1.68,
+          "origin": "self",
+          "radius": 3.6,
+          "duration": 6.0,
+          "effects": [
+            { "id": "mobs_ld:charred_roots", "duration": 2.5, "amplifier": 0 }
+          ]
+        },
+        {
+          "type": "hit",
+          "at": 2.6,
+          "origin": "each_fighter",
+          "lead": 0.55,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "circle", "radius": 2.6 },
+          "telegraph": { "show": false, "from": 1.68 },
+          "hit": {
+            "amount": 11.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.15,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.68,
+          "kind": "root_tendrils",
+          "origin": "locked",
+          "windup": 0.92,
+          "duration": 1.7,
+          "height": 3.0,
+          "count": 6,
+          "color": "#DC4E18",
+          "secondary_color": "#FFD05C"
+        },
+        {
+          "type": "fx",
+          "at": 2.6,
+          "sound": { "id": "minecraft:block.mangrove_roots.break", "pitch": 0.78, "volume": 2.6 }
+        },
+        {
+          "type": "hit",
+          "at": 3.52,
+          "origin": "each_fighter",
+          "lead": 0.55,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "circle", "radius": 2.7 },
+          "telegraph": { "show": false, "from": 2.6 },
+          "hit": {
+            "amount": 12.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.2,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 4.0, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 2.6,
+          "kind": "root_tendrils",
+          "origin": "locked",
+          "windup": 0.92,
+          "duration": 1.75,
+          "height": 3.2,
+          "count": 7,
+          "color": "#E65218",
+          "secondary_color": "#FFDD70"
+        },
+        {
+          "type": "fx",
+          "at": 3.52,
+          "sound": { "id": "minecraft:block.mangrove_roots.break", "pitch": 0.88, "volume": 2.8 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.7,
+          "until": 4.35,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "tantrum_drum": {
+      "duration": 3.4,
+      "cooldown_group": "drum",
+      "cooldown": [14.0, 17.5],
+      "initial_cooldown": 9.0,
+      "max_players": 2,
+      "weight": 2,
+      "no_repeat": true,
+      "range": { "max": 6.5 },
+      "track_until": 0.2,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.05,
+          "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.78, "volume": 2.2 },
+          "message": { "key": "mobs_ld.cue.emberroot.tantrum_drum", "where": "actionbar" }
+        },
+        {
+          "type": "hit",
+          "at": 0.55,
+          "offset": 1.8,
+          "side": 1.4,
+          "shape": { "type": "circle", "radius": 2.8 },
+          "telegraph": { "show": false, "from": 0.15 },
+          "hit": { "amount": 9.0, "damage_type": "minecraft:mob_attack", "knockback": 0.35 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.15,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 0.85,
+          "height": 0.9,
+          "count": 6,
+          "color": "#B83E18",
+          "secondary_color": "#FFA63B"
+        },
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.76, "volume": 2.0 }
+        },
+        {
+          "type": "hit",
+          "at": 1.0,
+          "offset": 1.8,
+          "side": -1.4,
+          "shape": { "type": "circle", "radius": 2.8 },
+          "telegraph": { "show": false, "from": 0.6 },
+          "hit": { "amount": 9.5, "damage_type": "minecraft:mob_attack", "knockback": 0.35 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.6,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 0.85,
+          "height": 0.95,
+          "count": 6,
+          "color": "#C44516",
+          "secondary_color": "#FFB244"
+        },
+        {
+          "type": "fx",
+          "at": 1.0,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.82, "volume": 2.1 }
+        },
+        {
+          "type": "hit",
+          "at": 1.4,
+          "offset": 2.0,
+          "side": 1.4,
+          "shape": { "type": "circle", "radius": 3.1 },
+          "telegraph": { "show": false, "from": 1.0 },
+          "hit": { "amount": 10.0, "damage_type": "minecraft:mob_attack", "knockback": 0.4 }
+        },
+        {
+          "type": "vfx",
+          "at": 1.0,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 0.85,
+          "height": 1.05,
+          "count": 7,
+          "color": "#D44D18",
+          "secondary_color": "#FFC052"
+        },
+        {
+          "type": "fx",
+          "at": 1.4,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.88, "volume": 2.2 }
+        },
+        {
+          "type": "hit",
+          "at": 1.75,
+          "offset": 2.0,
+          "side": -1.4,
+          "shape": { "type": "circle", "radius": 3.1 },
+          "telegraph": { "show": false, "from": 1.35 },
+          "hit": { "amount": 10.5, "damage_type": "minecraft:mob_attack", "knockback": 0.4 }
+        },
+        {
+          "type": "vfx",
+          "at": 1.35,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 0.85,
+          "height": 1.1,
+          "count": 7,
+          "color": "#DC5218",
+          "secondary_color": "#FFC85A"
+        },
+        {
+          "type": "fx",
+          "at": 1.75,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.94, "volume": 2.3 }
+        },
+        {
+          "type": "hit",
+          "at": 2.18,
+          "offset": 1.2,
+          "shape": { "type": "circle", "radius": 5.8 },
+          "telegraph": { "show": false, "from": 1.75 },
+          "hit": {
+            "amount": 16.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.9,
+            "knock_up": 0.45,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.1, "max": 5, "duration": 15, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.75,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.43,
+          "duration": 1.25,
+          "height": 1.35,
+          "count": 10,
+          "color": "#E64E18",
+          "secondary_color": "#FFD268"
+        },
+        {
+          "type": "fx",
+          "at": 2.18,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.72, "volume": 2.6 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.45,
+          "until": 3.35,
+          "multiplier": 1.3
+        }
+      ]
+    },
+    "cataclysm_drum": {
+      "clip": "tantrum_drum",
+      "duration": 4.4,
+      "cooldown_group": "drum",
+      "cooldown": [18.0, 22.0],
+      "initial_cooldown": 10.0,
+      "min_players": 3,
+      "weight": 4,
+      "no_repeat": true,
+      "fixed_speed": true,
+      "include_unreachable": true,
+      "range": { "max": 34.0, "above": 10.0, "below": 6.0 },
+      "track_until": 0.2,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.05,
+          "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.68, "volume": 2.9 },
+          "message": { "key": "mobs_ld.cue.emberroot.cataclysm_drum", "where": "actionbar" }
+        },
+        {
+          "type": "hit",
+          "at": 0.55,
+          "shape": { "type": "circle", "radius": 4.0 },
+          "telegraph": { "show": false, "from": 0.15 },
+          "hit": { "amount": 10.5, "damage_type": "minecraft:mob_attack", "knockback": 0.45 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.15,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.4,
+          "duration": 0.85,
+          "height": 0.95,
+          "count": 8,
+          "color": "#B83E18",
+          "secondary_color": "#FFA63B"
+        },
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.72, "volume": 2.5 }
+        },
+        {
+          "type": "hit",
+          "at": 1.0,
+          "shape": { "type": "ring", "inner": 4.0, "outer": 9.5 },
+          "telegraph": { "show": false, "from": 0.45 },
+          "hit": {
+            "amount": 11.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.45,
+            "knock_up": 0.25,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.55,
+          "duration": 1.15,
+          "height": 1.1,
+          "count": 10,
+          "color": "#C94616",
+          "secondary_color": "#FFB84A"
+        },
+        {
+          "type": "fx",
+          "at": 1.0,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.78, "volume": 2.6 }
+        },
+        {
+          "type": "hit",
+          "at": 1.75,
+          "shape": { "type": "ring", "inner": 9.5, "outer": 16.0 },
+          "telegraph": { "show": false, "from": 1.05 },
+          "hit": {
+            "amount": 12.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.45,
+            "knock_up": 0.3,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.05,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.7,
+          "duration": 1.35,
+          "height": 1.2,
+          "count": 12,
+          "color": "#DC5218",
+          "secondary_color": "#FFC85A"
+        },
+        {
+          "type": "fx",
+          "at": 1.75,
+          "sound": { "id": "minecraft:block.basalt.break", "pitch": 0.66, "volume": 2.7 }
+        },
+        {
+          "type": "hit",
+          "at": 2.18,
+          "shape": { "type": "circle", "radius": 5.8 },
+          "telegraph": { "show": false, "from": 1.4 },
+          "hit": {
+            "amount": 16.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.9,
+            "knock_up": 0.45,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.4,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.78,
+          "duration": 1.5,
+          "height": 1.35,
+          "count": 10,
+          "color": "#E64E18",
+          "secondary_color": "#FFD268"
+        },
+        {
+          "type": "fx",
+          "at": 2.18,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.7, "volume": 2.8 }
+        },
+        {
+          "type": "hit",
+          "at": 2.28,
+          "origin": "each_fighter",
+          "lead": 0.45,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "circle", "radius": 2.4 },
+          "telegraph": { "show": false, "from": 1.48 },
+          "hit": {
+            "amount": 11.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.35,
+            "knock_up": 0.45,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 2.5, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.48,
+          "kind": "burrow_mound",
+          "origin": "locked",
+          "windup": 0.8,
+          "duration": 1.55,
+          "height": 1.5,
+          "count": 6,
+          "color": "#D44D18",
+          "secondary_color": "#FFC254"
+        },
+        {
+          "type": "hit",
+          "at": 2.75,
+          "shape": { "type": "ring", "inner": 15.5, "outer": 24.0 },
+          "telegraph": { "show": false, "from": 1.95 },
+          "hit": {
+            "amount": 12.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.5,
+            "knock_up": 0.3,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.95,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.8,
+          "duration": 1.45,
+          "height": 1.3,
+          "count": 14,
+          "color": "#E64E18",
+          "secondary_color": "#FFD870"
+        },
+        {
+          "type": "fx",
+          "at": 2.75,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.62, "volume": 2.7 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.15,
+          "until": 4.35,
+          "multiplier": 1.3
+        }
+      ]
+    },
+    "burrow_ambush": {
+      "duration": 3.4,
+      "cooldown_group": "burrow",
+      "cooldown": [15.0, 19.0],
+      "initial_cooldown": 10.0,
+      "max_players": 2,
+      "weight": 2,
+      "no_repeat": true,
+      "target": "farthest",
+      "range": { "min": 4.5, "max": 18.0 },
+      "track_until": 1.2,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.1,
+          "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.62, "volume": 2.3 },
+          "message": { "key": "mobs_ld.cue.emberroot.burrow_ambush", "where": "actionbar" }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "burrow_mound",
+          "radius": 3.2,
+          "height": 1.2,
+          "count": 8,
+          "duration": 1.15,
+          "color": "#B33B14",
+          "secondary_color": "#FFA63B"
+        },
+        {
+          "type": "fx",
+          "at": 0.85,
+          "sound": { "id": "minecraft:block.gravel.break", "pitch": 0.65, "volume": 2.2 }
+        },
+        {
+          "type": "dash",
+          "at": 1.25,
+          "until": 1.62,
+          "max_distance": 10.5,
+          "overshoot": 0.0,
+          "width": 1.2,
+          "on_wall": "stop",
+          "telegraph": { "show": false }
+        },
+        {
+          "type": "hit",
+          "at": 2.08,
+          "shape": { "type": "circle", "radius": 4.6 },
+          "telegraph": { "show": false, "from": 1.62 },
+          "hit": {
+            "amount": 16.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.75,
+            "knock_up": 0.65,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.0, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.1, "max": 5, "duration": 15, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.62,
+          "kind": "burrow_mound",
+          "origin": "locked",
+          "windup": 0.46,
+          "duration": 1.3,
+          "height": 1.75,
+          "count": 10,
+          "color": "#D44D18",
+          "secondary_color": "#FFC254"
+        },
+        {
+          "type": "fx",
+          "at": 2.08,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.76, "volume": 2.6 }
+        },
+        {
+          "type": "fx",
+          "at": 2.3,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.68, "volume": 2.2 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.6,
+          "until": 3.35,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "subterranean_hunt": {
+      "clip": "burrow_ambush",
+      "duration": 3.6,
+      "cooldown_group": "burrow",
+      "cooldown": [16.5, 20.5],
+      "initial_cooldown": 10.0,
+      "min_players": 3,
+      "weight": 3,
+      "no_repeat": true,
+      "target": "top_damage",
+      "include_unreachable": true,
+      "range": { "min": 4.0, "max": 32.0, "above": 8.0, "below": 5.0 },
+      "track_until": 1.2,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.1,
+          "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.58, "volume": 2.6 },
+          "message": { "key": "mobs_ld.cue.emberroot.subterranean_hunt", "where": "actionbar" }
+        },
+        {
+          "type": "effect",
+          "at": 0.15,
+          "on": "aim",
+          "effects": [
+            { "id": "minecraft:glowing", "duration": 4.0, "amplifier": 0 }
+          ]
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "burrow_mound",
+          "radius": 3.4,
+          "height": 1.25,
+          "count": 8,
+          "duration": 1.15,
+          "color": "#B33B14",
+          "secondary_color": "#FFA63B"
+        },
+        {
+          "type": "hit",
+          "at": 1.5,
+          "origin": "each_fighter",
+          "lead": 0.35,
+          "height": 4.5,
+          "depth": 2.5,
+          "shape": { "type": "circle", "radius": 2.5 },
+          "telegraph": { "show": false, "from": 0.65 },
+          "hit": {
+            "amount": 10.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.35,
+            "knock_up": 0.4,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 2.5, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.65,
+          "kind": "burrow_mound",
+          "origin": "locked",
+          "windup": 0.85,
+          "duration": 1.55,
+          "height": 1.4,
+          "count": 6,
+          "color": "#C44516",
+          "secondary_color": "#FFB84A"
+        },
+        {
+          "type": "fx",
+          "at": 1.5,
+          "sound": { "id": "minecraft:block.gravel.break", "pitch": 0.62, "volume": 2.5 }
+        },
+        {
+          "type": "dash",
+          "at": 1.25,
+          "until": 1.62,
+          "max_distance": 14.5,
+          "overshoot": 0.0,
+          "width": 1.2,
+          "on_wall": "stop",
+          "telegraph": { "show": false }
+        },
+        {
+          "type": "hit",
+          "at": 2.08,
+          "shape": { "type": "circle", "radius": 5.0 },
+          "telegraph": { "show": false, "from": 1.62 },
+          "hit": {
+            "amount": 17.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.85,
+            "knock_up": 0.65,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.62,
+          "kind": "burrow_mound",
+          "origin": "locked",
+          "windup": 0.46,
+          "duration": 1.35,
+          "height": 1.85,
+          "count": 10,
+          "color": "#E64E18",
+          "secondary_color": "#FFD268"
+        },
+        {
+          "type": "fx",
+          "at": 2.08,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.72, "volume": 2.8 }
+        },
+        {
+          "type": "fx",
+          "at": 2.3,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.66, "volume": 2.4 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.65,
+          "until": 3.5,
+          "multiplier": 1.2
+        }
+      ]
+    },
+    "roll_crush": {
+      "duration": 3.8,
+      "cooldown_group": "roll",
+      "cooldown": [14.0, 18.0],
+      "initial_cooldown": 8.0,
+      "weight": 3,
+      "no_repeat": true,
+      "target": "farthest",
+      "include_unreachable": true,
+      "range": { "min": 5.5, "max": 26.0, "above": 6.0, "below": 4.0 },
+      "track_until": 0.18,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.05,
+          "sound": { "id": "minecraft:block.basalt.break", "pitch": 0.65, "volume": 2.4 },
+          "message": { "key": "mobs_ld.cue.emberroot.roll_crush", "where": "actionbar" }
+        },
+        {
+          "type": "dash",
+          "at": 0.65,
+          "until": 2.85,
+          "max_distance": 22.0,
+          "overshoot": 2.5,
+          "width": 3.2,
+          "push": "side",
+          "on_wall": "stop",
+          "telegraph": { "show": false, "from": 0.15 },
+          "hit": {
+            "amount": 16.5,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 1.05,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.15,
+          "kind": "roll_trail",
+          "origin": "locked",
+          "windup": 0.5,
+          "duration": 2.95,
+          "height": 1.5,
+          "color": "#C94616",
+          "secondary_color": "#FFB84A"
+        },
+        {
+          "type": "fx",
+          "at": 0.7,
+          "sound": { "id": "minecraft:entity.ravager.step", "pitch": 0.6, "volume": 2.4 }
+        },
+        {
+          "type": "fx",
+          "at": 1.55,
+          "sound": { "id": "minecraft:entity.ravager.step", "pitch": 0.58, "volume": 2.4 }
+        },
+        {
+          "type": "hit",
+          "at": 2.98,
+          "shape": { "type": "circle", "radius": 4.6 },
+          "telegraph": { "show": false, "from": 2.55 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.75,
+            "knock_up": 0.3,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 2.55,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.43,
+          "duration": 1.05,
+          "height": 1.2,
+          "count": 8,
+          "color": "#D44D18",
+          "secondary_color": "#FFC254"
+        },
+        {
+          "type": "fx",
+          "at": 2.98,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.6, "volume": 2.5 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.15,
+          "until": 3.75,
+          "multiplier": 1.25
+        }
+      ]
+    },
+    "roll_crush_p2": {
+      "clip": "roll_crush",
+      "duration": 3.3,
+      "cooldown_group": "roll",
+      "cooldown": [15.0, 19.0],
+      "min_players": 3,
+      "weight": 4,
+      "no_repeat": true,
+      "target": "slot:ember_mark",
+      "include_unreachable": true,
+      "range": { "min": 5.0, "max": 28.0, "above": 6.0, "below": 4.0 },
+      "track_until": 0.18,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.05,
+          "sound": { "id": "minecraft:block.basalt.break", "pitch": 0.62, "volume": 2.6 },
+          "message": { "key": "mobs_ld.cue.emberroot.roll_crush_double", "where": "actionbar" }
+        },
+        {
+          "type": "dash",
+          "at": 0.65,
+          "until": 2.85,
+          "max_distance": 22.0,
+          "overshoot": 2.5,
+          "width": 3.2,
+          "push": "side",
+          "on_wall": "stop",
+          "telegraph": { "show": false, "from": 0.15 },
+          "hit": {
+            "amount": 16.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 1.05,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.15,
+          "kind": "roll_trail",
+          "origin": "locked",
+          "windup": 0.5,
+          "duration": 2.95,
+          "height": 1.5,
+          "color": "#DC4E18",
+          "secondary_color": "#FFC85A"
+        },
+        {
+          "type": "fx",
+          "at": 0.7,
+          "sound": { "id": "minecraft:entity.ravager.step", "pitch": 0.58, "volume": 2.5 }
+        },
+        {
+          "type": "fx",
+          "at": 1.55,
+          "sound": { "id": "minecraft:entity.ravager.step", "pitch": 0.56, "volume": 2.5 }
+        },
+        {
+          "type": "hit",
+          "at": 2.98,
+          "shape": { "type": "circle", "radius": 4.6 },
+          "telegraph": { "show": false, "from": 2.55 },
+          "hit": {
+            "amount": 13.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.7,
+            "knock_up": 0.3,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 2.55,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.43,
+          "duration": 0.95,
+          "height": 1.2,
+          "count": 8,
+          "color": "#E64E18",
+          "secondary_color": "#FFD268"
+        },
+        {
+          "type": "fx",
+          "at": 2.98,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.6, "volume": 2.6 }
+        },
+        {
+          "type": "chain",
+          "at": 3.25,
+          "to": "roll_crush_follow",
+          "taunt_wins": true
+        }
+      ]
+    },
+    "roll_crush_follow": {
+      "clip": "roll_crush",
+      "duration": 3.8,
+      "weight": 0,
+      "target": "slot:cinder_prey",
+      "track_until": 0.18,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.05,
+          "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.82, "volume": 2.4 }
+        },
+        {
+          "type": "dash",
+          "at": 0.65,
+          "until": 2.85,
+          "max_distance": 20.0,
+          "overshoot": 2.5,
+          "width": 3.2,
+          "push": "side",
+          "on_wall": "stop",
+          "telegraph": { "show": false, "from": 0.15 },
+          "hit": {
+            "amount": 15.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 1.0,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.15,
+          "kind": "roll_trail",
+          "origin": "locked",
+          "windup": 0.5,
+          "duration": 2.95,
+          "height": 1.5,
+          "color": "#E64E18",
+          "secondary_color": "#FFD268"
+        },
+        {
+          "type": "fx",
+          "at": 0.7,
+          "sound": { "id": "minecraft:entity.ravager.step", "pitch": 0.62, "volume": 2.5 }
+        },
+        {
+          "type": "hit",
+          "at": 2.98,
+          "shape": { "type": "circle", "radius": 4.8 },
+          "telegraph": { "show": false, "from": 2.55 },
+          "hit": {
+            "amount": 14.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.8,
+            "knock_up": 0.35,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 2.55,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.43,
+          "duration": 1.05,
+          "height": 1.25,
+          "count": 8,
+          "color": "#F05618",
+          "secondary_color": "#FFDE7A"
+        },
+        {
+          "type": "fx",
+          "at": 2.98,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.58, "volume": 2.6 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.15,
+          "until": 3.75,
+          "multiplier": 1.3
+        }
+      ]
+    },
+    "furnace_blast": {
+      "clip": "lazer_attack",
+      "duration": 4.0,
+      "cooldown_group": "furnace",
+      "cooldown": [15.0, 19.0],
+      "max_players": 2,
+      "weight": 3,
+      "no_repeat": true,
+      "include_unreachable": true,
+      "range": { "min": 4.5, "max": 22.0, "above": 6.0, "below": 4.0 },
+      "track_until": 1.25,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.25,
+          "sound": { "id": "minecraft:block.blastfurnace.fire_crackle", "pitch": 0.65, "volume": 2.5 },
+          "message": { "key": "mobs_ld.cue.emberroot.furnace_blast", "where": "actionbar" }
+        },
+        {
+          "type": "fx",
+          "at": 1.25,
+          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.6, "volume": 2.4 }
+        },
+        {
+          "type": "hit",
+          "at": 2.55,
+          "once": true,
+          "height": 5.0,
+          "depth": 2.5,
+          "shape": { "type": "rectangle", "width": 3.0, "length": 22.0 },
+          "telegraph": { "show": false, "from": 1.25 },
+          "hit": {
+            "amount": 17.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.9,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.1, "max": 5, "duration": 15, "min_players": 0 }
+          }
+        },
+        {
+          "type": "hit",
+          "at": 3.05,
+          "once": true,
+          "height": 5.0,
+          "depth": 2.5,
+          "shape": { "type": "rectangle", "width": 3.0, "length": 22.0 },
+          "telegraph": { "show": false, "from": 1.75 },
+          "hit": {
+            "amount": 17.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.9,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.1, "max": 5, "duration": 15, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.25,
+          "kind": "cinder_eruption",
+          "origin": "locked",
+          "up": 1.85,
+          "windup": 1.3,
+          "duration": 2.35,
+          "height": 2.4,
+          "color": "#E64A19",
+          "secondary_color": "#FFD166"
+        },
+        {
+          "type": "fx",
+          "at": 2.55,
+          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.58, "volume": 2.8 }
+        },
+        {
+          "type": "fx",
+          "at": 3.05,
+          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.62, "volume": 2.5 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.3,
+          "until": 4.0,
+          "multiplier": 1.3
+        }
+      ]
+    },
+    "furnace_crossfire": {
+      "clip": "lazer_attack",
+      "duration": 4.5,
+      "cooldown_group": "furnace",
+      "cooldown": [16.0, 20.0],
+      "min_players": 3,
+      "weight": 4,
+      "no_repeat": true,
+      "fixed_speed": true,
+      "include_unreachable": true,
+      "range": { "max": 36.0, "above": 10.0, "below": 6.0 },
+      "track_until": 1.25,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.2,
+          "sound": { "id": "minecraft:block.blastfurnace.fire_crackle", "pitch": 0.6, "volume": 2.8 },
+          "message": { "key": "mobs_ld.cue.emberroot.furnace_crossfire", "where": "actionbar" }
+        },
+        {
+          "type": "fx",
+          "at": 1.25,
+          "sound": { "id": "minecraft:entity.blaze.ambient", "pitch": 0.55, "volume": 2.6 }
+        },
+        {
+          "type": "hit",
+          "at": 2.55,
+          "rotate": 0.0,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "rays", "count": 6, "length": 24.0, "width": 2.6, "widen": 0.08 },
+          "telegraph": { "show": false, "from": 1.25 },
+          "hit": {
+            "amount": 15.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.75,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.0, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.25,
+          "kind": "cinder_eruption",
+          "origin": "locked",
+          "up": 1.85,
+          "windup": 1.3,
+          "duration": 2.2,
+          "height": 2.4,
+          "color": "#E64A19",
+          "secondary_color": "#FFD166"
+        },
+        {
+          "type": "fx",
+          "at": 2.55,
+          "sound": { "id": "minecraft:entity.ghast.shoot", "pitch": 0.56, "volume": 2.9 }
+        },
+        {
+          "type": "hit",
+          "at": 3.55,
+          "rotate": 30.0,
+          "turn_body": true,
+          "height": 5.0,
+          "depth": 3.0,
+          "shape": { "type": "rays", "count": 6, "length": 24.0, "width": 2.6, "widen": 0.08 },
+          "telegraph": { "show": false, "from": 2.55 },
+          "hit": {
+            "amount": 15.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.75,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.0, "amplifier": 0 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 2.55,
+          "kind": "cinder_eruption",
+          "origin": "locked",
+          "up": 1.85,
+          "windup": 1.0,
+          "duration": 1.9,
+          "height": 2.4,
+          "color": "#F05618",
+          "secondary_color": "#FFE07A"
+        },
+        {
+          "type": "fx",
+          "at": 3.55,
+          "sound": { "id": "minecraft:entity.blaze.shoot", "pitch": 0.6, "volume": 2.8 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 3.7,
+          "until": 4.5,
+          "multiplier": 1.3
+        }
+      ]
+    },
+    "rib_furnace": {
+      "clip": "rib_tear",
+      "duration": 3.2,
+      "cooldown_group": "rib_tear",
+      "cooldown": [15.0, 19.0],
+      "weight": 3,
+      "no_repeat": true,
+      "include_unreachable": true,
+      "range": { "max": 18.0, "above": 8.0, "below": 5.0 },
+      "track_until": 0.45,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.1,
+          "sound": { "id": "minecraft:block.wood.break", "pitch": 0.55, "volume": 2.6 },
+          "message": { "key": "mobs_ld.cue.emberroot.rib_furnace", "where": "actionbar" }
+        },
+        {
+          "type": "hit",
+          "at": 1.25,
+          "shape": { "type": "circle", "radius": 7.0 },
+          "telegraph": { "show": false, "from": 0.45 },
+          "hit": {
+            "amount": 17.0,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 1.05,
+            "knock_up": 0.35,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 4.0, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "rib_furnace",
+          "origin": "locked",
+          "windup": 0.8,
+          "duration": 1.85,
+          "height": 3.5,
+          "count": 12,
+          "color": "#E64A19",
+          "secondary_color": "#FFD166"
+        },
+        {
+          "type": "fx",
+          "at": 1.25,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.65, "volume": 2.9 }
+        },
+        {
+          "type": "cloud",
+          "at": 1.25,
+          "origin": "self",
+          "radius": 4.2,
+          "duration": 6.5,
+          "effects": [
+            { "id": "mobs_ld:charred_roots", "duration": 2.5, "amplifier": 0 }
+          ]
+        },
+        {
+          "type": "hit",
+          "at": 2.0,
+          "shape": { "type": "ring", "inner": 6.5, "outer": 16.5 },
+          "telegraph": { "show": false, "from": 1.25 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 0.7,
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.25,
+          "kind": "drum_tremor",
+          "origin": "locked",
+          "windup": 0.75,
+          "duration": 1.45,
+          "height": 1.35,
+          "count": 14,
+          "color": "#C94616",
+          "secondary_color": "#FFB84A"
+        },
+        {
+          "type": "fx",
+          "at": 2.0,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.6, "volume": 2.6 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.35,
+          "until": 3.15,
+          "multiplier": 1.25
+        }
+      ]
+    },
+    "rib_backlash": {
+      "clip": "rib_tear",
+      "duration": 3.2,
+      "cooldown_group": "rib_tear",
+      "cooldown": 10.5,
+      "weight": 6,
+      "when": {
+        "behind": { "players": 2, "for": 3.0, "range": 5.5, "angle": 145, "height": 3.5 }
+      },
+      "track_until": 0.0,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.0,
+          "sound": { "id": "minecraft:block.wood.break", "pitch": 0.58, "volume": 2.5 }
+        },
+        {
+          "type": "hit",
+          "at": 1.25,
+          "shape": { "type": "circle", "radius": 6.8 },
+          "telegraph": { "show": false, "from": 0.4 },
+          "hit": {
+            "amount": 15.5,
+            "damage_type": "mobs_ld:ember_blight",
+            "knockback": 1.0,
+            "knock_up": 0.35,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+            ],
+            "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.4,
+          "kind": "rib_furnace",
+          "origin": "locked",
+          "windup": 0.85,
+          "duration": 1.8,
+          "height": 3.3,
+          "count": 10,
+          "color": "#DC4816",
+          "secondary_color": "#FFC85A"
+        },
+        {
+          "type": "fx",
+          "at": 1.25,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 0.68, "volume": 2.7 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 2.35,
+          "until": 3.15,
+          "multiplier": 1.25
+        }
+      ]
+    }
+  },
+  "phases": [
+    {
+      "below_health": 1.0,
+      "abilities": [
+        "swipe",
+        "hammer_slam",
+        "shoulder_barge",
+        "root_snare",
+        "root_cascade",
+        "tantrum_drum",
+        "cataclysm_drum",
+        "burrow_ambush",
+        "subterranean_hunt",
+        "roll_crush",
+        "rib_backlash"
+      ],
+      "bar": { "color": "yellow", "overlay": "notched_6" }
+    },
+    {
+      "below_health": 0.6,
+      "abilities": [
+        "swipe",
+        "hammer_slam",
+        "shoulder_barge",
+        "root_snare",
+        "root_cascade",
+        "tantrum_drum",
+        "cataclysm_drum",
+        "burrow_ambush",
+        "subterranean_hunt",
+        "roll_crush",
+        "roll_crush_p2",
+        "furnace_blast",
+        "furnace_crossfire",
+        "rib_furnace",
+        "rib_backlash"
+      ],
+      "transition": {
+        "clip": "rib_tear",
+        "duration": 3.2,
+        "invulnerable": true,
+        "events": [
+          {
+            "type": "fx",
+            "at": 0.0,
+            "sound": { "id": "minecraft:block.blastfurnace.fire_crackle", "pitch": 0.55, "volume": 2.9 },
+            "message": { "key": "mobs_ld.cue.emberroot.phase2", "where": "actionbar" }
+          },
+          {
+            "type": "hit",
+            "at": 1.25,
+            "shape": { "type": "circle", "radius": 7.5 },
+            "telegraph": { "show": false, "from": 0.45 },
+            "hit": {
+              "amount": 15.0,
+              "damage_type": "mobs_ld:ember_blight",
+              "knockback": 1.15,
+              "knock_up": 0.4,
+              "effects": [
+                { "id": "mobs_ld:charred_roots", "duration": 3.5, "amplifier": 1 }
+              ],
+              "stacks": { "id": "cinder_mark", "per_stack": 0.12, "max": 5, "duration": 15, "min_players": 3 }
+            }
+          },
+          {
+            "type": "vfx",
+            "at": 0.45,
+            "kind": "rib_furnace",
+            "origin": "locked",
+            "windup": 0.8,
+            "duration": 1.9,
+            "height": 3.8,
+            "count": 12,
+            "color": "#F04E18",
+            "secondary_color": "#FFE07A"
+          },
+          {
+            "type": "fx",
+            "at": 1.25,
+            "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.62, "volume": 2.9 }
+          },
+          {
+            "type": "cloud",
+            "at": 1.25,
+            "origin": "self",
+            "radius": 4.5,
+            "duration": 7.5,
+            "effects": [
+              { "id": "mobs_ld:charred_roots", "duration": 2.5, "amplifier": 0 }
+            ]
+          }
+        ]
+      },
+      "ready_in": {
+        "furnace_crossfire": 3.5,
+        "furnace_blast": 3.5,
+        "rib_furnace": 9.5
+      },
+      "cooldowns": {
+        "root_cascade": [13.5, 17.0],
+        "cataclysm_drum": [15.5, 19.5],
+        "roll_crush_p2": [13.5, 17.0]
+      },
+      "attack_speed": 1.1,
+      "texture": "phase2",
+      "bar": { "color": "red", "overlay": "notched_10" }
+    },
+    {
+      "below_health": 0.25,
+      "abilities": [
+        "swipe",
+        "hammer_slam",
+        "shoulder_barge",
+        "root_snare",
+        "root_cascade",
+        "tantrum_drum",
+        "cataclysm_drum",
+        "burrow_ambush",
+        "subterranean_hunt",
+        "roll_crush",
+        "roll_crush_p2",
+        "furnace_blast",
+        "furnace_crossfire",
+        "rib_furnace",
+        "rib_backlash"
+      ],
+      "ready_in": {
+        "cataclysm_drum": 2.5,
+        "furnace_crossfire": 6.5
+      },
+      "cooldowns": {
+        "root_cascade": [11.5, 14.5],
+        "cataclysm_drum": [13.5, 16.5],
+        "furnace_crossfire": [13.0, 16.0],
+        "subterranean_hunt": [13.5, 16.5],
+        "rib_furnace": [12.5, 15.5]
+      },
+      "attack_speed": 1.2,
+      "texture": "phase2",
+      "bar": { "color": "red", "overlay": "notched_12" }
+    }
+  ],
+  "boss": {
+    "bar": { "color": "yellow", "overlay": "notched_6" },
+    "leash": 44,
+    "reset_after": 15,
+    "engage_on": "players",
+    "soft_enrage": {
+      "after": 480,
+      "damage_multiplier": 2.0,
+      "clip": "rib_tear"
+    }
+  }
+}

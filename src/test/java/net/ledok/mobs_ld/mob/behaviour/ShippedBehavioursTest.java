@@ -62,6 +62,9 @@ class ShippedBehavioursTest {
     void ldMobsLoad() throws Exception {
         load("/data/mobs_ld/mob_behaviour/gorefist.json");
         load("/data/mobs_ld/mob_behaviour/rot_wart.json");
+        load("/data/mobs_ld/mob_behaviour/midra.json");
+        load("/data/mobs_ld/mob_behaviour/amber_brute.json");
+        load("/data/mobs_ld/mob_behaviour/emberroot.json");
     }
 
     /** M5's summon and cooldown fields are all optional: Gorefist's and Rot Wart's files mean exactly what they did. */

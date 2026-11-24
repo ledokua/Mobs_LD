@@ -13,13 +13,19 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.ledok.mobs_ld.client.mob.LdMobClientHooks;
 import net.ledok.mobs_ld.client.mob.LdMobRenderer;
 import net.ledok.mobs_ld.client.renderer.AttackZoneVisualRenderer;
+import net.ledok.mobs_ld.client.vfx.SpellVfxManager;
+import net.ledok.mobs_ld.client.vfx.SpellVfxRenderer;
 import net.ledok.mobs_ld.mob.MobClientHooks;
 import net.ledok.mobs_ld.mob.MobDeclaration;
 import net.ledok.mobs_ld.mob.MobDeclarations;
+import net.ledok.mobs_ld.network.SpellVfxCancelPayload;
+import net.ledok.mobs_ld.network.SpellVfxPayload;
 import net.ledok.mobs_ld.registry.ModEntities;
 
 import java.nio.file.Path;
@@ -58,8 +64,20 @@ public class MobsLdModClient implements ClientModInitializer {
                                 .then(ClientCommandManager.argument("mob", StringArgumentType.word())
                                         .executes(ctx -> bake(ctx.getSource(), StringArgumentType.getString(ctx, "mob")))))));
 
-        ClientTickEvents.END_CLIENT_TICK.register(client -> ScreenShake.tick());
-        // A shake mid-decay must not report intensity into the next world.
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ScreenShake.reset());
+        ClientPlayNetworking.registerGlobalReceiver(SpellVfxPayload.TYPE,
+                (payload, context) -> context.client().execute(() -> SpellVfxManager.spawn(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(SpellVfxCancelPayload.TYPE,
+                (payload, context) -> context.client().execute(() -> SpellVfxManager.cancel(payload.id())));
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(SpellVfxRenderer::render);
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ScreenShake.tick();
+            SpellVfxManager.tick(client);
+        });
+        // A shake or spell mid-decay must not carry across a disconnect into the next world.
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            ScreenShake.reset();
+            SpellVfxManager.reset();
+        });
     }
 }

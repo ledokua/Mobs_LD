@@ -11,6 +11,7 @@ import net.ledok.mobs_ld.config.DamageConfig;
 import net.ledok.mobs_ld.mob.combat.CombatEvents;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
+import net.ledok.mobs_ld.network.ModNetworking;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -23,6 +24,7 @@ public class MobsLdMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModAttributes.register();
+        ModNetworking.register();
         ModEntities.register();
         MobDeclarations.register();
         WitherAdapter.register(); // host adapters and their host types, before any datapack is read

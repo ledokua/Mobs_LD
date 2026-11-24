@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.ledok.mobs_ld.effect.BossStatusEffect;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.phys.Vec3;
@@ -43,8 +44,16 @@ public record CloudEvent(double at, Origin origin, double radius, double duratio
         cloud.setDuration((int) Math.round(duration * 20.0));
         cloud.setWaitTime(0);
         cloud.addTag(HOSTILE_TAG);
+        boolean customParticleSet = false;
         for (HitSpec.EffectSpec effect : effects) {
             effect.instance().ifPresent(cloud::addEffect);
+            if (!customParticleSet) {
+                var instance = effect.instance();
+                if (instance.isPresent() && instance.get().getEffect().value() instanceof BossStatusEffect bossEffect) {
+                    cloud.setParticle(bossEffect.cloudParticle());
+                    customParticleSet = true;
+                }
+            }
         }
         run.level().addFreshEntity(cloud);
     }

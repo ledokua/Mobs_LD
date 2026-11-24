@@ -1,0 +1,952 @@
+{
+  "reference_attributes": {
+    "minecraft:generic.attack_damage": 13.0
+  },
+  "movement": {
+    "style": "standoff",
+    "distance": 3.2,
+    "speed": 1.0,
+    "reach_height": 3.8,
+    "reach_depth": 2.0,
+    "reach_rule": "path",
+    "ground_scan": 10
+  },
+  "global_cooldown": 0.75,
+  "intro": {
+    "clip": "spawn",
+    "duration": 3.2,
+    "invulnerable": true,
+    "events": [
+      {
+        "type": "fx",
+        "at": 0.0,
+        "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.65, "volume": 2.2 },
+        "message": { "key": "mobs_ld.cue.amber_brute.intro", "where": "actionbar" }
+      },
+      {
+        "type": "fx",
+        "at": 0.95,
+        "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.75, "volume": 2.2 }
+      },
+      {
+        "type": "vfx",
+        "at": 0.95,
+        "kind": "ground_fracture",
+        "radius": 3.2,
+        "height": 0.95,
+        "count": 6,
+        "duration": 0.75,
+        "color": "#B87A1E",
+        "secondary_color": "#F5D461"
+      },
+      {
+        "type": "fx",
+        "at": 1.55,
+        "sound": { "id": "minecraft:block.chain.step", "pitch": 0.85, "volume": 1.8 }
+      },
+      {
+        "type": "fx",
+        "at": 2.25,
+        "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.72, "volume": 2.4 }
+      }
+    ]
+  },
+  "on_death": {
+    "clip": "death",
+    "duration": 3.4,
+    "events": [
+      {
+        "type": "fx",
+        "at": 0.0,
+        "sound": { "id": "minecraft:entity.iron_golem.death", "pitch": 0.7, "volume": 2.6 },
+        "message": { "key": "mobs_ld.cue.amber_brute.death", "where": "actionbar" }
+      },
+      {
+        "type": "fx",
+        "at": 1.25,
+        "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.65, "volume": 2.0 }
+      },
+      {
+        "type": "fx",
+        "at": 2.15,
+        "sound": { "id": "minecraft:block.amethyst_block.break", "pitch": 0.7, "volume": 2.6 }
+      },
+      {
+        "type": "vfx",
+        "at": 2.15,
+        "kind": "ground_fracture",
+        "offset": 1.2,
+        "side": 0.7,
+        "radius": 2.8,
+        "height": 0.75,
+        "count": 5,
+        "duration": 0.85,
+        "color": "#9E6518",
+        "secondary_color": "#E8C354"
+      }
+    ]
+  },
+  "abilities": {
+    "claw_rake": {
+      "clip": "swipe",
+      "duration": 1.6,
+      "cooldown": [3.8, 5.0],
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "max": 4.0 },
+      "track_until": 0.35,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.45,
+          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 1.15, "volume": 2.0 }
+        },
+        {
+          "type": "trace",
+          "from": 0.45,
+          "to": 0.56,
+          "path": ["forearm_l", "hit_claw_left"],
+          "radius": 0.9,
+          "hit": {
+            "amount": 10.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.45,
+            "effects": [
+              { "id": "mobs_ld:amber_mire", "duration": 3.0, "amplifier": 0 }
+            ],
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "claw_rake",
+          "up": 1.35,
+          "radius": 3.2,
+          "angle": 115,
+          "tilt": 16,
+          "duration": 0.38,
+          "color": "#D4982A",
+          "secondary_color": "#FFF0B8"
+        }
+      ]
+    },
+    "heavy_slam": {
+      "clip": "attack",
+      "duration": 2.5,
+      "cooldown": [5.5, 7.0],
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "max": 4.8 },
+      "aim_side": 0.8,
+      "track_until": 0.35,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.55,
+          "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.72, "volume": 1.8 }
+        },
+        {
+          "type": "hit",
+          "at": 0.98,
+          "offset": 1.9,
+          "side": 0.8,
+          "shape": { "type": "circle", "radius": 3.2 },
+          "telegraph": { "show": false, "from": 0.35 },
+          "hit": {
+            "amount": 17.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.85,
+            "knock_up": 0.35,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.35,
+          "kind": "ground_fracture",
+          "origin": "locked",
+          "windup": 0.63,
+          "duration": 1.45,
+          "height": 1.15,
+          "count": 6,
+          "color": "#C48118",
+          "secondary_color": "#FFE787"
+        },
+        {
+          "type": "fx",
+          "at": 0.98,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.65, "volume": 2.4 }
+        },
+        {
+          "type": "cloud",
+          "at": 0.98,
+          "origin": "self",
+          "radius": 2.6,
+          "duration": 5.5,
+          "effects": [
+            { "id": "mobs_ld:amber_mire", "duration": 2.0, "amplifier": 0 }
+          ]
+        },
+        {
+          "type": "fx",
+          "at": 1.55,
+          "sound": { "id": "minecraft:block.rooted_dirt.break", "pitch": 0.8, "volume": 1.8 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.55,
+          "until": 2.4,
+          "multiplier": 1.25
+        }
+      ]
+    },
+    "crystal_fissure": {
+      "clip": "attack",
+      "duration": 2.5,
+      "cooldown": [9.5, 12.5],
+      "initial_cooldown": 5.0,
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "min": 3.5, "max": 11.5 },
+      "track_until": 0.5,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.5,
+          "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.85, "volume": 2.0 }
+        },
+        {
+          "type": "fx",
+          "at": 0.98,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.72, "volume": 2.2 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.98,
+          "kind": "ground_fracture",
+          "offset": 1.9,
+          "side": 0.8,
+          "radius": 2.2,
+          "height": 0.85,
+          "count": 5,
+          "duration": 0.55,
+          "color": "#B87A1E",
+          "secondary_color": "#F5D461"
+        },
+        {
+          "type": "hit",
+          "at": 1.05,
+          "rotate": 0.0,
+          "once": true,
+          "offset": 2.6,
+          "shape": { "type": "circle", "radius": 1.85 },
+          "telegraph": { "show": false, "from": 0.5 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.35,
+            "knock_up": 0.4,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.5,
+          "kind": "amber_spire",
+          "origin": "locked",
+          "windup": 0.55,
+          "duration": 1.35,
+          "height": 2.5,
+          "color": "#D48E1A",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.05,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.95, "volume": 2.0 }
+        },
+        {
+          "type": "hit",
+          "at": 1.3,
+          "rotate": 0.0,
+          "once": true,
+          "offset": 5.2,
+          "shape": { "type": "circle", "radius": 1.85 },
+          "telegraph": { "show": false, "from": 0.75 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.35,
+            "knock_up": 0.4,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.75,
+          "kind": "amber_spire",
+          "origin": "locked",
+          "windup": 0.55,
+          "duration": 1.35,
+          "height": 2.9,
+          "color": "#D9941A",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.3,
+          "sound": { "id": "minecraft:block.pointed_dripstone.land", "pitch": 0.85, "volume": 2.0 }
+        },
+        {
+          "type": "hit",
+          "at": 1.55,
+          "rotate": 0.0,
+          "once": true,
+          "offset": 7.8,
+          "shape": { "type": "circle", "radius": 1.85 },
+          "telegraph": { "show": false, "from": 1.0 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.35,
+            "knock_up": 0.4,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.0,
+          "kind": "amber_spire",
+          "origin": "locked",
+          "windup": 0.55,
+          "duration": 1.35,
+          "height": 3.3,
+          "color": "#DF9B1C",
+          "secondary_color": "#FFF3B8"
+        },
+        {
+          "type": "fx",
+          "at": 1.55,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.82, "volume": 2.1 }
+        },
+        {
+          "type": "hit",
+          "at": 1.8,
+          "rotate": 0.0,
+          "once": true,
+          "offset": 10.4,
+          "shape": { "type": "circle", "radius": 1.95 },
+          "telegraph": { "show": false, "from": 1.25 },
+          "hit": {
+            "amount": 13.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.35,
+            "knock_up": 0.45,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.25,
+          "kind": "amber_spire",
+          "origin": "locked",
+          "windup": 0.55,
+          "duration": 1.4,
+          "height": 3.8,
+          "color": "#E6A61E",
+          "secondary_color": "#FFF5C4"
+        },
+        {
+          "type": "fx",
+          "at": 1.8,
+          "sound": { "id": "minecraft:block.amethyst_block.break", "pitch": 0.78, "volume": 2.2 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.95,
+          "until": 2.45,
+          "multiplier": 1.15
+        }
+      ]
+    },
+    "amber_snare": {
+      "clip": "attack",
+      "duration": 2.5,
+      "cooldown": [14.0, 17.0],
+      "initial_cooldown": 8.0,
+      "weight": 2,
+      "no_repeat": true,
+      "include_unreachable": true,
+      "range": { "min": 5.5, "max": 26.0, "above": 8.0, "below": 5.0 },
+      "track_until": 0.65,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.4,
+          "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.68, "volume": 2.4 },
+          "message": { "key": "mobs_ld.cue.amber_brute.amber_snare", "where": "actionbar" }
+        },
+        {
+          "type": "fx",
+          "at": 0.98,
+          "sound": { "id": "minecraft:block.rooted_dirt.place", "pitch": 0.6, "volume": 2.2 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.98,
+          "kind": "ground_fracture",
+          "offset": 1.9,
+          "side": 0.8,
+          "radius": 2.2,
+          "height": 0.8,
+          "count": 5,
+          "duration": 0.65,
+          "color": "#B87A1E",
+          "secondary_color": "#F5D461"
+        },
+        {
+          "type": "hit",
+          "at": 1.88,
+          "origin": "each_fighter",
+          "height": 4.5,
+          "depth": 2.5,
+          "shape": { "type": "circle", "radius": 2.3 },
+          "telegraph": { "show": false, "from": 0.98 },
+          "hit": {
+            "amount": 12.0,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.15,
+            "effects": [
+              { "id": "mobs_ld:amber_mire", "duration": 3.0, "amplifier": 1 }
+            ],
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.98,
+          "kind": "amber_geode_trap",
+          "origin": "locked",
+          "windup": 0.9,
+          "duration": 1.85,
+          "height": 2.5,
+          "count": 4,
+          "color": "#D9941A",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.88,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.85, "volume": 2.4 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.95,
+          "until": 2.45,
+          "multiplier": 1.15
+        }
+      ]
+    },
+    "knuckle_sweep": {
+      "duration": 2.2,
+      "cooldown": [8.5, 11.0],
+      "weight": 2,
+      "no_repeat": true,
+      "range": { "max": 7.5 },
+      "track_until": 0.45,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.5,
+          "sound": { "id": "minecraft:block.honey_block.slide", "pitch": 0.75, "volume": 2.0 }
+        },
+        {
+          "type": "trace",
+          "from": 0.84,
+          "to": 0.98,
+          "path": ["forearm_r", "hit_fist_right"],
+          "radius": 0.95,
+          "hit": {
+            "amount": 9.5,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.9
+          }
+        },
+        {
+          "type": "fx",
+          "at": 0.95,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 1.05, "volume": 2.2 }
+        },
+        {
+          "type": "hit",
+          "at": 1.05,
+          "offset": 1.4,
+          "shape": { "type": "cone", "radius": 7.6, "angle": 80 },
+          "telegraph": { "show": false, "from": 0.45 },
+          "hit": {
+            "amount": 10.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.55,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "shard_spray",
+          "origin": "locked",
+          "windup": 0.6,
+          "duration": 1.45,
+          "height": 2.3,
+          "count": 9,
+          "color": "#E3A21E",
+          "secondary_color": "#FFF0A8"
+        }
+      ]
+    },
+    "tremor_stomp": {
+      "duration": 2.4,
+      "cooldown_group": "stomp",
+      "cooldown": [10.0, 13.0],
+      "weight": 2,
+      "no_repeat": true,
+      "range": { "max": 5.2 },
+      "track_until": 0.4,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.45,
+          "sound": { "id": "minecraft:entity.iron_golem.step", "pitch": 0.6, "volume": 2.0 }
+        },
+        {
+          "type": "hit",
+          "at": 1.05,
+          "shape": { "type": "circle", "radius": 3.8 },
+          "telegraph": { "show": false, "from": 0.4 },
+          "hit": {
+            "amount": 12.5,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.6,
+            "knock_up": 0.3
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.4,
+          "kind": "ground_fracture",
+          "origin": "locked",
+          "windup": 0.65,
+          "duration": 1.45,
+          "height": 1.0,
+          "count": 6,
+          "color": "#B87A1E",
+          "secondary_color": "#F5D461"
+        },
+        {
+          "type": "fx",
+          "at": 1.05,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.68, "volume": 2.4 }
+        },
+        {
+          "type": "hit",
+          "at": 1.7,
+          "shape": { "type": "ring", "inner": 3.8, "outer": 7.4 },
+          "telegraph": { "show": false, "from": 1.05 },
+          "hit": {
+            "amount": 12.0,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.5,
+            "knock_up": 0.3,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.05,
+          "kind": "resonance_ring",
+          "origin": "locked",
+          "windup": 0.65,
+          "duration": 1.5,
+          "height": 2.5,
+          "count": 12,
+          "color": "#D9941A",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.7,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.78, "volume": 2.4 }
+        }
+      ]
+    },
+    "tremor_backlash": {
+      "clip": "tremor_stomp",
+      "duration": 2.4,
+      "cooldown_group": "stomp",
+      "cooldown": 9.5,
+      "weight": 6,
+      "when": {
+        "behind": { "players": 1, "for": 3.2, "range": 5.0, "angle": 140, "height": 3.5 }
+      },
+      "track_until": 0.0,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.0,
+          "sound": { "id": "minecraft:block.chain.step", "pitch": 0.75, "volume": 2.2 }
+        },
+        {
+          "type": "hit",
+          "at": 1.05,
+          "shape": { "type": "circle", "radius": 4.0 },
+          "telegraph": { "show": false, "from": 0.35 },
+          "hit": {
+            "amount": 13.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.7,
+            "knock_up": 0.3
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.35,
+          "kind": "ground_fracture",
+          "origin": "locked",
+          "windup": 0.7,
+          "duration": 1.5,
+          "height": 1.05,
+          "count": 7,
+          "color": "#C48118",
+          "secondary_color": "#FFE787"
+        },
+        {
+          "type": "fx",
+          "at": 1.05,
+          "sound": { "id": "minecraft:entity.iron_golem.attack", "pitch": 0.65, "volume": 2.4 }
+        },
+        {
+          "type": "hit",
+          "at": 1.7,
+          "shape": { "type": "ring", "inner": 4.0, "outer": 7.6 },
+          "telegraph": { "show": false, "from": 1.05 },
+          "hit": {
+            "amount": 12.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.6,
+            "knock_up": 0.35,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.05,
+          "kind": "resonance_ring",
+          "origin": "locked",
+          "windup": 0.65,
+          "duration": 1.5,
+          "height": 2.6,
+          "count": 12,
+          "color": "#E3A21E",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.7,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.75, "volume": 2.4 }
+        }
+      ]
+    },
+    "double_rake": {
+      "duration": 2.4,
+      "cooldown": [8.0, 10.5],
+      "weight": 3,
+      "no_repeat": true,
+      "range": { "max": 4.5 },
+      "track_until": 0.35,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.45,
+          "sound": { "id": "minecraft:entity.player.attack.sweep", "pitch": 1.15, "volume": 2.0 }
+        },
+        {
+          "type": "trace",
+          "from": 0.45,
+          "to": 0.56,
+          "path": ["forearm_l", "hit_claw_left"],
+          "radius": 0.9,
+          "hit": {
+            "amount": 8.5,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.1,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "claw_rake",
+          "up": 1.35,
+          "radius": 3.3,
+          "angle": 115,
+          "tilt": 14,
+          "duration": 0.36,
+          "color": "#D4982A",
+          "secondary_color": "#FFF0B8"
+        },
+        {
+          "type": "fx",
+          "at": 1.04,
+          "sound": { "id": "minecraft:entity.player.attack.strong", "pitch": 1.1, "volume": 2.0 }
+        },
+        {
+          "type": "trace",
+          "from": 1.04,
+          "to": 1.18,
+          "aim_side": 0.0,
+          "path": ["forearm_l", "hit_claw_left"],
+          "radius": 0.9,
+          "hit": {
+            "amount": 9.0,
+            "damage_type": "minecraft:mob_attack",
+            "knockback": 0.15
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.04,
+          "kind": "claw_rake",
+          "up": 1.45,
+          "radius": 3.3,
+          "angle": 115,
+          "tilt": -16,
+          "reverse": true,
+          "duration": 0.36,
+          "color": "#E3A21E",
+          "secondary_color": "#FFF3C4"
+        },
+        {
+          "type": "hit",
+          "at": 1.75,
+          "aim_side": 0.35,
+          "offset": 2.9,
+          "side": 0.35,
+          "shape": { "type": "circle", "radius": 3.0 },
+          "telegraph": { "show": false, "from": 1.15 },
+          "hit": {
+            "amount": 15.5,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.85,
+            "knock_up": 0.4,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 1.15,
+          "kind": "ground_fracture",
+          "origin": "locked",
+          "windup": 0.6,
+          "duration": 1.4,
+          "height": 1.2,
+          "count": 6,
+          "color": "#DE9A1C",
+          "secondary_color": "#FFF0A8"
+        },
+        {
+          "type": "fx",
+          "at": 1.75,
+          "sound": { "id": "minecraft:block.amethyst_block.break", "pitch": 0.72, "volume": 2.4 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.95,
+          "until": 2.4,
+          "multiplier": 1.25
+        }
+      ]
+    },
+    "crystal_resonance": {
+      "clip": "crystal_roar",
+      "duration": 2.6,
+      "cooldown": [15.0, 18.0],
+      "weight": 2,
+      "no_repeat": true,
+      "range": { "max": 9.0 },
+      "track_until": 0.45,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.15,
+          "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.62, "volume": 2.6 },
+          "message": { "key": "mobs_ld.cue.amber_brute.crystal_resonance", "where": "actionbar" }
+        },
+        {
+          "type": "hit",
+          "at": 1.15,
+          "shape": { "type": "ring", "inner": 3.2, "outer": 8.2 },
+          "telegraph": { "show": false, "from": 0.45 },
+          "hit": {
+            "amount": 15.0,
+            "damage_type": "mobs_ld:amber_shatter",
+            "knockback": 0.65,
+            "knock_up": 0.45,
+            "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+          }
+        },
+        {
+          "type": "vfx",
+          "at": 0.45,
+          "kind": "resonance_ring",
+          "origin": "locked",
+          "windup": 0.7,
+          "duration": 1.65,
+          "height": 3.1,
+          "count": 14,
+          "color": "#E6A61E",
+          "secondary_color": "#FFF5C4"
+        },
+        {
+          "type": "fx",
+          "at": 1.15,
+          "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.68, "volume": 2.6 }
+        },
+        {
+          "type": "fx",
+          "at": 1.2,
+          "sound": { "id": "minecraft:block.amethyst_cluster.break", "pitch": 0.7, "volume": 2.4 }
+        },
+        {
+          "type": "vulnerable",
+          "at": 1.75,
+          "until": 2.55,
+          "multiplier": 1.3
+        }
+      ]
+    }
+  },
+  "phases": [
+    {
+      "below_health": 1.0,
+      "abilities": [
+        "claw_rake",
+        "heavy_slam",
+        "crystal_fissure",
+        "amber_snare",
+        "knuckle_sweep",
+        "tremor_stomp",
+        "tremor_backlash"
+      ],
+      "bar": { "color": "yellow", "overlay": "notched_6" }
+    },
+    {
+      "below_health": 0.55,
+      "abilities": [
+        "claw_rake",
+        "heavy_slam",
+        "double_rake",
+        "crystal_fissure",
+        "amber_snare",
+        "knuckle_sweep",
+        "tremor_stomp",
+        "tremor_backlash",
+        "crystal_resonance"
+      ],
+      "transition": {
+        "clip": "crystal_roar",
+        "duration": 2.6,
+        "invulnerable": true,
+        "events": [
+          {
+            "type": "fx",
+            "at": 0.0,
+            "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.55, "volume": 2.8 },
+            "message": { "key": "mobs_ld.cue.amber_brute.phase2", "where": "actionbar" }
+          },
+          {
+            "type": "fx",
+            "at": 0.55,
+            "sound": { "id": "minecraft:block.amethyst_block.chime", "pitch": 0.72, "volume": 2.4 }
+          },
+          {
+            "type": "hit",
+            "at": 1.15,
+            "shape": { "type": "ring", "inner": 3.0, "outer": 8.5 },
+            "telegraph": { "show": false, "from": 0.4 },
+            "hit": {
+              "amount": 14.0,
+              "damage_type": "mobs_ld:amber_shatter",
+              "knockback": 0.85,
+              "knock_up": 0.4,
+              "stacks": { "id": "amber_resin", "per_stack": 0.12, "max": 4, "duration": 14, "min_players": 0 }
+            }
+          },
+          {
+            "type": "vfx",
+            "at": 0.4,
+            "kind": "resonance_ring",
+            "origin": "locked",
+            "windup": 0.75,
+            "duration": 1.75,
+            "height": 3.3,
+            "count": 14,
+            "color": "#EAA91E",
+            "secondary_color": "#FFF6C8"
+          },
+          {
+            "type": "vfx",
+            "at": 1.15,
+            "kind": "ground_fracture",
+            "radius": 3.0,
+            "height": 0.85,
+            "count": 6,
+            "duration": 0.75,
+            "color": "#C48118",
+            "secondary_color": "#FFE787"
+          },
+          {
+            "type": "fx",
+            "at": 1.15,
+            "sound": { "id": "minecraft:entity.ravager.roar", "pitch": 0.65, "volume": 2.8 }
+          },
+          {
+            "type": "cloud",
+            "at": 1.25,
+            "origin": "self",
+            "radius": 3.5,
+            "duration": 7.0,
+            "effects": [
+              { "id": "mobs_ld:amber_mire", "duration": 2.5, "amplifier": 0 }
+            ]
+          }
+        ]
+      },
+      "ready_in": {
+        "double_rake": 2.5,
+        "crystal_resonance": 9.0
+      },
+      "cooldowns": {
+        "crystal_fissure": [8.0, 10.5],
+        "amber_snare": [12.0, 15.0]
+      },
+      "attack_speed": 1.12,
+      "damage_taken": [
+        { "kind": "projectile", "multiplier": 0.75 }
+      ],
+      "texture": "phase2",
+      "bar": { "color": "yellow", "overlay": "notched_10" }
+    }
+  ],
+  "boss": {
+    "bar": { "color": "yellow", "overlay": "notched_6" },
+    "leash": 34,
+    "reset_after": 15,
+    "engage_on": "players",
+    "soft_enrage": {
+      "after": 420,
+      "damage_multiplier": 2.0,
+      "clip": "crystal_roar"
+    }
+  }
+}
