@@ -4,16 +4,19 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
+import net.ledok.mobs_ld.mob.MobDeclaration;
 import net.ledok.mobs_ld.mob.behaviour.event.ChainEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.ClipEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HoverEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
+import net.ledok.mobs_ld.mob.combat.SummonStats;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.warden.WardenHostOptions;
@@ -62,6 +65,72 @@ class ShippedBehavioursTest {
     void ldMobsLoad() throws Exception {
         load("/data/mobs_ld/mob_behaviour/gorefist.json");
         load("/data/mobs_ld/mob_behaviour/rot_wart.json");
+    }
+
+    @Test
+    void colossusSpikesFollowItsSingleStairHeightSlam() throws Exception {
+        MobBehaviour colossus = load("/data/mobs_ld/mob_behaviour/sand_golem_colossus.json");
+        MobBehaviour.Ability slam = colossus.abilities().get("ground_slam");
+        List<HitEvent> hits = hits(slam);
+        assertEquals(1, hits.size());
+        HitEvent hit = hits.getFirst();
+        assertEquals(new Shape.Rectangle(3, 15, 0), hit.shape());
+        assertEquals(3.5, hit.height().orElseThrow());
+        assertEquals(1.2, hit.at());
+        assertEquals(2.7, slam.duration());
+        assertTrue(slam.noRepeat());
+        assertTrue(colossus.abilities().get("horizontal_slam").noRepeat());
+        assertTrue(slam.events().stream().anyMatch(event -> event instanceof SandstoneSpikesEvent spikes
+                && spikes.matches(hit)));
+    }
+
+    @Test
+    void colossusCallsTwoHusksPlusOnePerFighterUpToTen() throws Exception {
+        MobBehaviour colossus = load("/data/mobs_ld/mob_behaviour/sand_golem_colossus.json");
+        MobBehaviour.Ability call = colossus.abilities().get("summon_husks");
+        List<SummonEvent> waves = summons(call);
+        assertEquals(1, waves.size());
+        SummonEvent wave = waves.getFirst();
+        assertEquals(List.of("ground_slam", "horizontal_slam"), call.afterAbilities());
+        assertEquals(ResourceLocation.withDefaultNamespace("husk"), wave.entity());
+        assertEquals(1.1, wave.at());
+        assertTrue(call.skipWhenFull() && wave.bound());
+        assertFalse(wave.loot() || wave.xp());
+        for (int fighters : List.of(0, 1, 2, 4, 8, 16)) {
+            int expected = Math.min(10, 2 + fighters);
+            assertEquals(expected, wave.count().roll(fighters, bound -> 0));
+            assertEquals(expected, wave.maxAlive().at(fighters));
+        }
+    }
+
+    @Test
+    void colossusHusksScaleWithTheSummoner() throws Exception {
+        MobBehaviour colossus = load("/data/mobs_ld/mob_behaviour/sand_golem_colossus.json");
+        SummonEvent.Scale scale = summons(colossus.abilities().get("summon_husks")).getFirst().scale().orElseThrow();
+        SummonEvent.StatScale health = scale.maxHealth().orElseThrow();
+        SummonEvent.StatScale attack = scale.attackDamage().orElseThrow();
+        double attackBase = colossus.declaredBase(ResourceLocation.withDefaultNamespace("generic.attack_damage")).orElseThrow();
+
+        assertEquals(20.0, SummonStats.target(health, 20.0, 200.0, 200.0));
+        assertEquals(40.0, SummonStats.target(health, 20.0, 400.0, 200.0));
+        assertEquals(3.0, SummonStats.target(attack, 3.0, 8.0, attackBase));
+        assertEquals(6.0, SummonStats.target(attack, 3.0, 16.0, attackBase));
+        assertEquals(6.0, colossus.declaredBase(ResourceLocation.withDefaultNamespace("generic.armor")).orElseThrow());
+        assertTrue(scale.armor().orElseThrow().summonerBonus());
+        assertTrue(scale.copiesDamageDealt());
+    }
+
+    @Test
+    void onlyColossusOptsOutOfCollisionPushes() throws Exception {
+        for (String name : List.of("sand_golem_colossus", "gorefist", "rot_wart")) {
+            String path = "/mobs_ld/entities/" + name + ".json";
+            try (Reader reader = new InputStreamReader(ShippedBehavioursTest.class.getResourceAsStream(path), StandardCharsets.UTF_8)) {
+                MobDeclaration declaration = MobDeclaration.codec(ResourceLocation.fromNamespaceAndPath("mobs_ld", name))
+                        .parse(JsonOps.INSTANCE, JsonParser.parseReader(reader))
+                        .getOrThrow(error -> new AssertionError(path + ": " + error));
+                assertEquals(!name.equals("sand_golem_colossus"), declaration.pushable(), name);
+            }
+        }
     }
 
     /** M5's summon and cooldown fields are all optional: Gorefist's and Rot Wart's files mean exactly what they did. */

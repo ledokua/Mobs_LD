@@ -24,6 +24,7 @@ is the contract between modeling and code. If a model needs something not listed
 - Origin `[0, 0, 0]` is the center of the entity's feet, on the ground.
 - The gameplay hitbox is a separate axis-aligned box set in code (width x height in blocks). State the intended
   hitbox in the hand-off notes; the model may overhang it (big arms, weapons).
+- An entity declaration can set `"pushable": false` to resist shoves from overlapping entities.
 
 ## Geometry: supported
 
@@ -97,6 +98,9 @@ sound/particle/instruction timestamp holds an array of effects; offset extra one
     error, so prefer the call form.
 
 ## Hand-off
+
+`./gradlew check` verifies shipped mob animation and model references, including clip timing and marker bones.
+Hit tracks baked with `/mobs_ldc bake` include the geometry and animation fingerprints used by this check.
 
 Per mob, deliver:
 

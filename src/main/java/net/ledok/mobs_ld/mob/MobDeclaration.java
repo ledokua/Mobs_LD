@@ -24,6 +24,7 @@ public record MobDeclaration(
         Body body,
         int trackingRange,
         boolean fireImmune,
+        boolean pushable,
         int deathTicks,
         Map<ResourceLocation, Double> attributes,
         Optional<SpawnEgg> spawnEgg,
@@ -81,13 +82,14 @@ public record MobDeclaration(
                 Body.CODEC.optionalFieldOf("body", Body.GROUND).forGetter(MobDeclaration::body),
                 Codec.INT.optionalFieldOf("tracking_range", 10).forGetter(MobDeclaration::trackingRange),
                 Codec.BOOL.optionalFieldOf("fire_immune", false).forGetter(MobDeclaration::fireImmune),
+                Codec.BOOL.optionalFieldOf("pushable", true).forGetter(MobDeclaration::pushable),
                 Codec.INT.optionalFieldOf("death_ticks", 20).forGetter(MobDeclaration::deathTicks),
                 Codec.unboundedMap(ResourceLocation.CODEC, Codec.DOUBLE).optionalFieldOf("attributes", Map.of())
                         .forGetter(MobDeclaration::attributes),
                 SpawnEgg.CODEC.optionalFieldOf("spawn_egg").forGetter(MobDeclaration::spawnEgg),
                 Render.CODEC.optionalFieldOf("render", Render.DEFAULT).forGetter(MobDeclaration::render)
-        ).apply(i, (category, width, height, eyeHeight, body, trackingRange, fireImmune, deathTicks, attributes,
+        ).apply(i, (category, width, height, eyeHeight, body, trackingRange, fireImmune, pushable, deathTicks, attributes,
                     spawnEgg, render) -> new MobDeclaration(id, category, width, height, eyeHeight, body,
-                trackingRange, fireImmune, deathTicks, attributes, spawnEgg, render)));
+                trackingRange, fireImmune, pushable, deathTicks, attributes, spawnEgg, render)));
     }
 }

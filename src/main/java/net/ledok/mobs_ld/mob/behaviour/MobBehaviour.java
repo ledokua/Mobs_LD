@@ -8,6 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
 import net.ledok.mobs_ld.mob.host.HostOptions;
 import net.ledok.mobs_ld.mob.host.HostSpec;
@@ -99,6 +100,11 @@ public record MobBehaviour(
         behaviour.phases().forEach(phase -> phase.transition().ifPresent(all::add));
         Map<String, SkullSpec> skulls = behaviour.host().options().map(HostOptions::skulls).orElse(Map.of());
         for (Ability ability : all) {
+            for (String prerequisite : ability.afterAbilities()) {
+                if (!behaviour.abilities().containsKey(prerequisite)) {
+                    return DataResult.error(() -> "An ability's after_abilities names unknown ability '" + prerequisite + "'");
+                }
+            }
             String slotError = behaviour.unknownSlot(ability.target(), "An ability aims at");
             if (slotError != null) {
                 return DataResult.error(() -> slotError);
@@ -108,6 +114,10 @@ public record MobBehaviour(
                 return DataResult.error(() -> alongError);
             }
             for (AbilityEvent event : ability.events()) {
+                if (event instanceof SandstoneSpikesEvent spikes && ability.events().stream().noneMatch(spikes::matches)) {
+                    return DataResult.error(() -> "A sandstone_spikes event at " + spikes.at()
+                            + " requires a rectangular hit at the same time");
+                }
                 for (String chained : event.chains()) {
                     if (!behaviour.abilities().containsKey(chained)) {
                         return DataResult.error(() -> "A " + event.type() + " event chains into unknown ability '" + chained + "'");
@@ -389,6 +399,7 @@ public record MobBehaviour(
      * @param cooldownGroup abilities naming the same group share one cooldown: using one puts all of them on the
      *                     cooldown it rolled (its own, or the phase's override for it)
      * @param noRepeat     not picked right after itself while another ability can be picked
+     * @param afterAbilities only picked once at least one of these named abilities completes in the current fight
      * @param minPlayers   only usable while at least this many players fight the mob ({@link
      *                     net.ledok.mobs_ld.mob.combat.Fighters}); empty = any number
      * @param maxPlayers   only usable while at most this many players fight it; empty = any number
@@ -412,6 +423,7 @@ public record MobBehaviour(
             boolean fixedSpeed,
             Optional<String> cooldownGroup,
             boolean noRepeat,
+            List<String> afterAbilities,
             Optional<Integer> minPlayers,
             Optional<Integer> maxPlayers,
             Optional<When> when,
@@ -423,15 +435,17 @@ public record MobBehaviour(
          * flat): a separate group because one RecordCodecBuilder takes at most 16 fields. New optional ability fields
          * go here (or into a third group like it).
          */
-        private record Scheduling(boolean fixedSpeed, Optional<String> cooldownGroup, boolean noRepeat) {
+        private record Scheduling(boolean fixedSpeed, Optional<String> cooldownGroup, boolean noRepeat,
+                                  List<String> afterAbilities) {
             static final MapCodec<Scheduling> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                     Codec.BOOL.optionalFieldOf("fixed_speed", false).forGetter(Scheduling::fixedSpeed),
                     Codec.STRING.optionalFieldOf("cooldown_group").forGetter(Scheduling::cooldownGroup),
-                    Codec.BOOL.optionalFieldOf("no_repeat", false).forGetter(Scheduling::noRepeat)
+                    Codec.BOOL.optionalFieldOf("no_repeat", false).forGetter(Scheduling::noRepeat),
+                    Codec.STRING.listOf().optionalFieldOf("after_abilities", List.of()).forGetter(Scheduling::afterAbilities)
             ).apply(i, Scheduling::new));
 
             static Scheduling of(Ability ability) {
-                return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat());
+                return new Scheduling(ability.fixedSpeed(), ability.cooldownGroup(), ability.noRepeat(), ability.afterAbilities());
             }
         }
 
@@ -489,7 +503,7 @@ public record MobBehaviour(
         ).apply(i, (core, scheduling, conditions) -> new Ability(core.clip(), core.duration(), core.cooldown(),
                 core.initialCooldown(), core.weight(), core.range(), core.target(), core.trackUntil(),
                 core.forceAfter(), core.aimSide(), core.invulnerable(), core.skipWhenFull(), scheduling.fixedSpeed(),
-                scheduling.cooldownGroup(), scheduling.noRepeat(), conditions.minPlayers(), conditions.maxPlayers(),
+                scheduling.cooldownGroup(), scheduling.noRepeat(), scheduling.afterAbilities(), conditions.minPlayers(), conditions.maxPlayers(),
                 conditions.when(), conditions.includeUnreachable(), core.events())));
 
         public String clipOr(String key) {

@@ -100,6 +100,11 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
         return declaration;
     }
 
+    @Override
+    public boolean isPushable() {
+        return declaration.pushable() && super.isPushable();
+    }
+
     public MobCombat combat() {
         return combat;
     }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.11
+- The Sand Golem Colossus holds its ground-slam pose during recovery and lights its chest ankh. It completes a
+  slam or sweep before its first husk call, and calls three husks solo plus one per additional fighter, up to ten.
+- Summoned husks take 10% of the Colossus's max health and inherit its attack scaling, bonus armor, and
+  DD Loot Stage damage multiplier when available.
+- `after_abilities` gates an ability until any named prerequisite finishes in the current fight.
+- `/mobs_ld debug preview` outlines locked area-hit zones and shows the impact tick and hit targets for operators.
+- The build checks shipped mob clips, ability timing, marker bones, and baked hit-track freshness.
+
+## 1.7.8
+- Telegraphs follow the terrain: each part is laid on the floor under it (stairs, slabs, steps), joined by walls at
+  height changes, and left out where the floor is outside the hit's height band (the band is now sent to clients).
+
 ## 1.7.6
 - **Attack profiles** (`data/<ns>/mobs_ld/attack_profiles/*.json`): resize any mob's hits on players before
   `loot_stage:damage_dealt` and the Arenas tier scale them.

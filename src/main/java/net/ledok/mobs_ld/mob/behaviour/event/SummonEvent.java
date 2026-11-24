@@ -117,12 +117,12 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     /** How many more adds the summoner may have alive now under {@code max_alive} (for {@code skip_when_full}). */
     public int room(Mob mob, MobCombat combat) {
-        int fighters = maxAlive.perExtraPlayer() > 0 ? Fighters.of(mob).size() : 0;
+        int fighters = maxAlive.scalesWithPlayers() ? Fighters.of(mob).size() : 0;
         return Math.max(0, maxAlive.at(fighters) - combat.aliveSummons());
     }
 
     private boolean needsFighters() {
-        return count.perExtraPlayer() > 0 || maxAlive.perExtraPlayer() > 0
+        return count.scalesWithPlayers() || maxAlive.scalesWithPlayers()
                 || placement.map(p -> p.around() == Placement.Around.FIGHTERS).orElse(false);
     }
 
@@ -392,23 +392,29 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     // --- Data ---
 
     /**
-     * How many adds one summon raises: a number (always that many), or {@code {min, max, per_extra_player, cap}}: a
-     * random count in [min, max], plus {@code per_extra_player} for each fighting player beyond the first, at most
-     * {@code cap}.
+     * How many adds one summon raises: a fixed number, or a random count in [min, max] with optional player bonuses.
+     * {@code per_player} counts every fighter and {@code per_extra_player} counts fighters beyond the first.
+     * {@code cap} limits the total.
      */
-    public record Count(int min, int max, int perExtraPlayer, int cap) {
+    public record Count(int min, int max, int perExtraPlayer, int perPlayer, int cap) {
         private static final Codec<Count> RANGE = RecordCodecBuilder.<Count>create(i -> i.group(
                 Codec.intRange(0, 256).fieldOf("min").forGetter(Count::min),
                 Codec.intRange(0, 256).optionalFieldOf("max").forGetter(c -> Optional.of(c.max)),
                 Codec.intRange(0, 64).optionalFieldOf("per_extra_player", 0).forGetter(Count::perExtraPlayer),
+                Codec.intRange(0, 64).optionalFieldOf("per_player", 0).forGetter(Count::perPlayer),
                 Codec.intRange(0, 1024).optionalFieldOf("cap").forGetter(c -> c.cap == Integer.MAX_VALUE
                         ? Optional.empty() : Optional.of(c.cap))
-        ).apply(i, (min, max, perExtra, cap) -> new Count(min, max.orElse(min), perExtra, cap.orElse(Integer.MAX_VALUE))))
+        ).apply(i, (min, max, perExtra, perPlayer, cap) ->
+                new Count(min, max.orElse(min), perExtra, perPlayer, cap.orElse(Integer.MAX_VALUE))))
                 .validate(c -> c.max < c.min ? DataResult.error(() -> "A summon count's max " + c.max
                         + " is below its min " + c.min) : DataResult.success(c));
         public static final Codec<Count> CODEC = Codec.either(Codec.INT, RANGE).xmap(
                 either -> either.map(Count::of, range -> range),
                 c -> c.plain() ? Either.left(c.min) : Either.right(c));
+
+        public Count(int min, int max, int perExtraPlayer, int cap) {
+            this(min, max, perExtraPlayer, 0, cap);
+        }
 
         /** Always {@code n}, whoever is fighting (a plain number, as summons always took). */
         public static Count of(int n) {
@@ -416,39 +422,52 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
         }
 
         private boolean plain() {
-            return min == max && perExtraPlayer == 0 && cap == Integer.MAX_VALUE;
+            return min == max && !scalesWithPlayers() && cap == Integer.MAX_VALUE;
+        }
+
+        private boolean scalesWithPlayers() {
+            return perExtraPlayer > 0 || perPlayer > 0;
         }
 
         /** The count for a wave with {@code fighters} players fighting; {@code random}: bound -> [0, bound). */
         public int roll(int fighters, IntUnaryOperator random) {
             int rolled = max > min ? min + random.applyAsInt(max - min + 1) : min;
-            return Math.min(cap, rolled + perExtraPlayer * Fighters.extra(fighters));
+            return Math.min(cap, rolled + perPlayer * fighters + perExtraPlayer * Fighters.extra(fighters));
         }
     }
 
     /**
-     * How many of the summoner's adds may be alive at once: a number, or {@code {base, per_extra_player, cap}}: base
-     * plus {@code per_extra_player} for each fighting player beyond the first, at most {@code cap}. A wave only fills the
-     * free room.
+     * How many of the summoner's adds may be alive at once: a fixed number or a base with optional player bonuses.
+     * Uses the same scaling fields as {@link Count}. A wave only fills the free room.
      */
-    public record MaxAlive(int base, int perExtraPlayer, int cap) {
+    public record MaxAlive(int base, int perExtraPlayer, int perPlayer, int cap) {
         private static final Codec<MaxAlive> RANGE = RecordCodecBuilder.<MaxAlive>create(i -> i.group(
                 Codec.intRange(0, 1024).fieldOf("base").forGetter(MaxAlive::base),
                 Codec.intRange(0, 256).optionalFieldOf("per_extra_player", 0).forGetter(MaxAlive::perExtraPlayer),
+                Codec.intRange(0, 256).optionalFieldOf("per_player", 0).forGetter(MaxAlive::perPlayer),
                 Codec.intRange(0, 1024).optionalFieldOf("cap").forGetter(m -> m.cap == Integer.MAX_VALUE
                         ? Optional.empty() : Optional.of(m.cap))
-        ).apply(i, (base, perExtra, cap) -> new MaxAlive(base, perExtra, cap.orElse(Integer.MAX_VALUE))));
+        ).apply(i, (base, perExtra, perPlayer, cap) ->
+                new MaxAlive(base, perExtra, perPlayer, cap.orElse(Integer.MAX_VALUE))));
         public static final Codec<MaxAlive> CODEC = Codec.either(Codec.INT, RANGE).xmap(
                 either -> either.map(MaxAlive::of, range -> range),
-                m -> m.perExtraPlayer == 0 && m.cap == Integer.MAX_VALUE ? Either.left(m.base) : Either.right(m));
+                m -> !m.scalesWithPlayers() && m.cap == Integer.MAX_VALUE ? Either.left(m.base) : Either.right(m));
+
+        public MaxAlive(int base, int perExtraPlayer, int cap) {
+            this(base, perExtraPlayer, 0, cap);
+        }
 
         public static MaxAlive of(int n) {
             return new MaxAlive(n, 0, Integer.MAX_VALUE);
         }
 
+        private boolean scalesWithPlayers() {
+            return perExtraPlayer > 0 || perPlayer > 0;
+        }
+
         /** The limit with {@code fighters} players fighting. */
         public int at(int fighters) {
-            return Math.min(cap, base + perExtraPlayer * Fighters.extra(fighters));
+            return Math.min(cap, base + perPlayer * fighters + perExtraPlayer * Fighters.extra(fighters));
         }
     }
 

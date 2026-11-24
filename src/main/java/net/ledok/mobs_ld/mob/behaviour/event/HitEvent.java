@@ -6,11 +6,13 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
+import net.ledok.mobs_ld.mob.combat.AttackPreview;
 import net.ledok.mobs_ld.mob.combat.Fighters;
 import net.ledok.mobs_ld.mob.combat.MoveLead;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -107,13 +109,16 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         if (turnBody) {
             run.turnBody(yaw, TURN_SECONDS);
         }
+        double up = height.orElse(run.combat().reachUp());
+        double down = depth.orElse(run.combat().reachDown());
+        AttackPreview.Locked preview = AttackPreview.lock(run, zones, up, down, at);
         AbilityRun.Marker marker = null;
         if (telegraphed && !zones.isEmpty()) {
             List<AbilityRun.Zone> drawn = new ArrayList<>(zones.size());
             for (AbilityRun.HitZone zone : zones) {
                 drawn.add(AbilityRun.zoneOf(zone.origin(), yaw, shape, telegraph));
             }
-            marker = run.telegraph(drawn, telegraph, at);
+            marker = run.telegraph(drawn, telegraph, at, up, down);
         }
         AbilityRun.Marker drawnMarker = marker;
         return new Instance() {
@@ -129,8 +134,6 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
 
             @Override
             public void finish(AbilityRun run) {
-                double up = height.orElse(run.combat().reachUp());
-                double down = depth.orElse(run.combat().reachDown());
                 // Each victim once per event, even where zones overlap (two fighters standing together).
                 Map<UUID, Victim> victims = new LinkedHashMap<>();
                 for (AbilityRun.HitZone zone : zones) {
@@ -138,17 +141,28 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
                         victims.putIfAbsent(victim.getUUID(), new Victim(victim, zone.origin()));
                     }
                 }
+                List<AttackPreview.Struck> struck = preview != null ? new ArrayList<>() : List.of();
                 for (Victim victim : victims.values()) {
                     if (!once || run.strikeOnce(victim.entity())) {
-                        hit.apply(run, victim.entity(), victim.from());
+                        LivingEntity target = victim.entity();
+                        AABB before = target.getBoundingBox();
+                        if (hit.tryApply(run, target, victim.from()) && preview != null) {
+                            struck.add(new AttackPreview.Struck(target.getName().getString(), before));
+                        }
                     }
                 }
                 run.flash(drawnMarker);
+                if (preview != null) {
+                    preview.impact(struck);
+                }
             }
 
             @Override
             public void cancel(AbilityRun run) {
                 run.clear(drawnMarker);
+                if (preview != null) {
+                    preview.cancel();
+                }
             }
         };
     }

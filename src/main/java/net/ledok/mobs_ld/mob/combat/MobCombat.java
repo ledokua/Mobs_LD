@@ -135,6 +135,8 @@ public final class MobCombat {
     private AbilityRun current;
     /** The ability started last (for {@code no_repeat}); null after a reset. */
     private String lastStarted;
+    /** Named abilities that have finished in this engagement (for {@code after_abilities}). */
+    private final Set<String> completedAbilities = new HashSet<>();
     private AbilityRun deathRun;
     private long globalReadyAt;
     private long staggerUntil = -1;
@@ -477,6 +479,7 @@ public final class MobCombat {
         engaged = true;
         engagedAt = now;
         idleTicks = 0;
+        completedAbilities.clear();
         behaviour.abilities().forEach((name, ability) -> {
             if (ability.initialCooldown().max() > 0.0) {
                 readyAt.put(name, now + ticks(ability.initialCooldown()));
@@ -696,7 +699,9 @@ public final class MobCombat {
         for (Map.Entry<String, MobBehaviour.Ability> entry : behaviour.abilities().entrySet()) {
             String name = entry.getKey();
             MobBehaviour.Ability ability = entry.getValue();
-            if ((active != null && !active.allows(name)) || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
+            if ((active != null && !active.allows(name))
+                    || !prerequisiteMet(ability)
+                    || !AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                     || (ability.skipWhenFull() && summonsFull(ability)) || !behindHolds(name, ability, now)) {
                 continue;
             }
@@ -766,8 +771,8 @@ public final class MobCombat {
     }
 
     /**
-     * Whether {@code name} could start on its own now, range and weight aside: its phase allows it, it is off cooldown
-     * and, with {@code skip_when_full}, one of its summons has room ({@code chain.if_ready}).
+     * Whether {@code name} could start on its own now, range and weight aside: its phase allows it, it is off cooldown,
+     * its opening prerequisite is met and, with {@code skip_when_full}, one of its summons has room ({@code chain.if_ready}).
      */
     public boolean readyToChain(String name) {
         MobBehaviour behaviour = behaviour();
@@ -778,8 +783,13 @@ public final class MobCombat {
         MobBehaviour.Phase active = activePhase(behaviour);
         long now = mob.level().getGameTime();
         return (active == null || active.allows(name))
+                && prerequisiteMet(ability)
                 && AbilityChoice.ready(name, ability, now, readyAt, groupReadyAt, readyInWins)
                 && !(ability.skipWhenFull() && summonsFull(ability));
+    }
+
+    private boolean prerequisiteMet(MobBehaviour.Ability ability) {
+        return ability.afterAbilities().isEmpty() || ability.afterAbilities().stream().anyMatch(completedAbilities::contains);
     }
 
     /**
@@ -802,6 +812,9 @@ public final class MobCombat {
     private void finishCurrent(MobBehaviour behaviour, long now) {
         boolean staggered = current.wasStaggered();
         String chained = current.chainTo();
+        if (!staggered && chained == null && behaviour.abilities().get(current.name()) == current.ability()) {
+            completedAbilities.add(current.name());
+        }
         trace("end " + current.name() + (staggered ? " (staggered)" : chained != null ? " -> chain " + chained : ""));
         LivingEntity aim = current.aim();
         LivingEntity asked = current.chainAim();
@@ -1059,6 +1072,7 @@ public final class MobCombat {
         groupReadyAt.clear();
         readyInWins.clear();
         lastStarted = null;
+        completedAbilities.clear();
         stacks.clear();
         damageLedger.clear();
         clearWatches();

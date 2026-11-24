@@ -82,6 +82,11 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
      * it lands) only counts from the next hit on.
      */
     public void apply(AbilityRun run, LivingEntity victim, Vec3 from) {
+        tryApply(run, victim, from);
+    }
+
+    /** Whether the target accepted the hit and its attached effects. */
+    public boolean tryApply(AbilityRun run, LivingEntity victim, Vec3 from) {
         Mob mob = run.mob();
         float amount = (float) (rawDamage(mob) * run.combat().stackMultiplier(victim));
         // Ability hits are authored beats that each land at most once per event; vanilla's 10-tick hurt immunity
@@ -92,7 +97,7 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
         DamageSource source = damageSource(mob.level(), mob, mob, () -> mob.damageSources().mobAttack(mob));
         boolean hurt = amount <= 0.0F || victim.hurt(source, amount);
         if (!hurt) {
-            return; // blocked, invulnerable or in damage cooldown: no rider effects either
+            return false; // blocked, invulnerable or in damage cooldown: no rider effects either
         }
         // hurt() also shoves the victim by vanilla's fixed 0.4, which knocks a player out of a combo's next beat; the
         // push is exactly the authored one below, so undo vanilla's (keeping a sync another hit already queued).
@@ -125,6 +130,7 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
             }
             victim.hurtMarked = true; // sync the new velocity to players
         }
+        return true;
     }
 
     /** Puts this hit's effects on {@code victim}, credited to {@code source} (call only once the hit has landed). */

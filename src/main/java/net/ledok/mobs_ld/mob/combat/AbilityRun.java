@@ -520,12 +520,21 @@ public final class AbilityRun {
      * (the marker is still valid).
      */
     public Marker telegraph(List<Zone> zones, Telegraph style, double impactSeconds) {
+        return telegraph(zones, style, impactSeconds, combat.reachUp(), combat.reachDown());
+    }
+
+    /**
+     * {@link #telegraph(List, Telegraph, double)} for a hit whose height band ({@code up} / {@code down} blocks around
+     * each zone's floor) is not the mob's reach band: the client lays the telegraph only on floors inside it.
+     */
+    public Marker telegraph(List<Zone> zones, Telegraph style, double impactSeconds, double up, double down) {
         int total = Math.max(1, (int) Math.round((impactSeconds - seconds()) * 20.0 / speed));
         AttackDisplayConfig config = new AttackDisplayConfig(style.style().animation(), style.prepareColor(),
                 style.invokeColor());
         List<AttackZoneDisplay> displays = new ArrayList<>();
         for (Zone zone : zones) {
-            displays.add(AttackZoneDisplay.spawn(level(), zone.origin(), zone.yaw(), zone.zone(), config, total));
+            displays.add(AttackZoneDisplay.spawn(level(), zone.origin(), zone.yaw(), zone.zone(), config, total,
+                    (float) up, (float) down));
         }
         Marker marker = new Marker(List.copyOf(displays), impactSeconds, total);
         markers.add(marker);

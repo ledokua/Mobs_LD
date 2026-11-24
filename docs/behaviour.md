@@ -95,6 +95,7 @@ unreachable (see [Vanilla hosts](#vanilla-hosts)); by `line_of_sight` hiding beh
 | `fixed_speed` | false | its timeline and clip ignore the phase's `attack_speed` (run at 1): for an ability timed to a host clip that cannot play faster (the Warden's `sonic_boom`: at 1.2 the wave would land 0.28 s before the chest burst) |
 | `cooldown_group` | none | a name; abilities with the same group share one cooldown: using one puts every ability of the group on the cooldown it rolled (its own `cooldown`, or the phase's `cooldowns` entry for it), never shortening a group cooldown that already runs longer. Their own initial cooldowns still count separately. A phase's `ready_in` wins over the group: the ability named there is usable at that time even while its group is on cooldown (once; its next use puts the group on cooldown as usual) |
 | `no_repeat` | false | never picked right after itself (the ability started last, by name) while another ability can be picked; alone it may repeat. A `force_after` fuse ignores it |
+| `after_abilities` | [] | optional list of ability names. At least one must finish normally in the current engagement before this ability can be picked |
 | `min_players` / `max_players` | none | only usable while at least / at most this many [players fight it](#fighting-players) (counted when it would be picked; also holds a `force_after` fuse back) |
 | `when` | none | `{ "behind": { "players": 2, "for": 4, "range": 4.5, "angle": 140, "height": 3 } }`: only usable once at least `players` fighting players have each stood behind it (within `range` blocks, the rear `angle` degrees, the whole width, centred on its back, and `height` blocks above or below its feet, so a player on a ledge does not count) for `for` seconds without a break (defaults: 1 player, 0 s, 5 blocks, 120 degrees, 3 blocks). Who stands where is only watched while the ability is allowed by the phase and off cooldown, so the count starts when it comes off cooldown |
 | `include_unreachable` | false | its target rule may also pick players the reach rule gave up on (a player on a ledge can still be the farthest); `current` and `slot:` rules are not affected |
@@ -327,8 +328,8 @@ Only `at` and `entity` are required; every other field is optional, and left out
 |---|---|---|
 | `at` | required | the adds rise |
 | `entity` | required | entity id (any mod's) |
-| `count` | 1 | a number, or `{ "min", "max", "per_extra_player", "cap" }`: a random count in [min, max] (max defaults to min), plus `per_extra_player` for each [fighting player](#fighting-players) beyond the first, at most `cap` |
-| `max_alive` | 8 | no more spawn while this many of the mob's adds (of any summon) live: a number, or `{ "base", "per_extra_player", "cap" }`. A wave only fills the free room |
+| `count` | 1 | a number or an object with `min` and optional `max` (defaults to `min`). The roll adds `per_player` per [fighting player](#fighting-players) and `per_extra_player` per fighter beyond the first, up to `cap` |
+| `max_alive` | 8 | a number or an object with `base` and the same optional player bonuses and `cap` as `count`. A wave only fills the free room under this limit |
 | `forward` / `up` / `right` | 0 | offset of the spawn point from the mob, along its facing |
 | `spread` | 1.0 | random scatter around that point (without a `placement`) |
 | `telegraph` | none | runes: `{ "from", "radius": 0.9, "color", "style", "show" }` (the telegraph block, plus the circle's `radius`). The wave (how many, where) is decided when the runes appear at `from` (default 1 s before `at`), one circle per add on its spot; the adds rise on them at `at`. Without it nothing is drawn and the wave is decided at `at` |
@@ -346,8 +347,8 @@ marks are entity tags (`mobs_ld_no_loot`, `mobs_ld_no_xp`, `mobs_ld_summon` + `m
 the add enters the level, so they survive restarts.
 
 **Fighting players.** Players with threat on the summoner's table (they hit, healed against or debuffed it), alive,
-not spectating or in creative, within 48 blocks. Bystanders do not count. With nobody fighting, `per_extra_player`
-adds nothing (a solo count).
+not spectating or in creative, within 48 blocks. Bystanders do not count. Both bonuses default to zero.
+With no fighters, neither bonus adds to the base count or limit.
 
 **`placement`**
 
@@ -495,6 +496,12 @@ All parts are optional and sent from the server (no client mod code).
 Skulls fly at a constant speed from launch, so one reaches a target `d` blocks away after `d / speed` ticks (vanilla
 skulls start slow and settle at 1.9; the blue ones at 0.27). They are vanilla wither skulls, spawned inside the mob's
 tick, and deal their spec: see [The Wither](#the-wither-dataminecraftmob_behaviourwitherjson).
+
+### `sandstone_spikes` - a cosmetic row on impact
+
+`{ "type": "sandstone_spikes", "at": 1.2 }` draws a short-lived row of sandstone spikes over a rectangular hit at
+the same time. The row follows the locked lane and uses the hit's height and depth to find stair treads and other
+floor surfaces. Damage comes from the accompanying `hit` event.
 
 ## Target slots
 
@@ -933,6 +940,8 @@ All take any mob running a behaviour, Mobs_LD's own or a vanilla host (e.g. `@e[
   and whether it is burrowed.
 - `/mobs_ld debug` - toggle the ability trace in chat for operators within 64 blocks and in the server log (`Mobs_LD trace ...`) (abilities, hits, slot picks,
   skull hits and splashes with their amounts).
+- `/mobs_ld debug preview` - toggle the attack overlay for yourself. In a nearby area hit's windup it shows the
+  locked shape and its upper and lower reach. At impact it reports the tick and highlights the targets struck.
 - `/mobs_ld damage audit start|stop|dump|status` - records every hit on a player while it runs (to size mob attacks
   from data). Grouped by dealer kind (`attacker`, `direct`, `none`, `player`; the dealer is who DD Loot Stage scales
   by: the attacker, else a living direct source), dealer entity type, damage type, direct entity type and the Mobs_LD

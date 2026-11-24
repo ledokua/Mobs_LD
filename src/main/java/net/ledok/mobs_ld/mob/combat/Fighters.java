@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.IntUnaryOperator;
 
 /**
- * Who is fighting a mob, for summon waves that grow with the group ({@code per_extra_player}) and runes placed around
+ * Who is fighting a mob, for summon waves that grow with the group and runes placed around
  * the players ({@code placement.around: fighters}): players with threat on its table, alive, not spectating or in
  * creative, within {@value #RANGE} blocks. Bystanders who never hit, healed against or debuffed it do not count.
  * The counting and dealing rules are pure, so they are unit-tested.

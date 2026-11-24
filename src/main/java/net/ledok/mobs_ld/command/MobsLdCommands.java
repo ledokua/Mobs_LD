@@ -8,6 +8,7 @@ import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
+import net.ledok.mobs_ld.mob.combat.AttackPreview;
 import net.ledok.mobs_ld.mob.combat.CombatHost;
 import net.ledok.mobs_ld.mob.combat.CombatTargets;
 import net.ledok.mobs_ld.mob.combat.DamageAudit;
@@ -18,6 +19,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -70,7 +72,8 @@ public final class MobsLdCommands {
                             boolean on = MobCombat.toggleDebug();
                             ctx.getSource().sendSuccess(() -> Component.literal("Mobs_LD ability trace " + (on ? "on" : "off")), true);
                             return 1;
-                        }))
+                        })
+                        .then(Commands.literal("preview").executes(ctx -> togglePreview(ctx.getSource()))))
                 .then(Commands.literal("threat")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(ctx -> showThreat(ctx.getSource(), EntityArgument.getEntities(ctx, "targets")))))
@@ -96,6 +99,19 @@ public final class MobsLdCommands {
                                 .then(Commands.literal("status").executes(ctx -> auditStatus(ctx.getSource())))
                                 .then(Commands.literal("attributes").executes(ctx -> auditAttributes(ctx.getSource()))))
                         .then(Commands.literal("config").executes(ctx -> reloadDamageConfig(ctx.getSource())))));
+    }
+
+    private static int togglePreview(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!AttackPreview.available(player)) {
+            source.sendFailure(Component.literal("Attack preview requires a matching Mobs_LD client"));
+            return 0;
+        }
+        boolean on = AttackPreview.toggle(player);
+        source.sendSuccess(() -> Component.literal(on
+                ? "Attack preview on · cyan floor, gold ceiling, red hitboxes at impact"
+                : "Attack preview off"), false);
+        return 1;
     }
 
     /** Prints each mob's threat table, highest first, with its current target. */

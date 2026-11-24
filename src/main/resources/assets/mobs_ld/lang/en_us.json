@@ -12,6 +12,8 @@
   "item.mobs_ld.gorefist_spawn_egg": "Gorefist Spawn Egg",
   "entity.mobs_ld.rot_wart": "Rot Wart",
   "item.mobs_ld.rot_wart_spawn_egg": "Rot Wart Spawn Egg",
+  "entity.mobs_ld.sand_golem_colossus": "Sand Golem Colossus",
+  "item.mobs_ld.sand_golem_colossus_spawn_egg": "Sand Golem Colossus Spawn Egg",
   "mobs_ld.cue.wither.grave_call": "The Wither calls up its dead",
   "mobs_ld.cue.warden.scent": "The Warden has caught a scent",
   "mobs_ld.cue.warden.be_still": "Be still...",

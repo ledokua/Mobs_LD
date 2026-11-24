@@ -8,6 +8,8 @@
   "item.minecraft.potion.effect.provoke": "Зілля провокації",
   "item.minecraft.splash_potion.effect.provoke": "Вибухове зілля провокації",
   "item.minecraft.lingering_potion.effect.provoke": "Туманне зілля провокації",
+  "entity.mobs_ld.sand_golem_colossus": "Піщаний голем-колос",
+  "item.mobs_ld.sand_golem_colossus_spawn_egg": "Яйце виклику піщаного голема-колоса",
   "mobs_ld.cue.wither.grave_call": "Візер кличе своїх мерців",
   "mobs_ld.cue.warden.scent": "Боронитель учув запах",
   "mobs_ld.cue.warden.be_still": "Не рухайся...",

@@ -1,6 +1,7 @@
 package net.ledok.mobs_ld;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.ledok.mobs_ld.command.MobsLdCommands;
 import net.ledok.mobs_ld.entity.threat.ThreatEvents;
 import net.ledok.mobs_ld.mob.MobDeclarations;
@@ -8,9 +9,11 @@ import net.ledok.mobs_ld.mob.behaviour.HitTracks;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviours;
 import net.ledok.mobs_ld.mob.damage.AttackProfiles;
 import net.ledok.mobs_ld.config.DamageConfig;
+import net.ledok.mobs_ld.mob.combat.AttackPreview;
 import net.ledok.mobs_ld.mob.combat.CombatEvents;
 import net.ledok.mobs_ld.mob.host.warden.WardenAdapter;
 import net.ledok.mobs_ld.mob.host.wither.WitherAdapter;
+import net.ledok.mobs_ld.network.SandstoneSpikesPayload;
 import net.ledok.mobs_ld.registry.ModAttributes;
 import net.ledok.mobs_ld.registry.ModCreativeTabs;
 import net.ledok.mobs_ld.registry.ModEffects;
@@ -22,6 +25,8 @@ public class MobsLdMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        PayloadTypeRegistry.playS2C().register(SandstoneSpikesPayload.TYPE, SandstoneSpikesPayload.CODEC);
+        AttackPreview.register();
         ModAttributes.register();
         ModEntities.register();
         MobDeclarations.register();

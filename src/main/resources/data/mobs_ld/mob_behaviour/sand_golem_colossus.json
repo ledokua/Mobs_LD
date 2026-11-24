@@ -1,0 +1,135 @@
+{
+  "reference_attributes": {
+    "minecraft:generic.attack_damage": 8.0,
+    "minecraft:generic.armor": 6.0
+  },
+  "movement": {
+    "style": "standoff",
+    "distance": 3.0
+  },
+  "global_cooldown": 0.8,
+  "abilities": {
+    "ground_slam": {
+      "duration": 2.7,
+      "cooldown": 7.0,
+      "weight": 2,
+      "no_repeat": true,
+      "range": {
+        "max": 15.0,
+        "above": 3.5,
+        "below": 1.0
+      },
+      "events": [
+        {
+          "type": "hit",
+          "at": 1.2,
+          "height": 3.5,
+          "depth": 1.0,
+          "telegraph": {
+            "from": 0.4,
+            "style": "sweep"
+          },
+          "shape": {
+            "type": "rectangle",
+            "width": 3.0,
+            "length": 15.0
+          },
+          "hit": {
+            "amount": 8.0,
+            "knockback": 0.5
+          }
+        },
+        {
+          "type": "sandstone_spikes",
+          "at": 1.2
+        }
+      ]
+    },
+    "horizontal_slam": {
+      "duration": 1.75,
+      "cooldown": 5.0,
+      "weight": 3,
+      "no_repeat": true,
+      "range": {
+        "max": 6.0,
+        "above": 1.75,
+        "below": 0.75
+      },
+      "events": [
+        {
+          "type": "hit",
+          "at": 0.95,
+          "height": 1.75,
+          "depth": 0.75,
+          "telegraph": {
+            "from": 0.25
+          },
+          "shape": {
+            "type": "cone",
+            "radius": 6.0,
+            "angle": 120.0
+          },
+          "hit": {
+            "amount": 6.0,
+            "knockback": 0.4
+          }
+        }
+      ]
+    },
+    "summon_husks": {
+      "duration": 2.35,
+      "cooldown": 18.0,
+      "initial_cooldown": 8.0,
+      "after_abilities": ["ground_slam", "horizontal_slam"],
+      "skip_when_full": true,
+      "range": {
+        "max": 15.0
+      },
+      "events": [
+        {
+          "type": "summon",
+          "at": 1.1,
+          "entity": "minecraft:husk",
+          "count": {
+            "min": 2,
+            "per_player": 1,
+            "cap": 10
+          },
+          "max_alive": {
+            "base": 2,
+            "per_player": 1,
+            "cap": 10
+          },
+          "placement": {
+            "around": "self",
+            "radius": [2.8, 4.5],
+            "min_gap": 2.0,
+            "clearance": 2,
+            "ground": true
+          },
+          "telegraph": {
+            "from": 0.4,
+            "color": "#32847A"
+          },
+          "scale": {
+            "max_health": { "of_summoner": 0.1 },
+            "attack_damage": 1.0,
+            "armor": "summoner_bonus",
+            "damage_dealt": "copy"
+          },
+          "loot": false,
+          "xp": false,
+          "bound": true
+        }
+      ]
+    }
+  },
+  "boss": {
+    "bar": {
+      "color": "yellow"
+    },
+    "leash": 32.0,
+    "reset_after": 15.0,
+    "engage_on": "players"
+  }
+}

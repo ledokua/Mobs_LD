@@ -51,6 +51,12 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    onOutput { _, event ->
+        def warningStart = event.message.indexOf("Mobs_LD asset warning:")
+        if (warningStart >= 0) {
+            logger.warn(event.message.substring(warningStart).trim())
+        }
+    }
     // Fabric's test launcher treats the working directory as the game directory (mods/, logs/): keep it in build/.
     def gameDir = layout.buildDirectory.dir("test-run").get().asFile
     workingDir = gameDir
