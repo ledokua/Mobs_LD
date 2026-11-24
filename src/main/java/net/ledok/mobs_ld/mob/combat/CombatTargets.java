@@ -4,6 +4,8 @@ import net.ledok.mobs_ld.entity.threat.StealthCompat;
 import net.ledok.mobs_ld.entity.threat.ThreatHolder;
 import net.ledok.mobs_ld.entity.threat.ThreatTable;
 import net.ledok.mobs_ld.mob.behaviour.MobBehaviour;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.OwnableEntity;
@@ -80,6 +82,9 @@ public final class CombatTargets {
                 LivingEntity held = combat == null ? null : combat.slots().target(rule.slot().orElse(""));
                 return held != null && isEnemy(mob, held) ? held : null;
             }
+            case SUMMONER -> {
+                return summoner(mob);
+            }
             default -> {
             }
         }
@@ -93,8 +98,22 @@ public final class CombatTargets {
             case RANDOM -> options.get(mob.getRandom().nextInt(options.size()));
             case LOWEST_THREAT -> lowestThreat(mob, options);
             case TOP_DAMAGE -> topDamage(mob, options);
-            case CURRENT, SLOT -> throw new AssertionError();
+            case CURRENT, SLOT, SUMMONER -> throw new AssertionError();
         };
+    }
+
+    /** Resolves a bound add's owner only while it is loaded, alive, and still owns the add. */
+    public static Mob summoner(Mob add) {
+        SummonBond bond = SummonBond.of(add);
+        if (bond == null || !(add.level() instanceof ServerLevel level)) {
+            return null;
+        }
+        Entity owner = level.getEntity(bond.summoner());
+        if (!(owner instanceof Mob mob) || !owner.isAlive()) {
+            return null;
+        }
+        MobCombat combat = CombatHost.of(owner);
+        return combat != null && combat.ownsSummon(add) ? mob : null;
     }
 
     /**

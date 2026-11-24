@@ -1,0 +1,24 @@
+{
+  "width": 0.9,
+  "height": 0.9,
+  "eye_height": 0.6,
+  "tracking_range": 16,
+  "fire_immune": true,
+  "pushable": false,
+  "death_ticks": 28,
+  "attributes": {
+    "minecraft:generic.max_health": 22.0,
+    "minecraft:generic.attack_damage": 0.0,
+    "minecraft:generic.knockback_resistance": 1.0,
+    "minecraft:generic.movement_speed": 0.26,
+    "minecraft:generic.follow_range": 32.0
+  },
+  "spawn_egg": {
+    "primary": 4073264,
+    "secondary": 16748589
+  },
+  "render": {
+    "walk_blocks_per_cycle": 0.4,
+    "shadow_radius": 0.48
+  }
+}

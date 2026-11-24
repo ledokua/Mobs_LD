@@ -56,6 +56,8 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
             SynchedEntityData.defineId(LdMob.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> DATA_ACTION_SPEED =
             SynchedEntityData.defineId(LdMob.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Integer> DATA_WARD_TARGET =
+            SynchedEntityData.defineId(LdMob.class, EntityDataSerializers.INT);
     /** Texture variant suffix ("phase2" -> {@code <mob>_phase2.png}); empty = base texture. */
     private static final EntityDataAccessor<String> DATA_TEXTURE =
             SynchedEntityData.defineId(LdMob.class, EntityDataSerializers.STRING);
@@ -171,6 +173,7 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
         builder.define(DATA_ACTION, "");
         builder.define(DATA_ACTION_SEQ, 0);
         builder.define(DATA_ACTION_SPEED, 1.0F);
+        builder.define(DATA_WARD_TARGET, -1);
         builder.define(DATA_TEXTURE, "");
     }
 
@@ -195,6 +198,15 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
 
     public String currentAction() {
         return entityData.get(DATA_ACTION);
+    }
+
+    /** The protected entity's ID, synced only when the ward connects or breaks. */
+    public int wardTargetId() {
+        return entityData.get(DATA_WARD_TARGET);
+    }
+
+    public void setWardTargetId(int id) {
+        entityData.set(DATA_WARD_TARGET, id);
     }
 
     public void setTextureVariant(String variant) {

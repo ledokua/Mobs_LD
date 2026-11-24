@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Emberroot summons Kiln Sprouts that ward him from a distance and Cinder Runts that slash, pounce, and roll.
+  Runt rolls recover when they reach the end of the marked lane or hit a wall.
+
 - **New custom raid boss: Emberroot** (`mobs_ld:emberroot`):
   - Data-driven `LdMob` charred-wood furnace raid boss built for 3–6 player encounters (`mobs_ld/entities/emberroot.json`:
     `640 HP`, `10` armor, `4` toughness) with GeckoLib 4 model (8 marker bones including live `fx_core`), all 14 original

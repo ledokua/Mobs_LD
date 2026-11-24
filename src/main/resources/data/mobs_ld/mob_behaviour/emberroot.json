@@ -120,6 +120,40 @@
     ]
   },
   "abilities": {
+    "call_kiln_sprouts": {
+      "clip": "root_snare",
+      "duration": 3.0,
+      "cooldown": [24.0, 30.0],
+      "weight": 2,
+      "range": { "max": 24.0 },
+      "skip_when_full": true,
+      "events": [
+        {
+          "type": "fx",
+          "at": 0.35,
+          "sound": { "id": "minecraft:block.blastfurnace.fire_crackle", "pitch": 0.72, "volume": 2.0 },
+          "message": { "key": "mobs_ld.cue.emberroot.call_kiln_sprouts", "where": "actionbar" }
+        },
+        {
+          "type": "summon",
+          "at": 1.55,
+          "entity": "mobs_ld:kiln_sprout",
+          "alternatives": ["mobs_ld:cinder_runt"],
+          "count": 2,
+          "max_alive": 6,
+          "placement": { "around": "self", "radius": [9.0, 13.0], "min_gap": 4.0 },
+          "telegraph": { "from": 0.35, "radius": 0.75, "color": "#EA9038" },
+          "scale": {
+            "max_health": { "of_summoner": 0.035 },
+            "attack_damage": 1.0,
+            "damage_dealt": "copy"
+          },
+          "loot": false,
+          "xp": false,
+          "bound": true
+        }
+      ]
+    },
     "swipe": {
       "duration": 2.1,
       "cooldown": [4.0, 5.2],
@@ -1795,6 +1829,7 @@
     {
       "below_health": 0.6,
       "abilities": [
+        "call_kiln_sprouts",
         "swipe",
         "hammer_slam",
         "shoulder_barge",
@@ -1868,6 +1903,7 @@
         ]
       },
       "ready_in": {
+        "call_kiln_sprouts": 4.0,
         "furnace_crossfire": 3.5,
         "furnace_blast": 3.5,
         "rib_furnace": 9.5
@@ -1884,6 +1920,7 @@
     {
       "below_health": 0.25,
       "abilities": [
+        "call_kiln_sprouts",
         "swipe",
         "hammer_slam",
         "shoulder_barge",
@@ -1921,6 +1958,7 @@
     "leash": 44,
     "reset_after": 15,
     "engage_on": "players",
+    "ward_damage": { "min_wards": 3, "multiplier": 1.5 },
     "soft_enrage": {
       "after": 480,
       "damage_multiplier": 2.0,

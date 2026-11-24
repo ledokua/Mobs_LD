@@ -36,7 +36,7 @@ art follows [models.md](models.md). Working examples: `gorefist.json` and `rot_w
 | `style` | `standoff` | `standoff` (walk to `distance`, hold), `kite` (stay about `distance` away), `stationary`, `vanilla` (the host's own AI moves and attacks between abilities; see below) |
 | `distance` | 2.0 | preferred distance to the followed target |
 | `speed` | 1.0 | navigation speed multiplier |
-| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `top_damage`, `slot:<name>` (as an ability's `target`) |
+| `follow` | `current` | whom to move toward: `current` (threat target), `nearest`, `farthest`, `random`, `lowest_threat`, `top_damage`, `slot:<name>`, or `summoner` (as an ability's `target`) |
 | `reach_height` | 85 % of its height | how far above its feet it can strike |
 | `reach_depth` | 1.5 | how far below its feet it can strike (into a pit, off a ledge) |
 | `reach_rule` | `path` | what makes a target reachable: `path` (reach band or a full path) or `line_of_sight` (it can see the target) |
@@ -186,6 +186,24 @@ From `at` to `until` the mob takes `multiplier` times the damage (an opening aft
 phase's `damage_taken` and with other windows open at the same time, and closes early if the ability is cut off
 (phase change, stagger, reset). The ability lasts at least until `until`. `until` before `at` is an error.
 
+### `summoner_ward` - a bound add protects its summoner
+
+```json
+{ "type": "summoner_ward", "at": 0.6, "until": 5.8, "range": 8.0, "multiplier": 0.75 }
+```
+
+Set the add's ability `target` to `summoner` and summon it with `bound: true`. From `at` to `until`,
+the summoner takes `multiplier` times the incoming damage while the add is alive, within `range`, and has line of
+sight. The strongest active ward applies when several adds channel at once. An LdMob draws an ember tether while
+its ward is active, from its `fx_coal` marker to the summoner's `fx_core` marker when those markers are available.
+Omit `until` to sustain the ward and hold the ability open until the add loses its connection. Set
+`on_disconnect` to an ability name to play a follow-up when the connection breaks. A boss can set
+`"ward_damage": { "min_wards": 3, "multiplier": 1.5 }` to deal 50% extra damage while at least three of its own adds
+are actively warding it.
+
+`movement.follow: summoner` makes the add approach its bound summoner and engage when that summoner acquires a
+target. It still uses its own threat target for rules such as `current`.
+
 ### `listen` - punish whoever moves
 ```json
 { "type": "listen", "from": 1.0, "until": 3.0, "range": 40, "move_tolerance": 0.6,
@@ -253,6 +271,7 @@ blade moves fast through body height, 0-1.8 blocks).
 | `height` | none | blocks above the aim's feet (where it stood when the dash locked) that the body's feet are driven to every tick: a flyer rushing low. Without it the body keeps its own vertical speed (gravity, a jump), and a host that holds its altitude (the Wither) stays level |
 | `push` | `away` | which way `hit`'s knockback shoves: `away` from the body, or `side`: out of the lane on the side the victim stands (dead centre: to the lane's right) |
 | `on_wall` | `stagger` | `stagger` (the behaviour's `stagger` window) or `stop` |
+| `on_stop` | none | follow-up ability when the dash reaches the end of its lane, stops at a wall, or reaches its time limit. The follow-up starts facing down the lane. A stagger takes precedence |
 | `stagger_min_distance` | 4 | a wall only staggers after this much travel; hit sooner, the dash just stops |
 | `telegraph` | shown | the strip (below); `{ "show": false }` for an untelegraphed rush |
 | `hit` | none | applied once to everyone the body meets |
@@ -285,6 +304,17 @@ blade moves fast through body height, 0-1.8 blocks).
   after `stagger_min_distance` blocks of travel with `on_wall: stagger` it puffs smoke and the mob staggers (the
   behaviour's `stagger` block; without one it just stops).
 
+### `leap` - jump into a marked landing
+
+```json
+{ "type": "leap", "at": 0.5, "until": 1.1, "height": 1.9, "max_distance": 8.0, "radius": 1.7,
+  "telegraph": { "from": 0.32 }, "hit": { "amount": 8.0 } }
+```
+
+The landing circle locks under the aim when the telegraph appears. The body takes off at `at` and follows an arc
+of `height` blocks above the straight path. The landing is capped at `max_distance` blocks horizontally and
+deals damage at `until` if the mob reaches the ground close to the marked centre. Walls stop the leap.
+
 ### `chase` - homing run that hands over to another ability
 `at`, `clip` (loop played while running), `max_time`, `speed` (blocks per tick; a sprinting player is ~0.28),
 `turn_rate` (6, degrees per tick - lower is easier to side-step), `reach` (3.0), `on_reach` / `on_timeout` (ability
@@ -313,6 +343,9 @@ just plays on to its end. The follow-up's cooldown starts as usual. The Wither's
 Grave Call this way, so its skeletons rise after a full sequence, and never after one that ended in a wall stagger.
 
 ### `summon` - adds
+
+An optional `alternatives` list adds entity IDs to the pool alongside `entity`. Each spot in the wave rolls
+independently from the pool, so a two-add wave can contain matching or different types.
 ```json
 { "type": "summon", "at": 1.6, "entity": "minecraft:wither_skeleton",
   "count": { "min": 2, "max": 4, "per_extra_player": 2, "cap": 12 },

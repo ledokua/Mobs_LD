@@ -86,7 +86,11 @@ public class CombatGoal extends Goal {
         double distance = CombatTargets.distance(mob, follow);
         switch (movement.style()) {
             case STANDOFF -> {
-                if (distance > movement.distance() + 0.3) {
+                double height = follow.getY() - mob.getY();
+                boolean summonerOutOfReach = movement.follow().kind() == MobBehaviour.TargetRule.Kind.SUMMONER
+                        && (height > combat.reachUp() || height < -combat.reachDown()
+                        || !mob.getSensing().hasLineOfSight(follow));
+                if (distance > movement.distance() + 0.3 || summonerOutOfReach) {
                     approach(follow, movement.speed());
                 } else {
                     hold(follow);

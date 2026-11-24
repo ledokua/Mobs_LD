@@ -62,7 +62,7 @@ import java.util.function.IntUnaryOperator;
  *
  * @param maxAlive no more spawn while this many of the summoner's adds are still alive
  */
-public record SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+public record SummonEvent(double at, EntityPool pool, Count count, double forward, double up, double right,
                           double spread, MaxAlive maxAlive, Optional<Runes> telegraph, Optional<Placement> placement,
                           Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target,
                           Optional<MinionLink> minionLink)
@@ -77,7 +77,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     public static final MapCodec<SummonEvent> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.DOUBLE.fieldOf("at").forGetter(SummonEvent::at),
-            ResourceLocation.CODEC.fieldOf("entity").forGetter(SummonEvent::entity),
+            EntityPool.CODEC.forGetter(SummonEvent::pool),
             Count.CODEC.optionalFieldOf("count", Count.of(1)).forGetter(SummonEvent::count),
             Codec.DOUBLE.optionalFieldOf("forward", 0.0).forGetter(SummonEvent::forward),
             Codec.DOUBLE.optionalFieldOf("up", 0.0).forGetter(SummonEvent::up),
@@ -93,6 +93,18 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             AddTarget.CODEC.optionalFieldOf("target", AddTarget.AIM).forGetter(SummonEvent::target),
             MinionLink.CODEC.optionalFieldOf("minion_link").forGetter(SummonEvent::minionLink)
     ).apply(i, SummonEvent::new));
+
+    public SummonEvent(double at, ResourceLocation entity, Count count, double forward, double up, double right,
+                       double spread, MaxAlive maxAlive, Optional<Runes> telegraph, Optional<Placement> placement,
+                       Optional<Scale> scale, boolean loot, boolean xp, boolean bound, AddTarget target,
+                       Optional<MinionLink> minionLink) {
+        this(at, new EntityPool(entity, List.of()), count, forward, up, right, spread, maxAlive, telegraph, placement,
+                scale, loot, xp, bound, target, minionLink);
+    }
+
+    public ResourceLocation entity() {
+        return pool.primary();
+    }
 
     @Override
     public String type() {
@@ -128,9 +140,8 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
 
     @Override
     public Instance start(AbilityRun run) {
-        EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(entity).orElse(null);
-        if (type == null) {
-            LOGGER.warn("Mob behaviour summons unknown entity {}", entity);
+        List<EntityType<?>> types = pool.resolve();
+        if (types.isEmpty()) {
             return new Instance() {
             };
         }
@@ -141,12 +152,12 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             @Override
             public void finish(AbilityRun run) {
                 if (wave != null) {
-                    spawnWave(run, type, wave);
+                    spawnWave(run, types, wave);
                     run.flash(marker);
                 } else if (placement.isPresent()) {
-                    spawnWave(run, type, plan(run));
+                    spawnWave(run, types, plan(run));
                 } else {
-                    spawnScattered(run, type);
+                    spawnScattered(run, types);
                 }
             }
 
@@ -165,14 +176,14 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     }
 
     /** The default: one at a time around the anchor, while there is room (as summons always worked). */
-    private void spawnScattered(AbilityRun run, EntityType<?> type) {
+    private void spawnScattered(AbilityRun run, List<EntityType<?>> types) {
         Mob mob = run.mob();
         int fighters = needsFighters() ? Fighters.of(mob).size() : 0;
         int total = count.roll(fighters, bound -> mob.getRandom().nextInt(bound));
         int cap = maxAlive.at(fighters);
         Vec3 anchor = anchor(run);
         for (int n = 0; n < total && run.combat().aliveSummons() < cap; n++) {
-            Entity spawned = type.create(run.level());
+            Entity spawned = pickType(types, mob).create(run.level());
             if (spawned == null) {
                 return;
             }
@@ -211,7 +222,7 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
                 spots.add(new Spot(spot.get(), owner));
             }
         }
-        run.combat().trace(String.format("summon %d of %d %s (room %d, %d fighting)", spots.size(), rolled, entity,
+        run.combat().trace(String.format("summon %d of %d (room %d, %d fighting)", spots.size(), rolled,
                 room, fighters.size()));
         return new Wave(spots, cap);
     }
@@ -290,12 +301,12 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     }
 
     /** Raises a decided wave, each add on its spot facing its first target (while still under its max_alive). */
-    private void spawnWave(AbilityRun run, EntityType<?> type, Wave wave) {
+    private void spawnWave(AbilityRun run, List<EntityType<?>> types, Wave wave) {
         for (Spot spot : wave.spots()) {
             if (run.combat().aliveSummons() >= wave.cap()) {
                 return;
             }
-            Entity spawned = type.create(run.level());
+            Entity spawned = pickType(types, run.mob()).create(run.level());
             if (spawned == null) {
                 return;
             }
@@ -306,6 +317,11 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             spawned.moveTo(at.x, at.y, at.z, yaw, 0.0F);
             add(run, spawned, spot.owner());
         }
+    }
+
+    /** Roll each spot independently. Fixed-type summons leave the original random sequence intact. */
+    private static EntityType<?> pickType(List<EntityType<?>> types, Mob mob) {
+        return types.size() == 1 ? types.getFirst() : types.get(mob.getRandom().nextInt(types.size()));
     }
 
     /**
@@ -371,7 +387,8 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
             // Whatever scaled the add inside addFreshEntity (Dungeon Difficulty, Arenas_LD, both synchronous there) is
             // evened out here, once.
             SummonStats.apply(living, stats);
-            run.combat().trace("summon " + entity + " scaled to" + describe(" HP", stats.maxHealth())
+            run.combat().trace("summon " + BuiltInRegistries.ENTITY_TYPE.getKey(spawned.getType())
+                    + " scaled to" + describe(" HP", stats.maxHealth())
                     + describe(" attack", stats.attackDamage()) + describe(" armor", stats.armor())
                     + describe(" damage_dealt", stats.damageDealt()));
         }
@@ -390,6 +407,30 @@ public record SummonEvent(double at, ResourceLocation entity, Count count, doubl
     }
 
     // --- Data ---
+
+    public record EntityPool(ResourceLocation primary, List<ResourceLocation> alternatives) {
+        public static final MapCodec<EntityPool> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+                ResourceLocation.CODEC.fieldOf("entity").forGetter(EntityPool::primary),
+                ResourceLocation.CODEC.listOf().optionalFieldOf("alternatives", List.of()).forGetter(EntityPool::alternatives)
+        ).apply(i, EntityPool::new));
+
+        private List<EntityType<?>> resolve() {
+            List<EntityType<?>> types = new ArrayList<>();
+            resolve(primary).ifPresent(types::add);
+            for (ResourceLocation alternative : alternatives) {
+                resolve(alternative).filter(type -> !types.contains(type)).ifPresent(types::add);
+            }
+            return types;
+        }
+
+        private static Optional<EntityType<?>> resolve(ResourceLocation id) {
+            Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(id);
+            if (type.isEmpty()) {
+                LOGGER.warn("Mob behaviour summons unknown entity {}", id);
+            }
+            return type;
+        }
+    }
 
     /**
      * How many adds one summon raises: a fixed number, or a random count in [min, max] with optional player bonuses.

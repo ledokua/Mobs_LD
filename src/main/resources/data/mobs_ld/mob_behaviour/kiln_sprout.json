@@ -1,0 +1,34 @@
+{
+  "movement": {
+    "style": "standoff",
+    "follow": "summoner",
+    "distance": 13.5,
+    "speed": 1.0,
+    "reach_height": 4.0,
+    "reach_depth": 4.0
+  },
+  "global_cooldown": 0.0,
+  "intro": {
+    "clip": "spawn",
+    "duration": 0.95
+  },
+  "abilities": {
+    "channel": {
+      "clip": "channel_start",
+      "duration": 0.8,
+      "target": "summoner",
+      "range": { "max": 15.0 },
+      "track_until": 0.5,
+      "events": [
+        { "type": "summoner_ward", "at": 0.6, "range": 15.0, "multiplier": 0.5, "on_disconnect": "channel_release" },
+        { "type": "clip", "at": 0.8, "clip": "channel_loop" }
+      ]
+    },
+    "channel_release": {
+      "clip": "channel_end",
+      "duration": 0.6,
+      "target": "summoner",
+      "weight": 0
+    }
+  }
+}

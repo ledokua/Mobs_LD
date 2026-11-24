@@ -10,9 +10,12 @@ import net.ledok.mobs_ld.mob.behaviour.event.ClipEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.HoverEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.LeapEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
 import net.ledok.mobs_ld.mob.combat.SlotPicker;
@@ -68,6 +71,58 @@ class ShippedBehavioursTest {
         load("/data/mobs_ld/mob_behaviour/midra.json");
         load("/data/mobs_ld/mob_behaviour/amber_brute.json");
         load("/data/mobs_ld/mob_behaviour/emberroot.json");
+        load("/data/mobs_ld/mob_behaviour/kiln_sprout.json");
+        load("/data/mobs_ld/mob_behaviour/cinder_runt.json");
+    }
+
+    @Test
+    void kilnSproutsWardTheirSummonerDuringTheChannel() throws Exception {
+        MobBehaviour emberroot = load("/data/mobs_ld/mob_behaviour/emberroot.json");
+        String call = "call_kiln_sprouts";
+        assertFalse(emberroot.phases().get(0).allows(call));
+        assertTrue(emberroot.phases().get(1).allows(call));
+        assertTrue(emberroot.phases().get(2).allows(call));
+        MobBehaviour.Ability summon = emberroot.abilities().get(call);
+        SummonEvent wave = summons(summon).getFirst();
+        assertEquals(ResourceLocation.fromNamespaceAndPath("mobs_ld", "kiln_sprout"), wave.entity());
+        assertEquals(List.of(ResourceLocation.fromNamespaceAndPath("mobs_ld", "cinder_runt")), wave.pool().alternatives());
+        assertTrue(wave.bound() && summon.skipWhenFull());
+        assertFalse(wave.loot() || wave.xp());
+        assertEquals(SummonEvent.Count.of(2), wave.count());
+        assertEquals(SummonEvent.MaxAlive.of(6), wave.maxAlive());
+        assertEquals(new MobBehaviour.WardDamage(3, 1.5), emberroot.boss().orElseThrow().wardDamage().orElseThrow());
+
+        MobBehaviour sprout = load("/data/mobs_ld/mob_behaviour/kiln_sprout.json");
+        assertEquals(MobBehaviour.TargetRule.Kind.SUMMONER, sprout.movement().follow().kind());
+        MobBehaviour.Ability channel = sprout.abilities().get("channel");
+        assertEquals(sprout.movement().follow(), channel.target());
+        SummonerWardEvent ward = channel.events().stream().filter(SummonerWardEvent.class::isInstance)
+                .map(SummonerWardEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(15.0, channel.range().max());
+        assertEquals(new SummonerWardEvent(0.6, java.util.Optional.empty(), 15.0, 0.5,
+                java.util.Optional.of("channel_release")), ward);
+        assertTrue(channel.events().contains(new ClipEvent(0.8, "channel_loop")));
+        assertEquals(0.6, sprout.abilities().get(ward.onDisconnect().orElseThrow()).duration());
+    }
+
+    @Test
+    void cinderRuntUsesThreeDistinctDamageAttacks() throws Exception {
+        MobBehaviour runt = load("/data/mobs_ld/mob_behaviour/cinder_runt.json");
+        assertEquals(1.0, HitSpec.damageScale(7.0, runt));
+        MobBehaviour.Ability charge = runt.abilities().get("roll");
+        var roll = charge.events().stream()
+                .filter(DashEvent.class::isInstance).map(DashEvent.class::cast).findFirst().orElseThrow();
+        assertTrue(roll.hit().isPresent());
+        assertEquals("roll_start", charge.clipOr("roll"));
+        assertTrue(charge.events().contains(new ClipEvent(roll.at(), "roll_loop")));
+        assertTrue(roll.until().isEmpty());
+        String recovery = roll.onStop().orElseThrow();
+        assertEquals("roll_end", runt.abilities().get(recovery).clipOr(recovery));
+        var pounce = runt.abilities().get("pounce").events().stream()
+                .filter(LeapEvent.class::isInstance).map(LeapEvent.class::cast).findFirst().orElseThrow();
+        assertEquals(0.5, pounce.at());
+        assertEquals(1.1, pounce.end());
+        assertEquals(new Shape.Cone(2.7, 110), hits(runt.abilities().get("slash")).getFirst().shape());
     }
 
     @Test

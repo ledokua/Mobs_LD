@@ -590,7 +590,8 @@ public record MobBehaviour(
      * Who an ability aims at (or movement follows): {@code current} (the threat target, normally the tank),
      * {@code nearest}, {@code farthest}, {@code random} player, {@code lowest_threat} (the player with the least threat;
      * ties prefer someone other than the tank), {@code top_damage} (whoever dealt it the most damage in the last 10 s;
-     * else the threat top) or {@code slot:<name>} (whoever that target slot holds now).
+     * else the threat top), {@code slot:<name>} (whoever that target slot holds now), or {@code summoner} (the
+     * living owner of a bound add).
      *
      * @param slot the slot's name, for {@link Kind#SLOT}
      */
@@ -621,7 +622,7 @@ public record MobBehaviour(
                 }
             }
             return DataResult.error(() -> "Unknown target '" + text
-                    + "' (expected current, nearest, farthest, random, lowest_threat, top_damage or slot:<name>)");
+                    + "' (expected current, nearest, farthest, random, lowest_threat, top_damage, slot:<name> or summoner)");
         }
 
         public String serialized() {
@@ -635,7 +636,8 @@ public record MobBehaviour(
             RANDOM("random"),
             LOWEST_THREAT("lowest_threat"),
             TOP_DAMAGE("top_damage"),
-            SLOT("slot");
+            SLOT("slot"),
+            SUMMONER("summoner");
 
             private final String name;
 
@@ -822,21 +824,31 @@ public record MobBehaviour(
      * @param resetAfter  seconds without any target before an engaged boss resets (a wipe)
      * @param softEnrage  after this long in combat its damage is multiplied
      * @param engageOn    who may be its target and so start the fight
+     * @param wardDamage  outgoing damage bonus while enough linked adds are actively warding it
      */
     public record Boss(
             Optional<BossBar> bar,
             double leash,
             double resetAfter,
             Optional<SoftEnrage> softEnrage,
-            EngageOn engageOn
+            EngageOn engageOn,
+            Optional<WardDamage> wardDamage
     ) {
         public static final Codec<Boss> CODEC = RecordCodecBuilder.create(i -> i.group(
                 BossBar.CODEC.optionalFieldOf("bar").forGetter(Boss::bar),
                 Codec.DOUBLE.optionalFieldOf("leash", 0.0).forGetter(Boss::leash),
                 Codec.DOUBLE.optionalFieldOf("reset_after", 15.0).forGetter(Boss::resetAfter),
                 SoftEnrage.CODEC.optionalFieldOf("soft_enrage").forGetter(Boss::softEnrage),
-                EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn)
+                EngageOn.CODEC.optionalFieldOf("engage_on", EngageOn.ANY).forGetter(Boss::engageOn),
+                WardDamage.CODEC.optionalFieldOf("ward_damage").forGetter(Boss::wardDamage)
         ).apply(i, Boss::new));
+    }
+
+    public record WardDamage(int minWards, double multiplier) {
+        public static final Codec<WardDamage> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(1, 256).fieldOf("min_wards").forGetter(WardDamage::minWards),
+                Codec.doubleRange(1.0, 100.0).fieldOf("multiplier").forGetter(WardDamage::multiplier)
+        ).apply(i, WardDamage::new));
     }
 
     /** Who a boss fights. */

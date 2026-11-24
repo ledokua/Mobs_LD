@@ -44,10 +44,11 @@ import java.util.UUID;
  *                            at while it runs; empty = no vertical drive
  * @param push                which way {@code hit}'s knockback shoves: away from the body, or sideways out of the lane
  * @param staggerMinDistance  a wall only staggers after this much travel; closer, the dash just stops
+ * @param onStop              optional recovery ability when the dash reaches the end of its lane or stops early
  */
 public record DashEvent(double at, Optional<Double> until, Optional<Double> speed, double maxDistance, double overshoot,
                         Width width, Optional<Double> height, Push push, Optional<HitSpec> hit, WallRule onWall,
-                        double staggerMinDistance, Telegraph telegraph) implements AbilityEvent {
+                        double staggerMinDistance, Telegraph telegraph, Optional<String> onStop) implements AbilityEvent {
     private static final double DEFAULT_LEAD = 0.5;
     /** A {@code speed} dash's event ends this long after the longest lane would be covered (rounding to ticks). */
     private static final double END_MARGIN = 0.1;
@@ -72,7 +73,8 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
             HitSpec.CODEC.optionalFieldOf("hit").forGetter(DashEvent::hit),
             WallRule.CODEC.optionalFieldOf("on_wall", WallRule.STAGGER).forGetter(DashEvent::onWall),
             Codec.doubleRange(0.0, 256.0).optionalFieldOf("stagger_min_distance", 4.0).forGetter(DashEvent::staggerMinDistance),
-            Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(DashEvent::telegraph)
+            Telegraph.CODEC.optionalFieldOf("telegraph", Telegraph.DEFAULT).forGetter(DashEvent::telegraph),
+            Codec.STRING.optionalFieldOf("on_stop").forGetter(DashEvent::onStop)
     ).apply(i, DashEvent::new)).validate(DashEvent::validate);
 
     private static DataResult<DashEvent> validate(DashEvent event) {
@@ -162,6 +164,11 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
     }
 
     @Override
+    public List<String> chains() {
+        return onStop.stream().toList();
+    }
+
+    @Override
     public Instance start(AbilityRun run) {
         Mob mob = run.mob();
         Vec3 aim = run.aimPosition();
@@ -231,8 +238,14 @@ public record DashEvent(double at, Optional<Double> until, Optional<Double> spee
             }
 
             @Override
+            public boolean readyToFinish(AbilityRun run, double scheduledEnd) {
+                return (stopped && onStop.isPresent()) || Instance.super.readyToFinish(run, scheduledEnd);
+            }
+
+            @Override
             public void finish(AbilityRun run) {
                 halt();
+                onStop.ifPresent(run::chainFacing);
             }
 
             @Override
