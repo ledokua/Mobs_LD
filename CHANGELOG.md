@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- With Paladins installed, its Barrier stops Emberroot and Cinder Runt rolls and clips each furnace beam at impact.
+- Amethyst Splinters credits the mob that applied it, respects armour, and ticks every 1.5 seconds through refreshes.
+- Gorefist gains an amethyst cleaver trail, fissure warnings for overhead chops, and Amethyst Splinters on its
+  horizontal sweep. The enrage shell sheds crystals as it retracts.
+- The Sand Golem Colossus uses stair-following fissures and a sand crescent. Ground slams briefly apply Sandbound,
+  and loose sand falls from the joints during recovery.
 - **New custom boss: Nameless King** (`mobs_ld:nameless_king`):
   - Data-driven `LdMob` storm-and-lightning demigod (`mobs_ld/entities/nameless_king.json`: fixed `580 HP`, `14` attack,
     `12` armor, `4` toughness) with GeckoLib 4 model (117 cubes, 9 marker bones), all 16 smoothed `catmullrom`/hit-stop

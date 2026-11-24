@@ -2195,6 +2195,11 @@
 				}
 			},
 			"particle_effects": {
+				"0.83": {
+					"effect": "minecraft:end_rod",
+					"locator": "fx_blade_right",
+					"pre_effect_script": "count=3; spread=0.12; spread_y=0.1; speed=0.025;"
+				},
 				"1.1": {
 					"effect": "minecraft:explosion",
 					"locator": "hit_blade_right",
@@ -2659,13 +2664,24 @@
 				}
 			},
 			"particle_effects": {
-				"1.0": {
-					"effect": "minecraft:sweep_attack",
+				"0.67": {
+					"effect": "minecraft:end_rod",
+					"locator": "fx_blade_right",
+					"pre_effect_script": "count=3; spread=0.14; spread_y=0.07; speed=0.02;"
+				},
+				"0.8": {
+					"effect": "minecraft:end_rod",
 					"locator": "hit_blade_right",
-					"pre_effect_script": "count=3; spread=0.8;"
+					"pre_effect_script": "count=2; spread=0.09; spread_y=0.06; speed=0.02;"
+				},
+				"1.0": {
+					"effect": "minecraft:block",
+					"locator": "hit_blade_right",
+					"pre_effect_script": "block=minecraft:amethyst_block; count=4; spread=0.18; spread_y=0.08; speed=0.035;"
 				}
 			},
 			"timeline": {
+				"0.83": "blade_trail(fx_blade_right, hit_blade_right, 0.45, C995FF);",
 				"1.0": "shake 0.25 10;"
 			}
 		},
@@ -3239,6 +3255,7 @@
 				}
 			},
 			"timeline": {
+				"0.36": "blade_trail(fx_blade_right, hit_blade_right, 0.34, BB87EA);",
 				"1.7": "shake 0.4 12;"
 			}
 		},
@@ -4805,6 +4822,7 @@
 				}
 			},
 			"timeline": {
+				"0.07": "blade_trail(fx_blade_right, hit_blade_right, 0.42, CF9AFF);",
 				"0.3": "shake 0.3 10;"
 			}
 		},
@@ -6253,6 +6271,11 @@
 					"effect": "minecraft:crit",
 					"locator": "fx_chest",
 					"pre_effect_script": "count=24; spread=1.2; spread_y=1.0; speed=0.05;"
+				},
+				"0.95": {
+					"effect": "minecraft:end_rod",
+					"locator": "fx_blade_right",
+					"pre_effect_script": "count=6; spread=0.25; spread_y=0.20; speed=0.05;"
 				},
 				"1.2": {
 					"effect": "minecraft:crit",
@@ -7738,6 +7761,23 @@
 						}
 					}
 				}
+			},
+			"particle_effects": {
+				"0.2": {
+					"effect": "minecraft:block",
+					"locator": "fx_chest",
+					"pre_effect_script": "block=minecraft:amethyst_block; count=8; spread=0.24; spread_y=0.20; speed=0.09;"
+				},
+				"0.43": {
+					"effect": "minecraft:block",
+					"locator": "fx_blade_right",
+					"pre_effect_script": "block=minecraft:amethyst_block; count=8; spread=0.24; spread_y=0.20; speed=0.09;"
+				},
+				"0.61": {
+					"effect": "minecraft:block",
+					"locator": "hit_blade_right",
+					"pre_effect_script": "block=minecraft:amethyst_block; count=4; spread=0.12; spread_y=0.10; speed=0.06;"
+				}
 			}
 		},
 		"animation.mobs_ld.gorefist.enrage_exhaust": {
@@ -8011,6 +8051,13 @@
 							"vector": [0.01, 0.01, 0.01]
 						}
 					}
+				}
+			},
+			"particle_effects": {
+				"0.43": {
+					"effect": "minecraft:poof",
+					"locator": "fx_mouth",
+					"pre_effect_script": "count=3; spread=0.16; spread_y=0.12; speed=0.023;"
 				}
 			}
 		},

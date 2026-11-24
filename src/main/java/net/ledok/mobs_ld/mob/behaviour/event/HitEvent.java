@@ -7,9 +7,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.ledok.mobs_ld.mob.behaviour.Shape;
 import net.ledok.mobs_ld.mob.combat.AbilityRun;
 import net.ledok.mobs_ld.mob.combat.AttackPreview;
+import net.ledok.mobs_ld.mob.combat.BeamLane;
 import net.ledok.mobs_ld.mob.combat.Fighters;
 import net.ledok.mobs_ld.mob.combat.MoveLead;
+import net.ledok.mobs_ld.mob.combat.PaladinBarriers;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -45,7 +48,8 @@ import java.util.UUID;
  */
 public record HitEvent(double at, Shape shape, Origin origin, double offset, double side, Optional<Double> aimSide,
                        Optional<Double> height, Optional<Double> depth, Telegraph telegraph, HitSpec hit,
-                       Optional<Double> rotate, boolean turnBody, Optional<Double> lead, boolean once)
+                       Optional<Double> rotate, boolean turnBody, Optional<Double> lead, boolean once,
+                       boolean blockedByBarrier)
         implements AbilityEvent {
     /** Default warning lead when the data does not say. */
     private static final double DEFAULT_LEAD = 0.8;
@@ -66,11 +70,20 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
             Codec.doubleRange(-360.0, 360.0).optionalFieldOf("rotate").forGetter(HitEvent::rotate),
             Codec.BOOL.optionalFieldOf("turn_body", false).forGetter(HitEvent::turnBody),
             Codec.doubleRange(0.0, 10.0).optionalFieldOf("lead").forGetter(HitEvent::lead),
-            Codec.BOOL.optionalFieldOf("once", false).forGetter(HitEvent::once)
-    ).apply(i, HitEvent::new)).validate(event -> event.lead().isPresent() && event.origin() != Origin.EACH_FIGHTER
-            ? DataResult.error(() -> "A hit's 'lead' only works with origin each_fighter (got " + event.origin()
-            .getSerializedName() + ")")
-            : DataResult.success(event));
+            Codec.BOOL.optionalFieldOf("once", false).forGetter(HitEvent::once),
+            Codec.BOOL.optionalFieldOf("blocked_by_barrier", false).forGetter(HitEvent::blockedByBarrier)
+    ).apply(i, HitEvent::new)).validate(HitEvent::validate);
+
+    private static DataResult<HitEvent> validate(HitEvent event) {
+        if (event.lead().isPresent() && event.origin() != Origin.EACH_FIGHTER) {
+            return DataResult.error(() -> "A hit's 'lead' only works with origin each_fighter (got " + event.origin()
+                    .getSerializedName() + ")");
+        }
+        if (event.blockedByBarrier() && !(event.shape() instanceof Shape.Rectangle || event.shape() instanceof Shape.Rays)) {
+            return DataResult.error(() -> "A hit's 'blocked_by_barrier' requires a rectangle or rays shape");
+        }
+        return DataResult.success(event);
+    }
 
     @Override
     public String type() {
@@ -116,6 +129,7 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
         }
         double up = height.orElse(run.combat().reachUp());
         double down = depth.orElse(run.combat().reachDown());
+        boolean checkBarriers = blockedByBarrier && PaladinBarriers.available();
         AttackPreview.Locked preview = AttackPreview.lock(run, zones, up, down, at);
         AbilityRun.Marker marker = null;
         if (telegraph.show() && locked && !zones.isEmpty()) {
@@ -141,10 +155,21 @@ public record HitEvent(double at, Shape shape, Origin origin, double offset, dou
             public void finish(AbilityRun run) {
                 // Each victim once per event, even where zones overlap (two fighters standing together).
                 Map<UUID, Victim> victims = new LinkedHashMap<>();
+                Map<Entity, Vec3> impacts = checkBarriers ? new LinkedHashMap<>() : Map.of();
                 for (AbilityRun.HitZone zone : zones) {
-                    for (LivingEntity victim : run.enemiesIn(shape, zone.origin(), yaw, up, down)) {
-                        victims.putIfAbsent(victim.getUUID(), new Victim(victim, zone.origin()));
+                    List<BeamLane> lanes = checkBarriers ? BeamLane.clip(run, zone, up, down, impacts) : List.of();
+                    if (!lanes.isEmpty()) {
+                        run.noteInterceptedBeam(zone, lanes);
                     }
+                    for (LivingEntity victim : run.enemiesIn(shape, zone.origin(), yaw, up, down)) {
+                        if (lanes.isEmpty() || lanes.stream().anyMatch(lane -> lane.contains(victim.position()))) {
+                            victims.putIfAbsent(victim.getUUID(), new Victim(victim, zone.origin()));
+                        }
+                    }
+                }
+                if (!impacts.isEmpty()) {
+                    impacts.values().forEach(point -> PaladinBarriers.playImpact(run, point));
+                    run.combat().trace(run.name() + ": beam intercepted by a barrier");
                 }
                 List<AttackPreview.Struck> struck = preview != null ? new ArrayList<>() : List.of();
                 for (Victim victim : victims.values()) {

@@ -67,7 +67,9 @@ public enum SpellVfxKind implements StringRepresentable {
     /** Elevated storm-cloud halo + crackling cyan-gold plunging lightning streak and impact forks for sky dives. */
     THUNDER_SPEAR_DIVE("thunder_spear_dive"),
     /** Contracting storm-mist updraft sphere erupting into radial golden floor lightning arcs and a cyan wind ring. */
-    STORM_NOVA("storm_nova");
+    STORM_NOVA("storm_nova"),
+    /** A muted dust crescent following the radius and angle of a broad melee sweep. */
+    SAND_SWEEP("sand_sweep");
 
     public static final Codec<SpellVfxKind> CODEC = StringRepresentable.fromEnum(SpellVfxKind::values);
     private static final SpellVfxKind[] VALUES = values();

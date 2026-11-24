@@ -1753,6 +1753,7 @@
           "width": 3.6,
           "push": "side",
           "on_wall": "stop",
+          "on_barrier": "roll_barrier_recover",
           "telegraph": {
             "show": false,
             "from": 0.2
@@ -1897,6 +1898,7 @@
           "width": 3.6,
           "push": "side",
           "on_wall": "stop",
+          "on_barrier": "roll_barrier_recover",
           "telegraph": {
             "show": false,
             "from": 0.2
@@ -2023,6 +2025,7 @@
           "width": 3.6,
           "push": "side",
           "on_wall": "stop",
+          "on_barrier": "roll_barrier_recover",
           "telegraph": {
             "show": false,
             "from": 0.2
@@ -2115,6 +2118,12 @@
         }
       ]
     },
+    "roll_barrier_recover": {
+      "clip": "hurt",
+      "duration": 0.9,
+      "track_until": 0.0,
+      "weight": 0
+    },
     "furnace_blast": {
       "clip": "lazer_attack",
       "duration": 4.0,
@@ -2159,6 +2168,7 @@
         },
         {
           "type": "hit",
+          "blocked_by_barrier": true,
           "at": 2.55,
           "once": true,
           "height": 5.0,
@@ -2194,6 +2204,7 @@
         },
         {
           "type": "hit",
+          "blocked_by_barrier": true,
           "at": 3.05,
           "once": true,
           "height": 5.0,
@@ -2234,7 +2245,7 @@
           "origin": "locked",
           "up": 1.85,
           "windup": 1.3,
-          "duration": 2.35,
+          "duration": 1.8,
           "height": 2.4,
           "color": "#E64A19",
           "secondary_color": "#FFD166"
@@ -2247,6 +2258,17 @@
             "pitch": 0.58,
             "volume": 2.8
           }
+        },
+        {
+          "type": "vfx",
+          "at": 3.05,
+          "kind": "cinder_eruption",
+          "origin": "locked",
+          "up": 1.85,
+          "duration": 0.55,
+          "height": 2.4,
+          "color": "#E64A19",
+          "secondary_color": "#FFD166"
         },
         {
           "type": "fx",
@@ -2309,6 +2331,7 @@
         },
         {
           "type": "hit",
+          "blocked_by_barrier": true,
           "at": 2.55,
           "rotate": 0.0,
           "height": 5.0,
@@ -2367,6 +2390,7 @@
         },
         {
           "type": "hit",
+          "blocked_by_barrier": true,
           "at": 3.55,
           "rotate": 30.0,
           "turn_body": true,

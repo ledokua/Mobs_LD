@@ -21,8 +21,19 @@
           "type": "hit",
           "at": 0.55,
           "shape": { "type": "cone", "radius": 2.7, "angle": 110 },
-          "telegraph": { "from": 0.25, "style": "sweep", "color": "#E76E28" },
+          "telegraph": { "show": false, "from": 0.25 },
           "hit": { "amount": 6.0, "knockback": 0.35 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.25,
+          "kind": "slash_arc",
+          "origin": "locked",
+          "windup": 0.3,
+          "duration": 0.65,
+          "height": 0.85,
+          "color": "#DE4F23",
+          "secondary_color": "#FFBC65"
         },
         {
           "type": "fx",
@@ -44,8 +55,20 @@
           "max_distance": 8.0,
           "height": 1.9,
           "radius": 1.7,
-          "telegraph": { "from": 0.32, "color": "#E96D28" },
+          "telegraph": { "show": false, "from": 0.32 },
           "hit": { "amount": 8.0, "knockback": 0.5 }
+        },
+        {
+          "type": "vfx",
+          "at": 0.32,
+          "kind": "ground_fracture",
+          "origin": "locked",
+          "windup": 0.78,
+          "duration": 1.26,
+          "height": 0.55,
+          "count": 5,
+          "color": "#B9411C",
+          "secondary_color": "#FFB44A"
         },
         {
           "type": "fx",
@@ -70,6 +93,7 @@
           "width": 1.5,
           "on_wall": "stop",
           "on_stop": "roll_recover",
+          "on_barrier": "roll_recover",
           "telegraph": { "from": 0.2, "style": "sweep", "color": "#C74820", "arrow": true },
           "hit": { "amount": 7.0, "knockback": 0.65 }
         },

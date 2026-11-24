@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "mobs_ld:wither_spawn_blast",
-    "mobs_ld:minion_link"
+    "mobs_ld:minion_link",
+    "mobs_ld:amethyst_splinters"
   ]
 }

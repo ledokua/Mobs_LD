@@ -2,9 +2,11 @@ package net.ledok.mobs_ld.registry;
 
 import net.ledok.mobs_ld.MobsLdMod;
 import net.ledok.mobs_ld.effect.AmberMireEffect;
+import net.ledok.mobs_ld.effect.AmethystSplintersEffect;
 import net.ledok.mobs_ld.effect.CharredRootsEffect;
 import net.ledok.mobs_ld.effect.FrenziedBurnEffect;
 import net.ledok.mobs_ld.effect.ProvokeEffect;
+import net.ledok.mobs_ld.effect.SandboundEffect;
 import net.ledok.mobs_ld.effect.StormStaticEffect;
 import net.ledok.mobs_ld.effect.TauntEffect;
 import net.minecraft.core.Holder;
@@ -50,6 +52,9 @@ public final class ModEffects {
             "storm_static",
             new StormStaticEffect()
     );
+    public static final Holder<MobEffect> AMETHYST_SPLINTERS = register("amethyst_splinters", new AmethystSplintersEffect());
+
+    public static final Holder<MobEffect> SANDBOUND = register("sandbound", new SandboundEffect());
 
     private static Holder<MobEffect> register(String name, MobEffect effect) {
         return Registry.registerForHolder(

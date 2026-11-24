@@ -230,7 +230,11 @@ public sealed interface Shape permits Shape.Rectangle, Shape.Cone, Shape.Circle,
 
         /** Lines through the origin (half the normalised, even ray count). */
         private int lines() {
-            return Math.max(1, ((AttackZone.CircleRays) zone()).rayCount() / 2);
+            return rayCount() / 2;
+        }
+
+        public int rayCount() {
+            return ((AttackZone.CircleRays) zone()).rayCount();
         }
 
         @Override

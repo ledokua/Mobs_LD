@@ -110,11 +110,11 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
             scaleMult = switch (style) {
                 case GROW -> displayProgress;
                 // A circle (or ring) has no length to sweep along: it grows instead.
-                case SWEEP -> isCircle(entity) || isRing(entity) ? displayProgress : 1.0F;
+                case SWEEP, FISSURE -> isCircle(entity) || isRing(entity) ? displayProgress : 1.0F;
                 case DEFAULT -> 1.0F;
             };
             sweepProgress = switch (style) {
-                case SWEEP -> progress;
+                case SWEEP, FISSURE -> progress;
                 case GROW, DEFAULT -> 1.0F;
             };
         }
@@ -161,8 +161,25 @@ public class AttackZoneVisualRenderer extends EntityRenderer<AttackZoneVisualEnt
         float backF = offsetForward;
         float frontF = offsetForward + scaledLength;
 
-        fillPixelated(matrix, buffer, color, yaw, -halfWidth, backF, halfWidth, frontF,
-                (x, z) -> true);
+        boolean fissure = entity.getStyle() == AttackDisplayConfig.AnimationStyle.FISSURE.ordinal();
+        if (!fissure) {
+            fillPixelated(matrix, buffer, color, yaw, -halfWidth, backF, halfWidth, frontF, (x, z) -> true);
+            return;
+        }
+        // Mark the complete lane as soon as it locks. The second layer brightens the cracks toward the impact.
+        int edgeColor = color;
+        if (entity.isPreview()) {
+            fillPixelated(matrix, buffer, (color & 0x00FFFFFF) | 0x28000000,
+                    yaw, -halfWidth, backF, halfWidth, frontF, (x, z) -> true);
+            edgeColor = (color & 0x00FFFFFF) | 0x80000000;
+        }
+        fillPixelated(matrix, buffer, edgeColor, yaw, -halfWidth, backF, halfWidth, frontF, (x, z) -> {
+            int row = Mth.floor((z - backF) / PIXEL_SIZE);
+            float inset = row % 7 >= 4 ? PIXEL_SIZE : 0.0F;
+            float edge = Math.max(0.0F, halfWidth - PIXEL_SIZE * 0.5F - inset);
+            return Math.abs(Math.abs(x) - edge) <= PIXEL_SIZE * 0.58F
+                    || row % 7 == 4 && Math.abs(x) > halfWidth - PIXEL_SIZE * 0.75F;
+        });
     }
 
     /**

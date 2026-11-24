@@ -20,6 +20,7 @@ import net.ledok.mobs_ld.client.mob.LdMobClientHooks;
 import net.ledok.mobs_ld.client.mob.LdMobRenderer;
 import net.ledok.mobs_ld.client.renderer.AttackPreviewRenderer;
 import net.ledok.mobs_ld.client.renderer.AttackZoneVisualRenderer;
+import net.ledok.mobs_ld.client.renderer.BladeTrailRenderer;
 import net.ledok.mobs_ld.client.renderer.SandstoneSpikesRenderer;
 import net.ledok.mobs_ld.client.vfx.SpellVfxManager;
 import net.ledok.mobs_ld.client.vfx.SpellVfxRenderer;
@@ -55,6 +56,7 @@ public class MobsLdModClient implements ClientModInitializer {
     public void onInitializeClient() {
         EntityRendererRegistry.register(ModEntities.ATTACK_ZONE_VISUAL, AttackZoneVisualRenderer::new);
         AttackPreviewRenderer.register();
+        BladeTrailRenderer.register();
         SandstoneSpikesRenderer.register();
         MobClientHooks.install(new LdMobClientHooks());
         for (MobDeclaration declaration : MobDeclarations.all()) {

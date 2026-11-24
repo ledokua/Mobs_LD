@@ -50,7 +50,9 @@ public record Telegraph(boolean show, Optional<Double> from, int color, Style st
          * Rectangles and dash strips fill along their length, from the origin toward the far end (and the arrowhead);
          * cones grow their radius. Circles behave as {@code grow}.
          */
-        SWEEP("sweep", AttackDisplayConfig.AnimationStyle.SWEEP);
+        SWEEP("sweep", AttackDisplayConfig.AnimationStyle.SWEEP),
+        /** A rectangle shows a pair of terrain-following cracks that brighten toward the far end. */
+        FISSURE("fissure", AttackDisplayConfig.AnimationStyle.FISSURE);
 
         public static final Codec<Style> CODEC = StringRepresentable.fromEnum(Style::values);
         private final String name;

@@ -37,7 +37,8 @@ public record LeapEvent(double at, double until, double maxDistance, double heig
 
     @Override
     public double begin() {
-        return telegraph.show() ? Math.min(at, telegraph.start(until, DEFAULT_LEAD)) : at;
+        return telegraph.show() || telegraph.from().isPresent()
+                ? Math.min(at, telegraph.start(until, DEFAULT_LEAD)) : at;
     }
 
     @Override
@@ -60,6 +61,7 @@ public record LeapEvent(double at, double until, double maxDistance, double heig
         }
         Vec3 landing = floor.get();
         Shape.Circle impact = new Shape.Circle(radius);
+        run.noteLeap(this, new AbilityRun.HitZone(impact, landing, run.yaw()));
         AbilityRun.Marker marker = telegraph.show() ? run.telegraph(landing, run.yaw(), impact, telegraph, until) : null;
         double duration = until - at;
 
@@ -77,17 +79,15 @@ public record LeapEvent(double at, double until, double maxDistance, double heig
                     launch = mob.position();
                     Vec3 direction = landing.subtract(launch);
                     if (direction.horizontalDistance() > maxDistance + LANDING_TOLERANCE) {
-                        blocked = true;
-                        run.clear(marker);
+                        miss(run);
                         return;
                     }
                     if (direction.horizontalDistanceSqr() > 1.0e-4) {
                         run.setYaw((float) Math.toDegrees(Math.atan2(-direction.x, direction.z)));
                     }
                 } else if (mob.horizontalCollision) {
-                    blocked = true;
                     stop(run);
-                    run.clear(marker);
+                    miss(run);
                     return;
                 }
                 double next = Mth.clamp((now + run.speed() / 20.0 - at) / duration, 0.0, 1.0);
@@ -108,14 +108,22 @@ public record LeapEvent(double at, double until, double maxDistance, double heig
                     }
                     run.flash(marker);
                 } else {
-                    run.clear(marker);
+                    miss(run);
                 }
             }
 
             @Override
             public void cancel(AbilityRun run) {
                 stop(run);
-                run.clear(marker);
+                miss(run);
+            }
+
+            private void miss(AbilityRun run) {
+                if (!blocked) {
+                    blocked = true;
+                    run.clear(marker);
+                    run.missLeap(LeapEvent.this);
+                }
             }
 
             private void stop(AbilityRun run) {

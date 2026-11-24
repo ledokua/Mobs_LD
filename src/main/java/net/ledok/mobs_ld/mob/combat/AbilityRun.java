@@ -9,6 +9,7 @@ import net.ledok.mobs_ld.mob.behaviour.event.AbilityEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.GrabEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.LeapEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
 import net.ledok.mobs_ld.mob.behaviour.event.VulnerableEvent;
@@ -57,12 +58,17 @@ public final class AbilityRun {
      * {@code origin: each_fighter}), for particles drawn along them.
      */
     private final Map<HitEvent, List<HitZone>> hitZones = new IdentityHashMap<>();
+    /** Shortened beam geometry calculated on the impact tick for locked VFX. */
+    private final Map<HitZone, List<BeamLane>> interceptedBeams = new IdentityHashMap<>();
     /** Locked dash geometry (origin, facing, length, width), for {@code vfx} events anchored to a dash. */
     private final Map<DashEvent, DashLock> dashLocks = new IdentityHashMap<>();
     /** Locked grab catch zone (origin, facing, shape), for {@code vfx} events anchored to a grab. */
     private final Map<GrabEvent, HitZone> grabZones = new IdentityHashMap<>();
+    /** Locked landing zones for leaps that can still deal damage. */
+    private final Map<LeapEvent, HitZone> leapLandings = new IdentityHashMap<>();
     /** Total post-armour damage this mob has taken during this ability run (for {@code grab.rescue_damage}). */
     private double damageTaken;
+    private final Map<AbilityEvent, List<Runnable>> lockedVfxCancels = new IdentityHashMap<>();
     /** Victims a {@code once} hit of this run has already struck (see {@link #strikeOnce}). */
     private final Set<UUID> struckOnce = new HashSet<>();
     /** Work left for the end of this tick, once every event due now has run (see {@link #afterEvents}). */
@@ -383,6 +389,14 @@ public final class AbilityRun {
         return hitZones.getOrDefault(event, List.of());
     }
 
+    public void noteInterceptedBeam(HitZone zone, List<BeamLane> lanes) {
+        interceptedBeams.put(zone, lanes);
+    }
+
+    public List<BeamLane> interceptedBeam(HitZone zone) {
+        return interceptedBeams.getOrDefault(zone, List.of());
+    }
+
     /** A {@code dash} event locked its lane: kept for {@link #lockedDash}. */
     public void noteDash(DashEvent event, DashLock lock) {
         dashLocks.put(event, lock);
@@ -403,6 +417,19 @@ public final class AbilityRun {
         return Optional.ofNullable(grabZones.get(event));
     }
 
+    public void noteLeap(LeapEvent event, HitZone landing) {
+        leapLandings.put(event, landing);
+    }
+
+    public Optional<HitZone> lockedLeap(LeapEvent event) {
+        return Optional.ofNullable(leapLandings.get(event));
+    }
+
+    public void missLeap(LeapEvent event) {
+        leapLandings.remove(event);
+        cancelLockedVfx(event);
+    }
+
     /** Records damage dealt to the mob while this ability is running (for {@code grab.rescue_damage}). */
     void noteDamageTaken(double amount) {
         if (amount > 0.0) {
@@ -413,6 +440,17 @@ public final class AbilityRun {
     /** Total damage taken by the mob so far during this ability run. */
     public double damageTaken() {
         return damageTaken;
+    }
+
+    public void onLockedVfxCancel(AbilityEvent event, Runnable callback) {
+        lockedVfxCancels.computeIfAbsent(event, key -> new ArrayList<>()).add(callback);
+    }
+
+    public void cancelLockedVfx(AbilityEvent event) {
+        List<Runnable> callbacks = lockedVfxCancels.remove(event);
+        if (callbacks != null) {
+            callbacks.forEach(Runnable::run);
+        }
     }
 
     /**

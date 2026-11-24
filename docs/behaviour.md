@@ -122,6 +122,7 @@ until the impact; origin and facing are fixed when the telegraph appears, so the
 | `origin` | `self` | `self` (on the mob), `target` (where the aim stood when the telegraph appeared) or `each_fighter`: one zone under each [fighting player](#fighting-players), all locked when the telegraph appears and drawn as one telegraph; anyone inside any of them is hit, once per event even where zones overlap. With nobody fighting yet (a forced test) one zone at the aim |
 | `lead` | - | with `each_fighter` only: each zone goes where its player is heading, this many seconds ahead at their horizontal speed over the last 0.5 s, at most 4 blocks from where they stand. Fighters' positions are only sampled while an ability with such a hit is allowed by the phase and off cooldown, or running (a chained or forced one starts the sampling as it starts, so its first zones go where the players stand); without a trail, and for a player who just joined, where they stand |
 | `once` | false | a victim already struck by another `once` hit of the same ability run is skipped (a line of overlapping circles strikes each player once) |
+| `blocked_by_barrier` | false | a Paladins Barrier hostile to the attacker clips a rectangle or each ray separately at impact. A locked `vfx` on the same beat uses those clipped lanes |
 | `offset` | 0 | push the origin forward along the facing |
 | `side` | 0 | push the origin to the mob's right (draw the telegraph under a one-handed weapon) |
 | `aim_side` | - | re-aim for this beat: the zone is aimed when the telegraph appears, and the body turns into it during the last 0.3 s before `at` (without a telegraph: turns from 0.3 s before `at`) |
@@ -138,7 +139,7 @@ The `telegraph` block (also used by `dash`):
 | `show` | true | false = no flat ground warning drawn. If `from` is also set alongside `show: false`, a `hit` or `dash` still locks its zones / corridor silently at `from` so a paired `vfx` event (`origin: "locked"`) aligns pixel-for-pixel with the server hitbox without spawning any ground telegraph entity |
 | `from` | shortly before the impact | when the warning appears (or when zones / dash lane lock silently when `show: false`) |
 | `color` | `#B01818` | `#RRGGBB`; the impact flash is a brighter shade |
-| `style` | `grow` | how it fills until the impact: `grow` (the whole shape at once, growing from its origin: rectangles widen, circles and cones grow) or `sweep` (rectangles and dash strips fill along their length, from the origin toward the far end; cones grow their radius; circles as `grow`) |
+| `style` | `grow` | `grow` expands the shape from its origin. `sweep` fills lanes along their length and cones along their radius. `fissure` draws a faint rectangular lane and brightens two jagged, terrain-following edges toward its far end. Other shapes use the sweep animation. |
 | `arrow` | false | rectangles (and dash strips) get an arrowhead past their far end, 1.5 times as wide as the rectangle at its base and 0.75 times its width long: a direction marking only, outside the area, nobody standing in it is hit. Other shapes ignore it |
 
 The `hit` block (also used by `trace`, `dash`, `chase` and skulls):
@@ -274,6 +275,7 @@ blade moves fast through body height, 0-1.8 blocks).
 | `push` | `away` | which way `hit`'s knockback shoves: `away` from the body, or `side`: out of the lane on the side the victim stands (dead centre: to the lane's right) |
 | `on_wall` | `stagger` | `stagger` (the behaviour's `stagger` window) or `stop` |
 | `on_stop` | none | follow-up ability when the dash reaches the end of its lane, stops at a wall, or reaches its time limit. The follow-up starts facing down the lane. A stagger takes precedence |
+| `on_barrier` | none | a hostile Paladins Barrier stops the dash on contact and starts this follow-up facing down the lane |
 | `stagger_min_distance` | 4 | a wall only staggers after this much travel; hit sooner, the dash just stops |
 | `telegraph` | shown | the strip (below); `{ "show": false }` for an untelegraphed rush |
 | `hit` | none | applied once to everyone the body meets |
@@ -316,6 +318,8 @@ blade moves fast through body height, 0-1.8 blocks).
 The landing circle locks under the aim when the telegraph appears. The body takes off at `at` and follows an arc
 of `height` blocks above the straight path. The landing is capped at `max_distance` blocks horizontally and
 deals damage at `until` if the mob reaches the ground close to the marked centre. Walls stop the leap.
+A hidden telegraph with `from` still locks the landing at that time. A `vfx` with `origin: "locked"` and
+`at + windup` equal to `until` uses that landing circle. The warning fades if the leap is interrupted or misses.
 
 ### `chase` - homing run that hands over to another ability
 `at`, `clip` (loop played while running), `max_time`, `speed` (blocks per tick; a sprinting player is ~0.28),
@@ -530,8 +534,8 @@ visual out cleanly.
 | field | default | meaning |
 |---|---|---|
 | `at` | required | seconds into the ability when the effect starts (windup start, or impact when `windup: 0`) |
-| `kind` | required | 3D archetype: `slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`, `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`, `root_tendrils`, `cinder_eruption`, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace`, `madness_grasp`, `spear_arc`, `lightning_bolt`, `storm_gale`, `tempest_cyclone`, `thunder_spear_dive`, `storm_nova` |
-| `origin` | `self` | `self` (mob ground position), `target` (locked aim position), or `locked`: binds to every locked `hit` zone, `grab` catch zone, or `dash` corridor whose impact / start lands at `at + windup` (inheriting exact position, facing, and default shape dimensions — including `each_fighter` + `lead` and dynamic dash lengths) |
+| `kind` | required | 3D archetype: `slash_arc`, `lance_lunge`, `sweeping_beam`, `eye_charge`, `meteor_strike`, `magma_fissures`, `nova_dome`, `shockwave_ring`, `flame_wave`, `flame_pillar`, `vortex_slash`, `amber_spire`, `amber_geode_trap`, `ground_fracture`, `shard_spray`, `resonance_ring`, `claw_rake`, `root_tendrils`, `cinder_eruption`, `roll_trail`, `burrow_mound`, `drum_tremor`, `rib_furnace`, `madness_grasp`, `spear_arc`, `lightning_bolt`, `storm_gale`, `tempest_cyclone`, `thunder_spear_dive`, `storm_nova`, `sand_sweep` |
+| `origin` | `self` | `self` (mob ground position), `target` (locked aim position), or `locked` (the `hit` zone, `grab` catch zone, `dash` corridor, or `leap` landing whose impact or start matches `at + windup`). Inherits the locked position, facing and shape dimensions |
 | `windup` | 0 | telegraph / charge phase in ability seconds; impact visual begins at `at + windup` |
 | `duration` | required | total lifetime in ability seconds (must be greater than `windup`) |
 | `color` / `secondary_color` | `#F08C00` / `#FFF3B0` | primary outer flame/energy hex colour and incandescent core/accent colour |
@@ -539,7 +543,7 @@ visual out cleanly.
 | `rotate` | - | degrees added to `lockedYaw` (or the locked zone's facing when `origin: "locked"`) |
 | `radius` / `length` / `width` / `height` / `angle` / `count` | inherited or archetype default | optional geometric overrides (omitted values inherit from the matched locked shape/dash when `origin: "locked"`) |
 | `tilt` | 0 | roll tilt in degrees for `slash_arc` (`0` = horizontal, `90` = vertical overhead cleave) |
-| `reverse` | false | reverses sweep or spin direction (`slash_arc`, `sweeping_beam`, `vortex_slash`) |
+| `reverse` | false | reverses sweep or spin direction (`slash_arc`, `sweeping_beam`, `vortex_slash`, `sand_sweep`) |
 | `particles` | true | whether the client spawns local particles along the 3D spell geometry |
 
 ### `grab` - interactive player grab, hold, rescue break & throw

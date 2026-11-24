@@ -30,6 +30,11 @@ public final class ModDamageTypes {
      */
     public static final ResourceKey<DamageType> MINION_LINK = key("minion_link");
     /**
+     * The ticks of Amethyst Splinters (Gorefist's cleaver wound), caused by the mob that applied it: armour reduces
+     * it (it is in no bypass tag), and the mob's {@code loot_stage:damage_dealt} scales it like its hits.
+     */
+    public static final ResourceKey<DamageType> AMETHYST_SPLINTERS = key("amethyst_splinters");
+    /**
      * Midra's Frenzied Flame sorcery and magma eruptions (beam, burst, flame rain, ground wave, plunge fissures; his
      * physical greatsword strikes stay {@code minecraft:mob_attack}). Armour and Protection reduce it; shields do not
      * block it ({@code #minecraft:bypasses_shield}); Spell Engine evasion can dodge it

@@ -136,7 +136,7 @@ public final class SpellVfxRenderer {
     private static void renderEffect(SpellVfxInstance e, ClientLevel world, PoseStack poseStack, VertexConsumer out,
                                      Vec3 cam, float partialTick, boolean additive) {
         float age = e.ageSeconds(partialTick);
-        if (age > e.duration && !e.isCancelled()) {
+        if (!e.isCancelled() && (age > e.duration || (e.windupOnly && age >= e.windup))) {
             return;
         }
         float cancelMult = e.cancelAlpha(partialTick);
@@ -144,7 +144,7 @@ public final class SpellVfxRenderer {
             return;
         }
 
-        boolean inWindup = e.windup > 0.0F && age < e.windup;
+        boolean inWindup = e.windupOnly || (e.windup > 0.0F && age < e.windup);
         float wp = e.windup > 0.0F ? clamp01(age / e.windup) : 1.0F;
         float activeDuration = Math.max(0.05F, e.duration - e.windup);
         float ap = inWindup ? 0.0F : clamp01((age - e.windup) / activeDuration);
@@ -165,7 +165,7 @@ public final class SpellVfxRenderer {
                 oy = liveEye.y;
                 oz = liveEye.z;
             }
-        } else if (e.kind == SpellVfxKind.CINDER_ERUPTION && e.count <= 1) {
+        } else if (e.kind == SpellVfxKind.CINDER_ERUPTION && e.count <= 1 && !e.lockedBeam) {
             Vec3 liveCore = resolveLiveMarker(e, world, "fx_core", null);
             if (liveCore != null && liveCore.distanceToSqr(e.x, e.y, e.z) <= 16.0) {
                 ox = liveCore.x;
@@ -210,9 +210,25 @@ public final class SpellVfxRenderer {
             case TEMPEST_CYCLONE -> renderTempestCyclone(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
             case THUNDER_SPEAR_DIVE -> renderThunderSpearDive(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
             case STORM_NOVA -> renderStormNova(e, poseStack, out, age, inWindup, wp, ap, cancelMult, additive);
+            case SAND_SWEEP -> renderSandSweep(e, m, out, age, inWindup, ap, cancelMult, additive);
         }
 
         poseStack.popPose();
+    }
+
+    private static void renderSandSweep(SpellVfxInstance e, Matrix4f matrix, VertexConsumer out, float age,
+                                        boolean inWindup, float progress, float cancelAlpha, boolean additive) {
+        if (inWindup || additive) {
+            return;
+        }
+        float half = e.angle * 0.5F;
+        float start = e.reverse ? half : -half;
+        float end = -start;
+        float from = Mth.lerp(easeInQuad(clamp01((progress - 0.12F) / 0.88F)), start, end);
+        float to = Mth.lerp(easeOutQuad(clamp01(progress * 3.0F)), start, end);
+        float fade = (1.0F - progress) * cancelAlpha;
+        drawTaperedSlash(matrix, out, from, to, e.radius * 0.64F, e.radius, e.height - 0.16F, e.height, 20,
+                e.primaryColor, e.secondaryColor, 0.05F * fade, 0.65F * fade, age);
     }
 
     // -------------------------------------------------------------------------
@@ -1784,9 +1800,11 @@ public final class SpellVfxRenderer {
         float punch = easeOutCubic(clamp01(ap * 5.0F));
         float fade = (ap > 0.72F ? 1.0F - easeInQuad((ap - 0.72F) / 0.28F) : 1.0F) * cm;
         float jetLen = len * punch;
+        float shellStart = e.lockedBeam ? Math.min(0.2F, jetLen) : 0.2F;
+        float coreStart = e.lockedBeam ? Math.min(0.15F, jetLen * 0.82F) : 0.15F;
         float coreR = halfW * (rays > 1 ? 0.44F : 0.52F) * (0.85F + 0.15F * Mth.sin(age * 24.0F));
         float ashR = halfW * (rays > 1 ? 0.84F : 0.95F);
-        int chunksPerRay = rays > 1 ? 5 : 12;
+        int chunksPerRay = rays > 1 || e.lockedBeam ? 5 : 12;
 
         for (int ray = 0; ray < rays; ray++) {
             float rayDeg = ray * (360.0F / rays);
@@ -1800,26 +1818,32 @@ public final class SpellVfxRenderer {
             Matrix4f rm = poseStack.last().pose();
             if (!additive) {
                 // Outer billowing volcanic smoke/ash sheath.
-                drawTaperedConeZ(rm, out, 0.0F, 0.0F, 0.2F, jetLen, coreR * 0.85F, ashR * 1.15F, 6,
+                drawTaperedConeZ(rm, out, 0.0F, 0.0F, shellStart, jetLen, coreR * 0.85F, ashR * 1.15F, 6,
                         argb(sootRgb, 0.58F * fade), argb(sootRgb, 0.12F * fade));
                 // Tumbling blocky charcoal & molten slag chunks blasted forward through each jet!
                 for (int i = 0; i < chunksPerRay; i++) {
                     float fp = (age * 2.4F + (i + ray * 0.37F) / chunksPerRay) % 1.0F;
+                    float size = 0.21F * (1.0F - 0.35F * fp);
                     float zPos = 0.6F + fp * (jetLen - 0.6F);
+                    if (e.lockedBeam) {
+                        size = Math.min(size, jetLen * 0.2F);
+                        float margin = size * 1.74F; // a rotated cube can project its half-diagonal onto the ray
+                        zPos = Mth.lerp(fp, Math.max(margin, Math.min(0.6F, jetLen - margin)), jetLen - margin);
+                    }
                     float spread = (0.35F + 0.65F * fp) * halfW;
                     float a = i * 2.15F + ray * 1.1F + age * 4.5F;
                     poseStack.pushPose();
                     poseStack.translate(Mth.cos(a) * spread, Mth.sin(a) * spread * 0.72F, zPos);
                     poseStack.mulPose(Axis.XP.rotationDegrees(age * 240.0F + i * 45.0F));
                     poseStack.mulPose(Axis.YP.rotationDegrees(age * 180.0F + i * 33.0F));
-                    drawBlockyCube(poseStack.last().pose(), out, 0.21F * (1.0F - 0.35F * fp),
+                    drawBlockyCube(poseStack.last().pose(), out, size,
                             (i % 3 == 0) ? e.secondaryColor : ((i % 2 == 0) ? e.primaryColor : sootRgb), 0.88F * fade);
                     poseStack.popPose();
                 }
             } else {
-                drawTaperedConeZ(rm, out, 0.0F, 0.0F, 0.15F, jetLen, coreR * 0.52F, coreR * 0.90F, 6,
+                drawTaperedConeZ(rm, out, 0.0F, 0.0F, coreStart, jetLen, coreR * 0.52F, coreR * 0.90F, 6,
                         argb(e.secondaryColor, 0.78F * fade), argb(e.primaryColor, 0.10F * fade));
-                drawTaperedConeZ(rm, out, 0.0F, 0.0F, 0.15F, jetLen * 0.82F, coreR * 0.25F, coreR * 0.32F, 4,
+                drawTaperedConeZ(rm, out, 0.0F, 0.0F, coreStart, jetLen * 0.82F, coreR * 0.25F, coreR * 0.32F, 4,
                         argb(0xFFF6D4, 0.84F * fade), argb(e.secondaryColor, 0.05F * fade));
             }
             poseStack.popPose();

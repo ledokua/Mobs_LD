@@ -35,6 +35,8 @@ final class SpellVfxInstance {
     final int count;
     final boolean reverse;
     final boolean particles;
+    final boolean windupOnly;
+    final boolean lockedBeam;
 
     private int ageTicks;
     private int cancelFadeTicks = -1;
@@ -51,9 +53,11 @@ final class SpellVfxInstance {
         this.primaryColor = payload.primaryColor();
         this.secondaryColor = payload.secondaryColor();
         this.windup = Math.max(0.0F, payload.windupSeconds());
-        this.duration = Math.max(this.windup + 0.05F, payload.durationSeconds());
+        this.windupOnly = payload.windupOnly();
+        this.lockedBeam = payload.lockedBeam();
+        this.duration = windupOnly ? this.windup : Math.max(this.windup + 0.05F, payload.durationSeconds());
         this.radius = Math.max(0.1F, payload.radius());
-        this.length = Math.max(0.1F, payload.length());
+        this.length = lockedBeam ? payload.length() : Math.max(0.1F, payload.length());
         this.width = Math.max(0.0F, payload.width());
         this.height = Math.max(0.1F, payload.height());
         this.angle = Mth.clamp(payload.angle(), 1.0F, 360.0F);
@@ -96,6 +100,9 @@ final class SpellVfxInstance {
         }
 
         float elapsed = ageTicks / 20.0F;
+        if (windupOnly && elapsed >= windup) {
+            return false;
+        }
         // If the caster dies or vanishes during windup, fade out cleanly rather than detonating an orphan spell.
         if (windup > 0.0F && elapsed < windup && sourceEntityId >= 0) {
             Entity source = level.getEntity(sourceEntityId);
@@ -485,7 +492,7 @@ final class SpellVfxInstance {
                                 0.0, 0.04, 0.0);
                     }
                 } else if (ap < 0.85F) {
-                    int total = rays > 1 ? Math.min(rays * 2, 10) : 5;
+                    int total = lockedBeam ? 2 : rays > 1 ? Math.min(rays * 2, 10) : 5;
                     for (int i = 0; i < total; i++) {
                         int ray = i % rays;
                         double rRad = Math.toRadians(yaw + ray * (360.0 / rays));
@@ -493,12 +500,14 @@ final class SpellVfxInstance {
                         double rfz = Math.cos(rRad);
                         double rrx = -Math.cos(rRad);
                         double rrz = -Math.sin(rRad);
-                        double d = 0.8 + rand.nextDouble() * (length - 0.8);
+                        double start = Math.min(0.8, length);
+                        double d = start + rand.nextDouble() * (length - start);
                         double s = (rand.nextDouble() - 0.5) * width * 0.75;
+                        double velocity = lockedBeam ? 0.0 : 0.18;
                         double py = y - 0.22 - d * Math.sin(Math.toRadians(1.6)) + (rand.nextDouble() - 0.5) * 0.75;
                         level.addParticle(i == 0 ? ParticleTypes.LAVA : (i % 2 == 0 ? ParticleTypes.FLAME : ParticleTypes.SMOKE),
                                 x + rfx * d + rrx * s, py, z + rfz * d + rrz * s,
-                                rfx * 0.18, 0.06, rfz * 0.18);
+                                rfx * velocity, 0.06, rfz * velocity);
                     }
                 }
             }

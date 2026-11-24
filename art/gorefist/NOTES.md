@@ -3,6 +3,9 @@
 Status: **blockout v4** (2026-10-20): look C (deepslate + amethyst), blade thinned to 4 units, phase-2 amethyst
 shell as real geometry grown by `enrage`. 15 clips. Textures: Minecraft-style pass (see below). Full concept: `concept.md`.
 
+Visual polish adds violet trails on the live cleaver markers, deepslate fissures for the overhead chop and combo
+finisher, and amethyst chips as the enrage shell retracts. The horizontal sweep applies Amethyst Splinters.
+
 ## Model
 - Hitbox: **2.5 × 4.0** blocks (width × height). Eye height ≈ 3.4 blocks (head pivot at y = 50/16).
 - Visual extent: x −35 … +20 (the arm overhangs ~0.9 block to the creature's right), 60 units tall, z −31 … +12

@@ -2,10 +2,13 @@ package net.ledok.mobs_ld.client.mob;
 
 import com.mojang.logging.LogUtils;
 import net.ledok.mobs_ld.client.ScreenShake;
+import net.ledok.mobs_ld.client.renderer.BladeTrailRenderer;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.ledok.mobs_ld.mob.MobClientHooks;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
@@ -89,8 +92,11 @@ public final class LdMobClientHooks implements MobClientHooks {
             return;
         }
         ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
-        if (!(type instanceof ParticleOptions options)) {
-            warnOnce("particle " + id, "Particle keyframe {} on {} is not a simple particle type", id, mob.getType());
+        ParticleScript script = ParticleScript.parse(event.getKeyframeData().script());
+        ParticleOptions options = particleOptions(type, script);
+        if (options == null) {
+            warnOnce("particle " + id + script.block(), "Invalid particle keyframe {} on {} (block particles need a block id)",
+                    id, mob.getType());
             return;
         }
         String locator = event.getKeyframeData().getLocator();
@@ -98,7 +104,6 @@ public final class LdMobClientHooks implements MobClientHooks {
         if (at == null) {
             at = mob.position().add(0.0, mob.getBbHeight() * 0.5, 0.0);
         }
-        ParticleScript script = ParticleScript.parse(event.getKeyframeData().script());
         for (int i = 0; i < script.count(); i++) {
             double ox = (mob.getRandom().nextDouble() * 2.0 - 1.0) * script.spread();
             double oy = mob.getRandom().nextDouble() * script.spreadY(); // upward only: impacts stay on the floor
@@ -108,6 +113,18 @@ public final class LdMobClientHooks implements MobClientHooks {
             double vz = mob.getRandom().nextGaussian() * script.speed();
             mob.level().addParticle(options, at.x + ox, at.y + oy, at.z + oz, vx, vy, vz);
         }
+    }
+
+    private static ParticleOptions particleOptions(ParticleType<?> type, ParticleScript script) {
+        if (type instanceof ParticleOptions options) {
+            return options;
+        }
+        ResourceLocation block = script.block();
+        if (type == ParticleTypes.BLOCK && block != null) {
+            return BuiltInRegistries.BLOCK.getOptional(block)
+                    .map(value -> new BlockParticleOption(ParticleTypes.BLOCK, value.defaultBlockState())).orElse(null);
+        }
+        return null;
     }
 
     @Override
@@ -125,6 +142,17 @@ public final class LdMobClientHooks implements MobClientHooks {
                     ScreenShake.shakeAt(mob.getX(), mob.getY(), mob.getZ(), Float.parseFloat(args[1]), Double.parseDouble(args[2]));
                 } catch (NumberFormatException e) {
                     warnOnce("instruction " + line, "Bad shake instruction '{}' on {}", line.trim(), mob.getType());
+                }
+            } else if (args[0].equals("blade_trail") && args.length == 5) {
+                try {
+                    double duration = Double.parseDouble(args[3]);
+                    int color = Integer.parseInt(args[4], 16) & 0xFFFFFF;
+                    if (Double.isFinite(duration) && duration > 0.0 && duration <= 2.0) {
+                        double ticks = duration * 20.0 / Math.max(0.1, event.getController().getAnimationSpeed());
+                        BladeTrailRenderer.start(mob, args[1], args[2], ticks, color);
+                    }
+                } catch (NumberFormatException e) {
+                    warnOnce("instruction " + line, "Bad blade trail instruction '{}' on {}", line.trim(), mob.getType());
                 }
             } else {
                 warnOnce("instruction " + args[0], "Unknown animation instruction '{}' on {}", line.trim(), mob.getType());
@@ -155,8 +183,8 @@ public final class LdMobClientHooks implements MobClientHooks {
      * to burst, how far around the anchor horizontally and upward (blocks), and how fast. Defaults: one still
      * particle at the anchor.
      */
-    record ParticleScript(int count, double spread, double spreadY, double speed) {
-        static final ParticleScript DEFAULT = new ParticleScript(1, 0.0, 0.0, 0.0);
+    record ParticleScript(int count, double spread, double spreadY, double speed, ResourceLocation block) {
+        static final ParticleScript DEFAULT = new ParticleScript(1, 0.0, 0.0, 0.0, null);
 
         static ParticleScript parse(String script) {
             if (script == null || script.isBlank()) {
@@ -166,6 +194,7 @@ public final class LdMobClientHooks implements MobClientHooks {
             double spread = DEFAULT.spread;
             double spreadY = DEFAULT.spreadY;
             double speed = DEFAULT.speed;
+            ResourceLocation block = null;
             for (String part : script.split("[;\\n]")) {
                 String[] kv = part.split("=", 2);
                 if (kv.length != 2) {
@@ -177,6 +206,7 @@ public final class LdMobClientHooks implements MobClientHooks {
                         case "spread" -> spread = Math.max(0.0, Double.parseDouble(kv[1].trim()));
                         case "spread_y" -> spreadY = Math.max(0.0, Double.parseDouble(kv[1].trim()));
                         case "speed" -> speed = Math.max(0.0, Double.parseDouble(kv[1].trim()));
+                        case "block" -> block = ResourceLocation.tryParse(kv[1].trim());
                         default -> {
                         }
                     }
@@ -184,7 +214,7 @@ public final class LdMobClientHooks implements MobClientHooks {
                     // keep the default for a malformed value
                 }
             }
-            return new ParticleScript(count, spread, spreadY, speed);
+            return new ParticleScript(count, spread, spreadY, speed, block);
         }
     }
 }
