@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.ledok.mobs_ld.client.mob.HitTrackBaker;
 import net.ledok.mobs_ld.mob.LdMob;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.SkeletonRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -55,6 +56,7 @@ public class MobsLdModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityRendererRegistry.register(ModEntities.ATTACK_ZONE_VISUAL, AttackZoneVisualRenderer::new);
+        EntityRendererRegistry.register(ModEntities.DUNGEON_SKELETON, SkeletonRenderer::new);
         AttackPreviewRenderer.register();
         BladeTrailRenderer.register();
         SandstoneSpikesRenderer.register();

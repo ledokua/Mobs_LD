@@ -14,6 +14,7 @@ import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
 import net.ledok.mobs_ld.mob.behaviour.event.HoverEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.LeapEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SandstoneSpikesEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.ShootEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.SummonerWardEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.Telegraph;
@@ -113,6 +114,19 @@ class ShippedBehavioursTest {
         load("/data/mobs_ld/mob_behaviour/storm_rod.json");
         load("/data/mobs_ld/mob_behaviour/kiln_sprout.json");
         load("/data/mobs_ld/mob_behaviour/cinder_runt.json");
+    }
+
+    @Test
+    void dungeonSkeletonHasAVisibleBowWindup() throws Exception {
+        MobBehaviour behaviour = load("/data/mobs_ld/mob_behaviour/dungeon_skeleton.json");
+        assertEquals(MobBehaviour.Movement.Style.KITE, behaviour.movement().style());
+        MobBehaviour.Ability aimedShot = behaviour.abilities().get("aimed_shot");
+        ShootEvent shot = (ShootEvent) aimedShot.events().getFirst();
+        assertEquals(ResourceLocation.withDefaultNamespace("arrow"), shot.projectile());
+        assertTrue(shot.telegraph().show());
+        assertEquals(0.3, shot.begin(), 1.0e-9);
+        assertEquals(1.0, shot.at(), 1.0e-9);
+        assertTrue(shot.end() < aimedShot.duration());
     }
 
     @Test

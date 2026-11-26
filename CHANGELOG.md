@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Scripted skeleton shots now draw and release the bow. The Dungeon Skeleton uses the same aimed shot with
+  combat-only movement, daylight immunity and its original form in powder snow.
 - All eight bosses hold position briefly after attack sequences. Wither stays closer to sword height, and
   hazards at bosses' feet clear sooner.
 - With Paladins installed, its Barrier stops Emberroot and Cinder Runt rolls and clips each furnace beam at impact.

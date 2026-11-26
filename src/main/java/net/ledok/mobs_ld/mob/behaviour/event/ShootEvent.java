@@ -14,13 +14,17 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -47,6 +51,8 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
                          Telegraph telegraph) implements AbilityEvent {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<ResourceLocation> WARNED = new HashSet<>();
+    private static final ResourceLocation ARROW = ResourceLocation.withDefaultNamespace("arrow");
+    private static final ResourceLocation SPECTRAL_ARROW = ResourceLocation.withDefaultNamespace("spectral_arrow");
     private static final double DEFAULT_LEAD = 0.8;
     private static final Telegraph DEFAULT_TELEGRAPH = new Telegraph(true, Optional.empty(), Telegraph.DEFAULT_COLOR,
             Telegraph.Style.SWEEP, true);
@@ -83,6 +89,12 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
     @Override
     public Instance start(AbilityRun run) {
         Mob mob = run.mob();
+        if (mob.getType() == EntityType.SKELETON && (projectile.equals(ARROW) || projectile.equals(SPECTRAL_ARROW))
+                && mob.getMainHandItem().isEmpty() && !mob.getOffhandItem().is(Items.BOW)) {
+            // Arena spawners can construct a skeleton without running its usual equipment setup.
+            mob.setItemSlot(EquipmentSlot.MAINHAND, Items.BOW.getDefaultInstance());
+            mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+        }
         Vec3 from = mob.getEyePosition();
         LivingEntity target = run.aim();
         Vec3 point = target != null && target.isAlive() ? Skulls.aimPoint(target) : run.aimPosition().add(0.0, 1.0, 0.0);
@@ -102,10 +114,27 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
         AbilityRun.Marker drawn = marker;
         return new Instance() {
             private int fired;
+            private boolean drawingBow;
 
             @Override
             public void tick(AbilityRun run) {
+                if (fired < shots && run.seconds() < at + fired * interval) {
+                    // The vanilla bow goal normally syncs these two flags. The scripted shot owns the windup here.
+                    if (!drawingBow && mob instanceof AbstractSkeleton && mob.getMainHandItem().is(Items.BOW)
+                            && !mob.isUsingItem()) {
+                        mob.startUsingItem(InteractionHand.MAIN_HAND);
+                        mob.setAggressive(true);
+                        drawingBow = true;
+                    }
+                    if (drawingBow) {
+                        mob.getLookControl().setLookAt(point);
+                    }
+                }
                 while (fired < shots && run.seconds() >= at + fired * interval) {
+                    if (drawingBow) {
+                        lowerBow();
+                        mob.swing(InteractionHand.MAIN_HAND);
+                    }
                     fire(run, from, direction, fired++);
                     if (fired == 1) {
                         run.flash(drawn);
@@ -120,7 +149,16 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
 
             @Override
             public void cancel(AbilityRun run) {
+                lowerBow();
                 run.clear(drawn);
+            }
+
+            private void lowerBow() {
+                if (drawingBow) {
+                    mob.stopUsingItem();
+                    mob.setAggressive(false);
+                    drawingBow = false;
+                }
             }
         };
     }

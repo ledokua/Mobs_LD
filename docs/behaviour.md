@@ -622,8 +622,10 @@ lines swept around the mob one after another.
 
 The line locks when its telegraph appears: from the mob's eyes to the middle of the aim's body as it stands then. The
 shot flies exactly down it, so stepping off the line dodges it. The projectile deals its own damage with the mob as
-its owner (`loot_stage:damage_dealt`, attack profiles, threat and kill credit all count it as the mob's); a blaze's
-small fireball still sets on fire. On a vanilla host there is no draw animation, so the line is the warning.
+its owner (`loot_stage:damage_dealt`, attack profiles, threat and kill credit all count it as the mob's). A blaze's
+small fireball still sets targets on fire. Skeletons holding a bow in their main hand draw it at the start of the warning
+and release it when the shot fires. A vanilla skeleton without a weapon receives a bow when it starts a scripted
+arrow attack, including skeletons created by dungeon spawners.
 
 ## Target slots
 
@@ -802,6 +804,15 @@ vanilla AI. Everything above works the same, except:
   with `only_tagged` may not have `base_attributes` (it is refused at reload): those are set while the mob is being
   built, before it carries any tag, so they would reach every mob of the type. Declare the numbers' base in
   `reference_attributes` instead and let the spawner set the stats.
+
+### Dungeon Skeleton
+
+`mobs_ld:dungeon_skeleton` uses the vanilla skeleton model, bow pose and sounds. It spawns with a bow and uses a
+data-driven aimed shot with a dodgeable lane. Its goals handle combat movement, targeting and swimming. It can fight
+in daylight and keeps its entity type in powder snow.
+
+Use the Dungeon Skeleton spawn egg or `/summon mobs_ld:dungeon_skeleton`. Dungeon spawners can use the same entity ID.
+Tune its shot in `data/mobs_ld/mob_behaviour/dungeon_skeleton.json`.
 
 ### The Wither (`data/minecraft/mob_behaviour/wither.json`)
 

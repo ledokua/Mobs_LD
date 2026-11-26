@@ -1,0 +1,26 @@
+{
+  "base_attributes": {
+    "minecraft:generic.follow_range": 24.0
+  },
+  "movement": { "style": "kite", "distance": 9 },
+  "global_cooldown": 0.4,
+  "abilities": {
+    "aimed_shot": {
+      "duration": 1.6,
+      "cooldown": [1.0, 1.6],
+      "weight": 1,
+      "range": { "min": 2, "max": 20 },
+      "events": [
+        {
+          "type": "shoot",
+          "at": 1.0,
+          "projectile": "minecraft:arrow",
+          "speed": 1.8,
+          "width": 0.7,
+          "range": 24,
+          "telegraph": { "from": 0.3, "color": "#D0D0D0" }
+        }
+      ]
+    }
+  }
+}
