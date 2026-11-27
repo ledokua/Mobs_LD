@@ -239,7 +239,7 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(withEffects(new AnimationController<>(this, "base", 5, this::baseState)
+        controllers.add(withEffects(new BaseAnimationController(this)
                 .setAnimationSpeedHandler(mob -> mob.walking ? MobClientHooks.get().walkSpeed(mob) : 1.0)));
         controllers.add(new AnimationController<>(this, "hurt", 1, this::hurtState));
         // No blend-in on the action layer: GeckoLib eases bones into a new clip over the transition but fires its
@@ -264,7 +264,37 @@ public class LdMob extends Monster implements GeoEntity, CombatHost {
         if (clip == null) {
             return PlayState.STOP;
         }
-        return state.setAndContinue(LOOPS.computeIfAbsent(clip, name -> RawAnimation.begin().thenLoop(name)));
+        return state.setAndContinue(LOOPS.computeIfAbsent(clip,
+                name -> RawAnimation.begin().then(name, BaseAnimationController.LOOP)));
+    }
+
+    private static final class BaseAnimationController extends AnimationController<LdMob> {
+        private static final Animation.LoopType LOOP = (mob, controller, animation) -> {
+            if (controller instanceof BaseAnimationController base && !base.animatable.walking) {
+                base.idleLength = animation.length();
+            }
+            return true;
+        };
+
+        private double idleLength;
+
+        private BaseAnimationController(LdMob mob) {
+            super(mob, "base", 5, mob::baseState);
+        }
+
+        @Override
+        protected double adjustTick(double tick) {
+            if (shouldResetTick && idleLength > 0) {
+                // GeckoLib resets the clock to the current frame on a loop. Keep the fraction of a tick
+                // already spent in the next cycle so the idle pose doesn't hitch at the seam.
+                double elapsedInNextCycle = (tick - tickOffset) % idleLength;
+                idleLength = 0;
+                super.adjustTick(tick);
+                tickOffset -= elapsedInNextCycle;
+                return elapsedInNextCycle;
+            }
+            return super.adjustTick(tick);
+        }
     }
 
     /** The walk loop, or the run loop for mobs that only have one. */

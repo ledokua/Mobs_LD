@@ -23,6 +23,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
@@ -31,6 +32,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,13 +44,14 @@ import java.util.Set;
  * it stands then, drawn on the floor as a {@code width}-wide strip with an arrowhead, {@code distance + overshoot}
  * long (at most {@code range}), cut where the shot's path would first meet a block. At {@code at} the shot flies down exactly that line at a constant {@code speed}
  * (arrows without gravity unless {@code gravity}), so a player who steps off the line dodges it; {@code shots} shots
- * go {@code interval} seconds apart, all along the same line. The projectile does its own damage (an arrow's
+ * go {@code interval} seconds apart. A {@code fan} gives each shot several lanes released together.
+ * The projectile does its own damage (an arrow's
  * {@code damage} sets its base damage), with the mob as its owner, so damage_dealt, attack profiles and threat count
  * it as the mob's.
  */
 public record ShootEvent(double at, ResourceLocation projectile, double speed, int shots, double interval,
                          double width, double range, double overshoot, Optional<Double> damage, boolean gravity,
-                         Telegraph telegraph) implements AbilityEvent {
+                         Telegraph telegraph, Optional<Fan> fan, List<HitSpec.EffectSpec> effects) implements AbilityEvent {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Set<ResourceLocation> WARNED = new HashSet<>();
     private static final ResourceLocation ARROW = ResourceLocation.withDefaultNamespace("arrow");
@@ -68,8 +71,30 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
             Codec.doubleRange(0.0, 32.0).optionalFieldOf("overshoot", 2.0).forGetter(ShootEvent::overshoot),
             Codec.doubleRange(0.0, 1000.0).optionalFieldOf("damage").forGetter(ShootEvent::damage),
             Codec.BOOL.optionalFieldOf("gravity", false).forGetter(ShootEvent::gravity),
-            Telegraph.CODEC.optionalFieldOf("telegraph", DEFAULT_TELEGRAPH).forGetter(ShootEvent::telegraph)
+            Telegraph.CODEC.optionalFieldOf("telegraph", DEFAULT_TELEGRAPH).forGetter(ShootEvent::telegraph),
+            Fan.CODEC.optionalFieldOf("fan").forGetter(ShootEvent::fan),
+            HitSpec.EffectSpec.CODEC.listOf().optionalFieldOf("effects", List.of()).forGetter(ShootEvent::effects)
     ).apply(i, ShootEvent::new));
+
+    /** Equally spaced horizontal headings over the total arc, using the original shot's pitch. */
+    public record Fan(int count, double angle) {
+        public static final Codec<Fan> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(2, 9).fieldOf("count").forGetter(Fan::count),
+                Codec.doubleRange(0.1, 120.0).fieldOf("angle").forGetter(Fan::angle)
+        ).apply(i, Fan::new));
+
+        List<Lane> lanes(Vec3 direction, float yaw) {
+            List<Lane> lanes = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                float offset = (float) (angle * ((double) i / (count - 1) - 0.5));
+                lanes.add(new Lane(direction.yRot((float) -Math.toRadians(offset)), yaw + offset));
+            }
+            return lanes;
+        }
+    }
+
+    record Lane(Vec3 direction, float yaw) {
+    }
 
     @Override
     public String type() {
@@ -89,9 +114,10 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
     @Override
     public Instance start(AbilityRun run) {
         Mob mob = run.mob();
-        if (mob.getType() == EntityType.SKELETON && (projectile.equals(ARROW) || projectile.equals(SPECTRAL_ARROW))
+        if ((mob.getType() == EntityType.SKELETON || mob.getType() == EntityType.BOGGED)
+                && (projectile.equals(ARROW) || projectile.equals(SPECTRAL_ARROW))
                 && mob.getMainHandItem().isEmpty() && !mob.getOffhandItem().is(Items.BOW)) {
-            // Arena spawners can construct a skeleton without running its usual equipment setup.
+            // Arena spawners can construct an archer without running its usual equipment setup.
             mob.setItemSlot(EquipmentSlot.MAINHAND, Items.BOW.getDefaultInstance());
             mob.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
         }
@@ -103,13 +129,18 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
         float yaw = toward.horizontalDistanceSqr() < 1.0e-6 ? run.yaw()
                 : (float) Math.toDegrees(Math.atan2(-toward.x, toward.z));
         run.steer(yaw);
+        List<Lane> lanes = fan.map(pattern -> pattern.lanes(direction, yaw))
+                .orElseGet(() -> List.of(new Lane(direction, yaw)));
         AbilityRun.Marker marker = null;
         if (telegraph.show()) {
-            double length = laneLength(mob, from, toward, direction);
-            run.combat().trace(String.format("%s: line %.1f blocks", run.name(), length));
-            Shape lane = new Shape.Rectangle(width, length, 0.0);
-            marker = run.telegraph(List.of(AbilityRun.zoneOf(run.groundAt(mob.position()), yaw, lane, telegraph)),
-                    telegraph, at);
+            Vec3 ground = run.groundAt(mob.position());
+            List<AbilityRun.Zone> zones = new ArrayList<>(lanes.size());
+            for (Lane lane : lanes) {
+                double length = laneLength(mob, from, toward, lane.direction());
+                Shape shape = new Shape.Rectangle(width, length, 0.0);
+                zones.add(AbilityRun.zoneOf(ground, lane.yaw(), shape, telegraph));
+            }
+            marker = run.telegraph(zones, telegraph, at);
         }
         AbilityRun.Marker drawn = marker;
         return new Instance() {
@@ -135,7 +166,7 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
                         lowerBow();
                         mob.swing(InteractionHand.MAIN_HAND);
                     }
-                    fire(run, from, direction, fired++);
+                    fire(run, from, lanes, fired++);
                     if (fired == 1) {
                         run.flash(drawn);
                     }
@@ -184,23 +215,36 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
         return Math.max(1.0, reach);
     }
 
-    /** One shot from the locked muzzle down the locked line, inside the mob's tick. */
-    private void fire(AbilityRun run, Vec3 from, Vec3 direction, int shot) {
+    /** One shot or fan from the locked muzzle, all in the same mob tick. */
+    private void fire(AbilityRun run, Vec3 from, List<Lane> lanes, int shot) {
         Mob mob = run.mob();
         ServerLevel level = run.level();
         EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(projectile).orElse(null);
-        Entity entity = type == null ? null : type.create(level);
-        if (!(entity instanceof Projectile shotEntity)) {
-            if (entity != null) {
-                entity.discard();
-            }
-            synchronized (WARNED) {
-                if (WARNED.add(projectile)) {
-                    LOGGER.warn("shoot event: {} is not a projectile entity; nothing is fired", projectile);
+        boolean first = true;
+        for (Lane lane : lanes) {
+            Entity entity = type == null ? null : type.create(level);
+            if (!(entity instanceof Projectile shotEntity)) {
+                if (entity != null) {
+                    entity.discard();
                 }
+                synchronized (WARNED) {
+                    if (WARNED.add(projectile)) {
+                        LOGGER.warn("shoot event: {} is not a projectile entity; nothing is fired", projectile);
+                    }
+                }
+                return;
             }
-            return;
+            launch(mob, from, lane.direction(), shotEntity);
+            if (first) {
+                playShotSound(mob, level, shotEntity);
+                first = false;
+            }
+            level.addFreshEntity(shotEntity);
         }
+        run.combat().trace(String.format("%s: shot %d/%d of %s (%d lanes)", run.name(), shot + 1, shots, projectile, lanes.size()));
+    }
+
+    private void launch(Mob mob, Vec3 from, Vec3 direction, Projectile shotEntity) {
         shotEntity.setOwner(mob);
         shotEntity.moveTo(from.x, from.y, from.z, mob.getYRot(), mob.getXRot());
         shotEntity.shoot(direction.x, direction.y, direction.z, (float) speed, 0.0F);
@@ -208,17 +252,26 @@ public record ShootEvent(double at, ResourceLocation projectile, double speed, i
             arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
             arrow.setNoGravity(!gravity);
             damage.ifPresent(arrow::setBaseDamage);
-            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SoundEvents.SKELETON_SHOOT, SoundSource.HOSTILE,
-                    1.0F, 1.0F / (mob.getRandom().nextFloat() * 0.4F + 0.8F));
+            if (arrow instanceof Arrow tipped) {
+                for (HitSpec.EffectSpec effect : effects) {
+                    effect.instance().ifPresent(tipped::addEffect);
+                }
+            }
         } else if (shotEntity instanceof AbstractHurtingProjectile hurting) {
             // Held at its launch speed against its drag, so it flies the drawn line at a constant pace.
             double inertia = ((HurtingProjectileAccessor) hurting).mobs_ld$inertia();
             hurting.accelerationPower = ProjectileFlight.accelerationPower(speed, inertia);
             hurting.setDeltaMovement(direction.scale(speed));
+        }
+    }
+
+    private static void playShotSound(Mob mob, ServerLevel level, Projectile projectile) {
+        if (projectile instanceof AbstractArrow) {
+            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SoundEvents.SKELETON_SHOOT, SoundSource.HOSTILE,
+                    1.0F, 1.0F / (mob.getRandom().nextFloat() * 0.4F + 0.8F));
+        } else if (projectile instanceof AbstractHurtingProjectile) {
             level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SoundEvents.BLAZE_SHOOT, SoundSource.HOSTILE,
                     1.0F, 1.0F);
         }
-        level.addFreshEntity(shotEntity);
-        run.combat().trace(String.format("%s: shot %d/%d of %s", run.name(), shot + 1, shots, projectile));
     }
 }

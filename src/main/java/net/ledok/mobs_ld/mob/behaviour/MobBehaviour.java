@@ -765,6 +765,17 @@ public record MobBehaviour(
          * The product of the {@code damage_taken} rules that match {@code source}; a rule with {@code while_adds} only
          * while {@code liveAdd} says the mob has a live add of that entity type.
          */
+        /** Whether a {@code while_adds} rule (an add shield) is what takes this source's damage to 0 now. */
+        public boolean shieldedByAdds(DamageSource source, Predicate<ResourceLocation> liveAdd) {
+            for (DamageTaken rule : damageTaken) {
+                if (rule.multiplier() <= 0.0 && rule.whileAdds().isPresent() && rule.kind().matches(source)
+                        && liveAdd.test(rule.whileAdds().get())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public double damageMultiplier(DamageSource source, Predicate<ResourceLocation> liveAdd) {
             double multiplier = 1.0;
             for (DamageTaken rule : damageTaken) {

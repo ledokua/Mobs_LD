@@ -8,6 +8,7 @@ import net.ledok.mobs_ld.mob.MobDeclaration;
 import net.ledok.mobs_ld.mob.behaviour.event.ChainEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.ClipEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.DashEvent;
+import net.ledok.mobs_ld.mob.behaviour.event.DespawnEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.FxEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitEvent;
 import net.ledok.mobs_ld.mob.behaviour.event.HitSpec;
@@ -40,6 +41,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -123,10 +125,70 @@ class ShippedBehavioursTest {
         MobBehaviour.Ability aimedShot = behaviour.abilities().get("aimed_shot");
         ShootEvent shot = (ShootEvent) aimedShot.events().getFirst();
         assertEquals(ResourceLocation.withDefaultNamespace("arrow"), shot.projectile());
+        assertTrue(shot.fan().isEmpty());
+        assertTrue(shot.effects().isEmpty());
         assertTrue(shot.telegraph().show());
         assertEquals(0.3, shot.begin(), 1.0e-9);
         assertEquals(1.0, shot.at(), 1.0e-9);
         assertTrue(shot.end() < aimedShot.duration());
+    }
+
+    @Test
+    void boggedPresetsShareThePoisonVolleyAndGateTheVanillaOverride() throws Exception {
+        MobBehaviour dungeon = load("/data/mobs_ld/mob_behaviour/dungeon_bogged.json");
+        MobBehaviour vanilla = load("/data/minecraft/mob_behaviour/bogged.json");
+        assertTrue(dungeon.host().onlyTagged().isEmpty());
+        assertEquals(List.of("arenas_ld_run_mob"), vanilla.host().onlyTagged());
+
+        MobBehaviour.Ability volley = dungeon.abilities().get("poison_volley");
+        assertEquals(volley, vanilla.abilities().get("poison_volley"));
+        ShootEvent shot = (ShootEvent) volley.events().getFirst();
+        assertEquals(ResourceLocation.withDefaultNamespace("arrow"), shot.projectile());
+        assertEquals(Optional.of(new ShootEvent.Fan(3, 22)), shot.fan());
+        assertEquals(List.of(new HitSpec.EffectSpec(ResourceLocation.withDefaultNamespace("poison"), 5, 0)),
+                shot.effects());
+        assertEquals(1, shot.shots());
+        assertEquals(0.3, shot.begin(), 1.0e-9);
+        assertEquals(1.0, shot.at(), 1.0e-9);
+    }
+
+    @Test
+    void dungeonMeleeMobsHaveTheirOwnTelegraphedAttacks() throws Exception {
+        MobBehaviour.Ability claw = load("/data/mobs_ld/mob_behaviour/dungeon_zombie.json")
+                .abilities().get("raking_claw");
+        assertTrue(claw.events().stream().anyMatch(event -> event instanceof HitEvent hit
+                && hit.shape() instanceof Shape.Cone && hit.telegraph().show()));
+        assertTrue(claw.events().stream().anyMatch(event -> event instanceof FxEvent fx && fx.swing()));
+
+        MobBehaviour.Ability strike = load("/data/mobs_ld/mob_behaviour/dungeon_husk.json")
+                .abilities().get("desiccating_strike");
+        assertTrue(strike.events().stream().anyMatch(event -> event instanceof HitEvent hit
+                && hit.shape() instanceof Shape.Rectangle && hit.telegraph().show()
+                && hit.hit().effects().stream().anyMatch(effect -> effect.id().getPath().equals("hunger"))));
+
+        MobBehaviour.Ability pounce = load("/data/mobs_ld/mob_behaviour/dungeon_spider.json").abilities().get("venom_pounce");
+        LeapEvent leap = (LeapEvent) pounce.events().getFirst();
+        assertTrue(leap.telegraph().show());
+        assertTrue(leap.hit().effects().stream().anyMatch(effect -> effect.id().getPath().equals("poison")));
+    }
+
+    @Test
+    void arenaDungeonCreeperUsesARepeatableBlast() throws Exception {
+        MobBehaviour creeper = load("/data/mobs_ld/mob_behaviour/dungeon_creeper.json");
+        // Every Dungeon Creeper has it: the type has no swell goal, so one without the behaviour would never attack.
+        assertTrue(creeper.host().onlyTagged().isEmpty());
+        assertEquals(1.0, HitSpec.damageScale(2.0, creeper));
+
+        MobBehaviour.Ability blast = creeper.abilities().get("blast");
+        assertEquals(new Seconds(6, 8), blast.cooldown());
+        assertEquals(1.6, blast.duration());
+        HitEvent hit = (HitEvent) blast.events().get(1);
+        assertEquals(new Shape.Circle(3), hit.shape());
+        assertTrue(hit.telegraph().show());
+        assertEquals(0.0, hit.begin());
+        assertEquals(1.0, hit.at());
+        assertEquals(Optional.of(6.0), hit.hit().amount());
+        assertFalse(blast.events().stream().anyMatch(DespawnEvent.class::isInstance));
     }
 
     @Test

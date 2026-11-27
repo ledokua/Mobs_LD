@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -30,7 +31,8 @@ import java.util.Optional;
  * A cue at one moment: a sound, a puff of particles and/or a line of text, all sent from the server (no client code).
  * Text goes to the action bar of every player fighting or near the mob, because Arenas_LD's timed runs hide boss bars.
  */
-public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> particles, Optional<Message> message)
+public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> particles, Optional<Message> message,
+                      boolean swing)
         implements AbilityEvent.Instant {
     /** Players this close to the mob (or on its threat table) see its messages. */
     private static final double MESSAGE_RADIUS = 64.0;
@@ -39,7 +41,8 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
             Codec.DOUBLE.fieldOf("at").forGetter(FxEvent::at),
             Sound.CODEC.optionalFieldOf("sound").forGetter(FxEvent::sound),
             Particles.CODEC.optionalFieldOf("particles").forGetter(FxEvent::particles),
-            Message.CODEC.optionalFieldOf("message").forGetter(FxEvent::message)
+            Message.CODEC.optionalFieldOf("message").forGetter(FxEvent::message),
+            Codec.BOOL.optionalFieldOf("swing", false).forGetter(FxEvent::swing)
     ).apply(i, FxEvent::new));
 
     @Override
@@ -51,6 +54,9 @@ public record FxEvent(double at, Optional<Sound> sound, Optional<Particles> part
     public void fire(AbilityRun run) {
         Mob mob = run.mob();
         ServerLevel level = run.level();
+        if (swing) {
+            mob.swing(InteractionHand.MAIN_HAND);
+        }
         sound.ifPresent(cue -> level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), cue.event(), SoundSource.HOSTILE,
                 cue.volume(), cue.pitch()));
         particles.ifPresent(cue -> {

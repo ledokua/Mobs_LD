@@ -495,7 +495,7 @@ While it runs the heads it names follow `target` instead of their target slots (
 player a rush is aimed at), and those side heads hold their own skull fire; afterwards the slots take them back.
 On a mob with one head, `center` turns its head (the body still faces the ability's aim).
 
-### `fx` - sound, particles, text
+### `fx` - sound, particles, text, hand swing
 ```json
 { "type": "fx", "at": 1.7, "particles": { "id": "minecraft:sonic_boom", "at": "along", "every": 2, "count": 1, "spread": 0 } }
 { "type": "fx", "at": 0.0,
@@ -504,6 +504,7 @@ On a mob with one head, `center` turns its head (the body still faces the abilit
   "message": { "key": "mobs_ld.cue.wither.grave_call", "where": "actionbar" } }
 ```
 All parts are optional and sent from the server (no client mod code).
+- `swing`: plays the mob's native main-hand swing (default false).
 - `sound`: any sound id (`pitch` 1, `volume` 1), played at the mob; an id no mod registers still plays if a resource
   pack defines it.
 - `particles`: a particle type that needs no extra settings; `at` = `self` (middle of the body), `heads` (every head:
@@ -613,19 +614,21 @@ lines swept around the mob one after another.
 | `at` | required | the (first) shot |
 | `projectile` | required | any projectile entity id: `minecraft:arrow`, `minecraft:small_fireball`, `minecraft:fireball`, other mods' |
 | `speed` | 1.6 | blocks per tick, constant (fireballs are held at it against their drag) |
-| `shots` / `interval` | 1 / 0.3 | several shots down the same line, this many seconds apart |
+| `shots` / `interval` | 1 / 0.3 | number of volleys and the seconds between them |
+| `fan` | one lane | `{ "count": 3, "angle": 22 }` warns and fires across three equally spaced lanes. Angle is the total horizontal spread in degrees. Every lane in a volley fires together |
 | `width` | 0.8 | width of the drawn line |
 | `range` / `overshoot` | 24 / 2 | the line runs to the aim and `overshoot` past it, at most `range` long, and stops where the shot's path (a straight ray from the mob's eyes) first meets a block: a low wall under the path does not cut it, a taller wall, a ceiling or the floor where a downward shot lands does |
 | `damage` | the projectile's | arrows only: base damage (vanilla 2; an arrow deals about base x speed) |
+| `effects` | none | effects carried by normal tipped arrows, for example `[{ "id": "minecraft:poison", "duration": 5 }]` |
 | `gravity` | false | arrows fall as usual; off, they fly the drawn line straight |
 | `telegraph` | shown, `sweep`, `arrow` | the line on the ground (see the telegraph block) |
 
 The line locks when its telegraph appears: from the mob's eyes to the middle of the aim's body as it stands then. The
 shot flies exactly down it, so stepping off the line dodges it. The projectile deals its own damage with the mob as
 its owner (`loot_stage:damage_dealt`, attack profiles, threat and kill credit all count it as the mob's). A blaze's
-small fireball still sets targets on fire. Skeletons holding a bow in their main hand draw it at the start of the warning
-and release it when the shot fires. A vanilla skeleton without a weapon receives a bow when it starts a scripted
-arrow attack, including skeletons created by dungeon spawners.
+small fireball still sets targets on fire. Skeletons and Bogged holding a bow in their main hand draw it at the start
+of the warning and release it when the shot fires. A vanilla Skeleton or Bogged without a weapon receives a bow
+when it starts a scripted arrow attack, including mobs created by dungeon spawners.
 
 ## Target slots
 
@@ -805,14 +808,25 @@ vanilla AI. Everything above works the same, except:
   built, before it carries any tag, so they would reach every mob of the type. Declare the numbers' base in
   `reference_attributes` instead and let the spawner set the stats.
 
-### Dungeon Skeleton
+### Dungeon mobs
 
-`mobs_ld:dungeon_skeleton` uses the vanilla skeleton model, bow pose and sounds. It spawns with a bow and uses a
-data-driven aimed shot with a dodgeable lane. Its goals handle combat movement, targeting and swimming. It can fight
-in daylight and keeps its entity type in powder snow.
+These entities use vanilla models and sounds. Their goals handle combat movement, targeting and swimming.
+Use their IDs in dungeon spawners or with `/summon`. Each mob has a spawn egg and a behaviour under
+`data/mobs_ld/mob_behaviour/` matching the entity's name.
 
-Use the Dungeon Skeleton spawn egg or `/summon mobs_ld:dungeon_skeleton`. Dungeon spawners can use the same entity ID.
-Tune its shot in `data/mobs_ld/mob_behaviour/dungeon_skeleton.json`.
+| Entity ID | Attack |
+|---|---|
+| `mobs_ld:dungeon_skeleton` | Aimed bow shot with one warning lane. |
+| `mobs_ld:dungeon_bogged` | Three warning lanes for a 22-degree fan of poison arrows. |
+| `mobs_ld:dungeon_zombie` | Short claw sweep across a marked frontal arc. |
+| `mobs_ld:dungeon_husk` | Straight strike that applies Hunger. |
+| `mobs_ld:dungeon_creeper` | Repeatable three-block blast with a one-second warning and a six-to-eight-second cooldown. Leaves terrain intact. |
+| `mobs_ld:dungeon_spider` | Pounces into a marked circle and poisons targets on landing. |
+
+Vanilla Bogged carrying the Arenas_LD run tag also use the poison volley through
+`data/minecraft/mob_behaviour/bogged.json`.
+The Dungeon Creeper's blast requires the `arenas_ld_run_mob` tag. For manual testing, use
+`/summon mobs_ld:dungeon_creeper ~ ~ ~ {Tags:["arenas_ld_run_mob"]}`.
 
 ### The Wither (`data/minecraft/mob_behaviour/wither.json`)
 

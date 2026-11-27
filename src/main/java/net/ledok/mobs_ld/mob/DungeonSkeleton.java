@@ -5,11 +5,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.AbstractSkeleton;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
@@ -20,14 +16,12 @@ public final class DungeonSkeleton extends AbstractSkeleton {
         if (!level.isClientSide()) {
             setItemSlot(EquipmentSlot.MAINHAND, Items.BOW.getDefaultInstance());
         }
+        setDropChance(EquipmentSlot.MAINHAND, 0.0F); // its loot table is what it drops
     }
 
     @Override
     protected void registerGoals() {
-        goalSelector.addGoal(0, new FloatGoal(this));
-        targetSelector.addGoal(1, new HurtByTargetGoal(this));
-        targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
-        // MobCombatHostMixin installs the combat goal when this entity's behaviour loads.
+        DungeonMobGoals.register(this, goalSelector, targetSelector);
     }
 
     @Override

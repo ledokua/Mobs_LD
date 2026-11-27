@@ -1093,7 +1093,7 @@ public final class MobCombat {
         }
         MobBehaviour.Phase active = activePhase(behaviour);
         if (active != null && active.damageMultiplier(source, this::hasLiveAdd) <= 0.0) {
-            if (mob.level() instanceof ServerLevel level) {
+            if (active.shieldedByAdds(source, this::hasLiveAdd) && mob.level() instanceof ServerLevel level) {
                 long now = level.getGameTime();
                 if (now - lastShieldHintAt >= 15L) {
                     lastShieldHintAt = now;
@@ -1114,11 +1114,11 @@ public final class MobCombat {
         if (behaviour == null) {
             return amount;
         }
-        if (source.is(ModDamageTypes.MINION_LINK)) {
-            return amount;
-        }
         MobBehaviour.Phase active = activePhase(behaviour);
-        double multiplier = active == null ? 1.0 : active.damageMultiplier(source, this::hasLiveAdd);
+        // A minion_link backlash ignores the phase's damage_taken rules (breaking a pillar must crack a shield that
+        // takes x0 from everything else), but still counts vulnerable windows, all_dead exposure and wards.
+        double multiplier = active == null || source.is(ModDamageTypes.MINION_LINK) ? 1.0
+                : active.damageMultiplier(source, this::hasLiveAdd);
         if (current != null) {
             multiplier *= current.damageTakenMultiplier();
         }

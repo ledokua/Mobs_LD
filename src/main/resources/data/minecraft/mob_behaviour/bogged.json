@@ -1,0 +1,26 @@
+{
+  "host": { "only_tagged": ["arenas_ld_run_mob"] },
+  "movement": { "style": "kite", "distance": 9 },
+  "global_cooldown": 0.4,
+  "abilities": {
+    "poison_volley": {
+      "duration": 1.6,
+      "cooldown": [2.6, 3.2],
+      "weight": 1,
+      "range": { "min": 2, "max": 20 },
+      "events": [
+        {
+          "type": "shoot",
+          "at": 1.0,
+          "projectile": "minecraft:arrow",
+          "speed": 1.8,
+          "width": 0.65,
+          "range": 24,
+          "fan": { "count": 3, "angle": 22 },
+          "effects": [{ "id": "minecraft:poison", "duration": 5 }],
+          "telegraph": { "from": 0.3, "color": "#729D39" }
+        }
+      ]
+    }
+  }
+}

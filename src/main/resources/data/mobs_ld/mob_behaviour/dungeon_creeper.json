@@ -1,0 +1,30 @@
+{
+  "reference_attributes": { "minecraft:generic.attack_damage": 2.0 },
+  "movement": { "style": "standoff", "distance": 1.5 },
+  "global_cooldown": 0.5,
+  "abilities": {
+    "blast": {
+      "duration": 1.6,
+      "cooldown": [6, 8],
+      "weight": 1,
+      "range": { "max": 3 },
+      "events": [
+        {
+          "type": "fx", "at": 0.0,
+          "sound": { "id": "minecraft:entity.creeper.primed", "pitch": 1.0 }
+        },
+        {
+          "type": "hit", "at": 1.0,
+          "telegraph": { "from": 0.0, "color": "#4CAF50" },
+          "shape": { "type": "circle", "radius": 3 },
+          "hit": { "amount": 6.0, "knockback": 0.8, "knock_up": 0.3 }
+        },
+        {
+          "type": "fx", "at": 1.0,
+          "sound": { "id": "minecraft:entity.generic.explode", "pitch": 1.4, "volume": 0.8 },
+          "particles": { "id": "minecraft:explosion", "at": "ground", "count": 4, "spread": 1.2 }
+        }
+      ]
+    }
+  }
+}

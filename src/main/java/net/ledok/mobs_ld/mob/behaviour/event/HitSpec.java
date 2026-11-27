@@ -148,9 +148,12 @@ public record HitSpec(Optional<Double> damage, Optional<Double> amount, Optional
                     );
                 }
             }
-            if (knockUp > 0.0 && interactiveScale > 0.0) {
+            // A plain launch keeps the full knockback-resistance rule it always had (the Wither's and Warden's hits);
+            // only hits that also pull or slam use the softened scale, so those mechanics still move heavy players.
+            double upScale = pull > 0.0 || slamDown > 0.0 ? interactiveScale : resist;
+            if (knockUp > 0.0 && upScale > 0.0) {
                 Vec3 motion = victim.getDeltaMovement();
-                victim.setDeltaMovement(motion.x, Math.max(motion.y, knockUp * interactiveScale), motion.z);
+                victim.setDeltaMovement(motion.x, Math.max(motion.y, knockUp * upScale), motion.z);
             }
             if (slamDown > 0.0 && !victim.onGround()) {
                 Vec3 motion = victim.getDeltaMovement();

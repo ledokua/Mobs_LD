@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Fixes from review: the Dungeon Creeper's blast applies to every Dungeon Creeper (not only arena-tagged ones, which
+  left others inert); Dungeon Zombie and Husk spawn as adults without jockeys, random weapons or pumpkins; Dungeon
+  Skeleton and Bogged never drop their bow; Dungeon Spider keeps Mob-level spawn hooks (no effects, no jockey); a plain
+  `knock_up` keeps its old knockback-resistance rule (only pull/slam hits use the softened one); `minion_link` backlash
+  still counts vulnerable windows, exposure and wards; the "destroy the pillars" hint only shows for add shields.
+- Dungeon Bogged and arena-tagged Bogged draw and release three poison arrows along a narrow, telegraphed fan.
+- Added combat-only Dungeon Zombie, Husk, Creeper and Spider with a claw sweep, a hunger strike, a repeatable
+  arena-tagged blast that leaves terrain intact, and a venomous pounce.
+- Idle loops keep their playback time across repeats. Amber Brute's forearms sway smoothly while idle.
 - Scripted skeleton shots now draw and release the bow. The Dungeon Skeleton uses the same aimed shot with
   combat-only movement, daylight immunity and its original form in powder snow.
 - All eight bosses hold position briefly after attack sequences. Wither stays closer to sword height, and

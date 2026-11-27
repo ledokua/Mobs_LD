@@ -1,0 +1,21 @@
+{
+  "movement": { "style": "standoff", "distance": 1.45 },
+  "global_cooldown": 0.55,
+  "abilities": {
+    "raking_claw": {
+      "duration": 1.15,
+      "cooldown": [1.4, 2.0],
+      "range": { "max": 2.2 },
+      "track_until": 0.15,
+      "events": [
+        {
+          "type": "hit", "at": 0.75,
+          "shape": { "type": "cone", "radius": 2.65, "angle": 105 },
+          "telegraph": { "from": 0.15, "color": "#839151" },
+          "hit": { "damage": 1.25, "knockback": 0.25 }
+        },
+        { "type": "fx", "at": 0.65, "swing": true }
+      ]
+    }
+  }
+}

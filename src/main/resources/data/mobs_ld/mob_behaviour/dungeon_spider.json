@@ -1,0 +1,23 @@
+{
+  "movement": { "style": "standoff", "distance": 2.9 },
+  "global_cooldown": 0.6,
+  "abilities": {
+    "venom_pounce": {
+      "duration": 1.45,
+      "cooldown": [2.4, 3.1],
+      "range": { "max": 5.0 },
+      "track_until": 0.15,
+      "events": [
+        {
+          "type": "leap", "at": 0.6, "until": 1.0,
+          "max_distance": 5.0, "height": 0.95, "radius": 1.4,
+          "telegraph": { "from": 0.15, "color": "#879749" },
+          "hit": {
+            "damage": 1.5,
+            "effects": [{ "id": "minecraft:poison", "duration": 3 }]
+          }
+        }
+      ]
+    }
+  }
+}

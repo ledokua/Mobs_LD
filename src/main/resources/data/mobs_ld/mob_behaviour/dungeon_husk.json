@@ -1,0 +1,25 @@
+{
+  "movement": { "style": "standoff", "distance": 1.55 },
+  "global_cooldown": 0.65,
+  "abilities": {
+    "desiccating_strike": {
+      "duration": 1.35,
+      "cooldown": [1.8, 2.4],
+      "range": { "max": 2.4 },
+      "track_until": 0.15,
+      "events": [
+        {
+          "type": "hit", "at": 0.9,
+          "shape": { "type": "rectangle", "width": 1.7, "length": 3.3 },
+          "telegraph": { "from": 0.15, "color": "#C69C60" },
+          "hit": {
+            "damage": 1.45,
+            "knockback": 0.45,
+            "effects": [{ "id": "minecraft:hunger", "duration": 5 }]
+          }
+        },
+        { "type": "fx", "at": 0.8, "swing": true }
+      ]
+    }
+  }
+}
